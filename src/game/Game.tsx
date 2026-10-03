@@ -13,7 +13,9 @@ import { People } from './people/People'
 import { requestLook } from './player/input'
 import { HUD } from './hud/HUD'
 import { Intro } from './hud/Intro'
-import { SelectScreen } from './hud/SelectScreen'
+import { Create } from './hud/Create'
+import { YouCard, Toast } from './hud/YouCard'
+import { Session } from './Session'
 import { Interaction } from './hud/Interaction'
 import { Search } from './hud/Search'
 import { Tracker } from './hud/Tracker'
@@ -64,7 +66,10 @@ export default function Game() {
       <Interaction />
       <Tracker />
       <Search />
-      <SelectScreen />
+      <YouCard />
+      <Create />
+      <Toast />
+      <Session />
       <Intro />
     </div>
   )

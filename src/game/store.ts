@@ -1,19 +1,10 @@
 import { create } from 'zustand'
-import { DEFAULT_CHARACTER, ROSTER } from './characters/roster'
 
-type Phase = 'intro' | 'select' | 'play'
+type Phase = 'intro' | 'create' | 'play'
 
-const SAVED_KEY = 'dob.character'
+export type TrackStage = 'fly' | 'hold' | 'walk' | 'found' | null
 
-function savedCharacter() {
-  try {
-    const id = localStorage.getItem(SAVED_KEY)
-    if (id && ROSTER.some((c) => c.id === id)) return id
-  } catch {
-    // storage unavailable — fall back to default
-  }
-  return DEFAULT_CHARACTER
-}
+type Toast = { msg: string; tone: 'good' | 'info' | 'bad'; id: number } | null
 
 type GameState = {
   phase: Phase
@@ -21,7 +12,6 @@ type GameState = {
   enteredAt: number
   landmark: string
   pointerLocked: boolean
-  characterId: string
   /** Person you're close enough to talk to. */
   focusId: string | null
   /** Person whose profile panel is open. */
@@ -31,12 +21,14 @@ type GameState = {
   trackId: string | null
   trackStage: TrackStage
   trackT0: number
+  toast: Toast
   setReady: () => void
-  startSelect: () => void
   enter: () => void
+  /** Open "become visible" (character creation + profile). */
+  startCreate: () => void
+  endCreate: () => void
   setLandmark: (l: string) => void
   setPointerLocked: (v: boolean) => void
-  setCharacter: (id: string) => void
   setFocus: (id: string | null) => void
   openProfile: (id: string) => void
   closeProfile: () => void
@@ -44,9 +36,12 @@ type GameState = {
   track: (id: string) => void
   setTrackStage: (stage: TrackStage) => void
   stopTracking: () => void
+  showToast: (msg: string, tone?: 'good' | 'info' | 'bad') => void
 }
 
-export type TrackStage = 'fly' | 'hold' | 'walk' | 'found' | null
+const releaseMouse = () => {
+  if (typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock()
+}
 
 export const useGame = create<GameState>((set) => ({
   phase: 'intro',
@@ -54,37 +49,38 @@ export const useGame = create<GameState>((set) => ({
   enteredAt: 0,
   landmark: '5TH BLOCK',
   pointerLocked: false,
-  characterId: typeof window === 'undefined' ? DEFAULT_CHARACTER : savedCharacter(),
   focusId: null,
   openId: null,
   searchOpen: false,
   trackId: null,
   trackStage: null,
   trackT0: 0,
+  toast: null,
+  setReady: () => set({ ready: true }),
+  enter: () => set({ phase: 'play', enteredAt: performance.now() }),
+  startCreate: () => {
+    releaseMouse()
+    set({ phase: 'create', openId: null, searchOpen: false, focusId: null, trackId: null, trackStage: null })
+  },
+  endCreate: () => set({ phase: 'play', enteredAt: performance.now() }),
+  setLandmark: (landmark) => set({ landmark }),
+  setPointerLocked: (pointerLocked) => set({ pointerLocked }),
+  setFocus: (focusId) => set({ focusId }),
+  openProfile: (openId) => {
+    releaseMouse()
+    set({ openId })
+  },
+  closeProfile: () => set({ openId: null }),
   setSearch: (searchOpen) => {
-    if (searchOpen && document.pointerLockElement) document.exitPointerLock()
+    if (searchOpen) releaseMouse()
     set({ searchOpen })
   },
   track: (trackId) => set({ trackId, trackStage: 'fly', trackT0: performance.now(), searchOpen: false, openId: null }),
   setTrackStage: (trackStage) => set({ trackStage, trackT0: performance.now() }),
   stopTracking: () => set({ trackId: null, trackStage: null }),
-  setReady: () => set({ ready: true }),
-  setFocus: (focusId) => set({ focusId }),
-  openProfile: (openId) => {
-    if (document.pointerLockElement) document.exitPointerLock()
-    set({ openId })
-  },
-  closeProfile: () => set({ openId: null }),
-  startSelect: () => set({ phase: 'select' }),
-  enter: () => set({ phase: 'play', enteredAt: performance.now() }),
-  setLandmark: (landmark) => set({ landmark }),
-  setPointerLocked: (pointerLocked) => set({ pointerLocked }),
-  setCharacter: (characterId) => {
-    try {
-      localStorage.setItem(SAVED_KEY, characterId)
-    } catch {
-      // non-critical
-    }
-    set({ characterId })
-  },
+  showToast: (msg, tone = 'info') => set({ toast: { msg, tone, id: Date.now() } }),
 }))
+
+if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
+  ;(window as unknown as { __game?: typeof useGame }).__game = useGame
+}

@@ -2,11 +2,12 @@
 
 import { useEffect } from 'react'
 import { getCharacter } from '../characters/roster'
-import { PEOPLE, type Profile } from '../people/profiles'
+import type { Profile } from '../people/profiles'
+import { getPeople } from '../people/directory'
 import { useGame } from '../store'
 import { isTyping } from '../player/input'
 
-const byId = (id: string | null) => (id ? PEOPLE.find((p) => p.id === id) : undefined)
+const byId = (id: string | null) => (id ? getPeople().find((p) => p.id === id) : undefined)
 
 /** Approach prompt (CLAUDE.md §12): who they are + [E] VIEW PROFILE. */
 function Prompt({ p, onOpen }: { p: Profile; onOpen: () => void }) {
@@ -20,7 +21,8 @@ function Prompt({ p, onOpen }: { p: Profile; onOpen: () => void }) {
         )}
         <span className="prompt-name">{p.name}</span>
         <span className="prompt-role">
-          {p.role} · {p.company}
+          {p.role}
+          {p.company ? ` · ${p.company}` : ''}
         </span>
         <span className="prompt-action">
           <span className="keycap">E</span> VIEW PROFILE
@@ -55,7 +57,7 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
       <div className="pp-inner">
         <div className="pp-top">
           <span className="pp-tag">PROFILE</span>
-          <span className="pp-sample">SAMPLE</span>
+          {p.sample && <span className="pp-sample">SAMPLE</span>}
           <button className="pp-close" onClick={onClose} aria-label="Close profile">
             <span className="keycap">ESC</span>
           </button>
@@ -63,7 +65,13 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
 
         <h2 className="pp-name">{p.name}</h2>
         <div className="pp-role">
-          {p.role} <span>·</span> {p.company}
+          {p.role}
+          {p.company && (
+            <>
+              {' '}
+              <span>·</span> {p.company}
+            </>
+          )}
         </div>
         <div className="pp-loc">
           <span className="pp-pin" /> {p.location}, Bengaluru

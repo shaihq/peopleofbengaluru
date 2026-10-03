@@ -19,6 +19,10 @@ export type CharacterDef = {
   /** Material name → colour. Unlisted materials keep a neutral restyle. */
   colors: Record<string, string>
   hide?: string[]
+  /** Materials to make invisible (the guest look: clothes, no body). */
+  invisible?: string[]
+  /** Not offered on the character-select screen. */
+  hidden?: boolean
 }
 
 const SKIN = { a: '#8D5A3B', b: '#A86F4C', c: '#7A4A30', d: '#B57E5A', e: '#C68E68' }
@@ -175,6 +179,21 @@ export const ROSTER: CharacterDef[] = [
     colors: { Main: '#F25C2A', Grey: '#ECE6DA', Black: '#262A35' },
   },
 ]
+
+// Guests explore as the Invisible: a hoodie, shorts and sneakers with nobody inside.
+ROSTER.push({
+  id: 'invisible',
+  name: 'THE INVISIBLE',
+  tagline: 'Nobody can see you yet.',
+  file: '/models/characters/developer.glb',
+  rig: 'modular',
+  accent: '#9AA0A8',
+  colors: { Purple: '#ECE6DA', White: '#ECE6DA', LightBlue: '#7D8791' },
+  invisible: ['Skin', 'Eye', 'Eyebrows', 'Hair'],
+  hidden: true,
+})
+
+export const PLAYABLE = ROSTER.filter((c) => !c.hidden)
 
 export const DEFAULT_CHARACTER = 'designer'
 

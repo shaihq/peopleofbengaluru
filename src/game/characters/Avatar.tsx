@@ -60,6 +60,7 @@ function buildCharacter(source: THREE.Object3D, def: CharacterDef) {
       const mat = (src as THREE.MeshStandardMaterial).clone()
       const c = def.colors[mat.name]
       if (c && mat.color) mat.color.set(c)
+      if (def.invisible?.includes(mat.name)) mat.visible = false
       const metal = /metal|gold/i.test(mat.name)
       mat.roughness = metal ? 0.35 : 0.55
       mat.metalness = metal ? 0.6 : 0.05
@@ -101,7 +102,7 @@ export function Avatar({ id, state }: { id: string; state: MutableRefObject<Avat
       wave.setLoop(THREE.LoopOnce, 1)
       wave.clampWhenFinished = false
       // say hello whenever a character steps up on the select screen
-      if (useGame.getState().phase === 'select') state.current.waveUntil = performance.now() + wave.getClip().duration * 950
+      if (useGame.getState().phase === 'create') state.current.waveUntil = performance.now() + wave.getClip().duration * 950
     }
   }, [actions, clips, state])
 

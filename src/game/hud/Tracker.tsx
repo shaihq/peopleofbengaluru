@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { bodies, player } from '../people/bodies'
-import { PEOPLE } from '../people/profiles'
+import { getPeople } from '../people/directory'
 import { isTyping } from '../player/input'
 import { useGame } from '../store'
 
@@ -12,7 +12,7 @@ export function Tracker() {
   const stage = useGame((s) => s.trackStage)
   const stopTracking = useGame((s) => s.stopTracking)
   const dist = useRef<HTMLSpanElement>(null)
-  const p = PEOPLE.find((x) => x.id === trackId)
+  const p = getPeople().find((x) => x.id === trackId)
 
   useEffect(() => {
     if (!trackId) return

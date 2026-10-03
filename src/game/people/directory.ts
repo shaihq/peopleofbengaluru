@@ -1,0 +1,100 @@
+import { create } from 'zustand'
+import { supabase, type ProfileRow } from '@/lib/supabase'
+import { PEOPLE as SAMPLES, type Profile } from './profiles'
+import { SPOTS, type SpotId } from './spots'
+
+// Who lives in the district: real approved profiles from Supabase + the
+// sample cast (retired automatically once the real community is big enough).
+
+const RETIRE_SAMPLES_AT = 8
+
+type Directory = {
+  real: Profile[]
+  /** The signed-in player's own row (any status). */
+  me: ProfileRow | null
+  userId: string | null
+  email: string | null
+  /** 'setup' = the profiles table doesn't exist yet. */
+  error: 'setup' | 'network' | null
+  loaded: boolean
+}
+
+export const useDirectory = create<Directory>(() => ({ real: [], me: null, userId: null, email: null, error: null, loaded: false }))
+
+export function rowToProfile(r: ProfileRow, slot: [number, number, number]): Profile {
+  return {
+    id: r.id,
+    name: r.name.toUpperCase(),
+    role: r.role,
+    company: r.company ?? '',
+    location: r.location,
+    building: r.building ?? undefined,
+    previously: r.previously ?? undefined,
+    openToWork: r.open_to_work,
+    skills: r.skills ?? [],
+    links: { portfolio: r.portfolio ?? undefined, linkedin: r.linkedin ?? undefined, x: r.x ?? undefined },
+    character: r.character,
+    spot: { x: slot[0], z: slot[1], face: slot[2] },
+  }
+}
+
+/** Deterministic placement: everyone at a spot gets the next free slot, oldest first; overflow fans out around it. */
+function place(rows: ProfileRow[]) {
+  const bySpot = new Map<string, ProfileRow[]>()
+  for (const r of [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
+    const id = r.spot in SPOTS ? r.spot : 'junction'
+    bySpot.set(id, [...(bySpot.get(id) ?? []), r])
+  }
+  const out = new Map<string, [number, number, number]>()
+  for (const [id, list] of bySpot) {
+    const slots = SPOTS[id as SpotId].slots
+    list.forEach((r, i) => {
+      if (i < slots.length) return out.set(r.id, slots[i])
+      const [x, z, f] = slots[i % slots.length]
+      const a = (i - slots.length) * 2.4
+      out.set(r.id, [x + Math.cos(a) * 1.3, z + Math.sin(a) * 1.3, f])
+    })
+  }
+  return out
+}
+
+let samplesVisible = true
+
+/** Everyone you can meet in the district (never includes you). */
+export function getPeople(): Profile[] {
+  const { real } = useDirectory.getState()
+  samplesVisible = real.length < RETIRE_SAMPLES_AT
+  return samplesVisible ? [...SAMPLES.map((p) => ({ ...p, sample: true })), ...real] : real
+}
+
+export function usePeople(): Profile[] {
+  useDirectory((s) => s.real)
+  return getPeople()
+}
+
+export const hasSamples = () => samplesVisible
+
+export async function refreshDirectory() {
+  if (!supabase) return useDirectory.setState({ loaded: true, error: 'setup' })
+  const { data: auth } = await supabase.auth.getSession()
+  const user = auth.session?.user ?? null
+  const { data, error } = await supabase.from('profiles').select('*')
+  if (error) {
+    const setup = error.code === 'PGRST205' || error.code === '42P01'
+    if (setup) console.info('[directory] profiles table not found — run supabase/migrations/0001_profiles.sql')
+    return useDirectory.setState({ loaded: true, error: setup ? 'setup' : 'network', userId: user?.id ?? null, email: user?.email ?? null })
+  }
+  const rows = (data ?? []) as ProfileRow[]
+  const approved = rows.filter((r) => r.status === 'approved')
+  const me = user ? (rows.find((r) => r.id === user.id) ?? null) : null
+  const slots = place(me && !approved.some((r) => r.id === me.id) ? [...approved, me] : approved)
+  useDirectory.setState({
+    real: approved.filter((r) => r.id !== user?.id).map((r) => rowToProfile(r, slots.get(r.id)!)),
+    me,
+    userId: user?.id ?? null,
+    email: user?.email ?? null,
+    error: null,
+    loaded: true,
+  })
+}
+

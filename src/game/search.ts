@@ -1,6 +1,7 @@
 import { getCharacter } from './characters/roster'
 import { LANDMARKS } from './layout'
-import { PEOPLE, type Profile } from './people/profiles'
+import type { Profile } from './people/profiles'
+import { getPeople } from './people/directory'
 
 // "Find a person in the city" — not "search a database" (CLAUDE.md Phase 5).
 
@@ -45,7 +46,7 @@ export function searchPeople(query: string, cat: Category, live: (id: string) =>
   const tokens = q.split(/[\s,]+/).filter((t) => t.length > 1)
 
   const out: Result[] = []
-  for (const p of PEOPLE) {
+  for (const p of getPeople()) {
     if (!inCategory(p, cat) || (wantOpen && !p.openToWork)) continue
     const pos = live(p.id)
     const fields: [string, number][] = [

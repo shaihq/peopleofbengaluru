@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useGame } from '../store'
-import { PEOPLE } from '../people/profiles'
+import { hasSamples, usePeople } from '../people/directory'
 
 function Keycap({ k, wide }: { k: string; wide?: boolean }) {
   return <span className={`keycap${wide ? ' keycap--wide' : ''}`}>{k}</span>
@@ -15,6 +15,7 @@ export function HUD() {
   const locked = useGame((s) => s.pointerLocked)
   const talking = useGame((s) => !!s.openId || s.searchOpen)
   const [hint, setHint] = useState(true)
+  const people = usePeople()
 
   useEffect(() => {
     if (locked) setHint(false)
@@ -39,12 +40,14 @@ export function HUD() {
       <div className="hud-status">
         <div className="slant panel hud-online">
           <span className="unslant">
-            <span className="dot" /> {PEOPLE.length} DESIGNERS IN 5TH BLOCK
+            <span className="dot" /> {people.length} DESIGNERS IN 5TH BLOCK
           </span>
         </div>
-        <div className="slant hud-sample">
-          <span className="unslant">SAMPLE PROFILES</span>
-        </div>
+        {hasSamples() && (
+          <div className="slant hud-sample">
+            <span className="unslant">INCLUDES SAMPLE PROFILES</span>
+          </div>
+        )}
         <button className="slant hud-find" onClick={() => useGame.getState().setSearch(true)}>
           <span className="unslant">
             <span className="find-glass" /> FIND SOMEONE <span className="keycap">F</span>
@@ -70,6 +73,9 @@ export function HUD() {
         </div>
         <div className="hud-key">
           <Keycap k="F" /> FIND
+        </div>
+        <div className="hud-key">
+          <Keycap k="ESC" wide /> CURSOR
         </div>
       </div>
 

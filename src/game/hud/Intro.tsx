@@ -2,35 +2,40 @@
 
 import { useProgress } from '@react-three/drei'
 import { useGame } from '../store'
+import { useDirectory } from '../people/directory'
+import { requestLook } from '../player/input'
 
 /** Title screen over a slow cinematic orbit of the block. */
 export function Intro() {
   const phase = useGame((s) => s.phase)
   const ready = useGame((s) => s.ready)
-  const startSelect = useGame((s) => s.startSelect)
+  const enter = useGame((s) => s.enter)
+  const me = useDirectory((s) => s.me)
   const { progress } = useProgress()
   const pct = ready ? 100 : Math.min(99, Math.round(progress))
 
   const start = () => {
     if (!ready) return
-    startSelect()
+    enter()
+    requestLook()
   }
 
   return (
     <div className={`intro${phase !== 'intro' ? ' intro--gone' : ''}${ready ? ' intro--ready' : ''}`}>
       <div className="intro-shade" />
       <div className="intro-tag slant">
-        <span className="unslant">EARLY ACCESS · PHASE 5</span>
+        <span className="unslant">EARLY ACCESS</span>
       </div>
       <div className="intro-title">
         <div className="intro-kicker">DESIGNERS OF</div>
         <h1>BENGALURU</h1>
         <p>Walk the city. Meet the people who design it.</p>
+        {!me && <p className="intro-note">You’ll arrive invisible — become visible whenever you’re ready.</p>}
       </div>
       <div className="intro-cta">
         {ready ? (
           <button className="btn-primary slant" onClick={start} autoFocus>
-            <span className="unslant">ENTER KORAMANGALA ▸</span>
+            <span className="unslant">{me ? `ENTER AS ${me.name.split(' ')[0].toUpperCase()} ▸` : 'ENTER KORAMANGALA ▸'}</span>
           </button>
         ) : (
           <div className="loader slant">

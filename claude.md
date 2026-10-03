@@ -716,6 +716,27 @@ Not:
 
 ---
 
+# PHASE 5B — ONBOARDING + REAL PROFILES
+
+Goal:
+
+Let real designers put themselves in the city.
+
+Principles:
+
+- Explore first, ask later. Guests enter instantly as THE INVISIBLE (clothes, no body) and are never blocked by a form.
+- "BECOME VISIBLE" (HUD button or V) opens a character-creation flow over the live street, never a web form:
+  pick your look → who you are → what you're building → where people find you → neighbourhood + your spot in the district → go live.
+- Your own nameplate floats above your character and updates live as you type.
+- Saving uses Supabase (email magic link; no passwords). Draft survives the round trip in localStorage.
+- New profiles start PENDING. You see yourself immediately; everyone else sees you once an admin sets status = approved.
+- Row-level security: anyone can read approved profiles, people can only write their own, nobody can self-approve.
+- Sample profiles retire automatically once enough real people are approved.
+
+Schema: supabase/migrations/0001_profiles.sql
+
+---
+
 # PHASE 6 — LIVING BENGALURU
 
 Add:

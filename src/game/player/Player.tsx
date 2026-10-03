@@ -3,6 +3,7 @@
 import * as THREE from 'three'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
 import { BOUNDS, LANDMARKS, groundHeight } from '../layout'
 import { useGame } from '../store'
 import { Avatar, type AvatarState } from '../characters/Avatar'
@@ -11,6 +12,9 @@ import { rayDistance, resolveCircle } from './collision'
 import { bodies, player, resolveBodies } from '../people/bodies'
 import { findPath } from '../nav'
 import { route } from '../tracking'
+import { useDirectory } from '../people/directory'
+import { useOnboarding } from '../onboarding'
+import { DraftPlate } from '../hud/DraftPlate'
 
 const WALK = 3.0
 const RUN = 6.8
@@ -33,7 +37,11 @@ function dampAngle(a: number, b: number, rate: number, dt: number) {
 export function Player() {
   const root = useRef<THREE.Group>(null!)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
-  const characterId = useGame((s) => s.characterId)
+  const phase = useGame((s) => s.phase)
+  const me = useDirectory((s) => s.me)
+  const draftCharacter = useOnboarding((s) => s.draft.character)
+  // guests are invisible; creating shows the draft look; members are themselves
+  const characterId = phase === 'create' ? draftCharacter : me ? me.character : 'invisible'
   const avatar = useRef<AvatarState>({ mode: 'idle', speed: 0, waveUntil: 0 })
 
   const st = useRef({
@@ -44,6 +52,7 @@ export function Player() {
     flyFrom: new THREE.Vector3(),
     flyLook: new THREE.Vector3(),
     stage: null as string | null,
+    phase: '' as string,
     manual: false,
     repathT: 0,
     lookAt: new THREE.Vector3(6, 3, -4),
@@ -98,7 +107,15 @@ export function Player() {
     const stage = tracking ? game.trackStage : null
     const cinematic = stage === 'fly' || stage === 'hold'
     const play = game.phase === 'play' && !talking && !game.searchOpen && !cinematic
-    const select = game.phase === 'select'
+    const select = game.phase === 'create'
+    if (game.phase !== s.phase) {
+      // character creation always happens on the home street, facing the camera
+      if (select) {
+        s.pos.copy(SPAWN)
+        s.vel.set(0, 0, 0)
+      }
+      s.phase = game.phase
+    }
     const stageT = (performance.now() - game.trackT0) / 1000
     if (stage !== s.stage) {
       s.stage = stage
@@ -218,8 +235,9 @@ export function Player() {
       camera.updateProjectionMatrix()
     } else if (select) {
       // character-select framing: hero on the right, junction + metro behind
-      v.goal.set(s.pos.x - 0.35, s.pos.y + 1.2, s.pos.z + 4.1)
-      v.head.set(s.pos.x - 1.1, s.pos.y + 0.92, s.pos.z)
+      // pulled back enough that your live nameplate preview fits in frame
+      v.goal.set(s.pos.x - 0.45, s.pos.y + 1.45, s.pos.z + 5.6)
+      v.head.set(s.pos.x - 1.45, s.pos.y + 1.25, s.pos.z)
       s.camPos.lerp(v.goal, 1 - Math.exp(-3 * dt))
       s.lookAt.lerp(v.head, 1 - Math.exp(-4 * dt))
       camera.fov = damp(camera.fov, 42, 3, dt)
@@ -288,6 +306,11 @@ export function Player() {
       <Suspense fallback={null}>
         <Avatar key={characterId} id={characterId} state={avatar} />
       </Suspense>
+      {phase === 'create' && (
+        <Html position={[0, 2.2, 0]} center zIndexRange={[20, 0]} wrapperClass="np-wrap">
+          <DraftPlate />
+        </Html>
+      )}
     </group>
   )
 }

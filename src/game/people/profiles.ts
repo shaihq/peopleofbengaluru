@@ -19,6 +19,8 @@ export type Profile = {
   spot?: { x: number; z: number; face: number }
   path?: [number, number][]
   pause?: number
+  /** Fictional sample person (not a real profile). */
+  sample?: boolean
 }
 
 const PI = Math.PI

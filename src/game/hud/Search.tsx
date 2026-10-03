@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getCharacter } from '../characters/roster'
 import { bodies, player } from '../people/bodies'
-import { PEOPLE } from '../people/profiles'
+import { usePeople } from '../people/directory'
 import { look, isTyping } from '../player/input'
 import { CATEGORIES, searchPeople, whereIs, type Category } from '../search'
 import { useGame } from '../store'
@@ -54,6 +54,7 @@ export function Search() {
   const [sel, setSel] = useState(0)
   const [tick, setTick] = useState(0)
   const input = useRef<HTMLInputElement>(null)
+  const people = usePeople()
   const list = useRef<HTMLDivElement>(null)
 
   // F opens, Esc closes
@@ -116,7 +117,7 @@ export function Search() {
           <span className="find-tag">
             <span className="find-glass" /> FIND SOMEONE IN THE CITY
           </span>
-          <span className="find-count">{PEOPLE.length} PEOPLE IN 5TH BLOCK</span>
+          <span className="find-count">{people.length} PEOPLE IN 5TH BLOCK</span>
           <button className="find-esc" onClick={() => setSearch(false)} aria-label="Close search">
             <span className="keycap">ESC</span>
           </button>
@@ -199,7 +200,8 @@ export function Search() {
                       )}
                     </span>
                     <span className="find-role">
-                      {p.role} · {p.company}
+                      {p.role}
+                      {p.company ? ` · ${p.company}` : ''}
                     </span>
                   </span>
                   <span className="find-where">
