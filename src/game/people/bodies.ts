@@ -22,3 +22,7 @@ export function resolveBodies(pos: THREE.Vector3, r: number) {
     pos.z += (dz / d) * (min - d)
   }
 }
+
+if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
+  ;(window as unknown as { __bodies?: typeof bodies }).__bodies = bodies
+}

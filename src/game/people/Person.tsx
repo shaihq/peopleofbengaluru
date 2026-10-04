@@ -6,15 +6,15 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { Avatar, type AvatarState } from '../characters/Avatar'
 import { groundHeight } from '../layout'
-import { rayDistance } from '../player/collision'
 import { useGame } from '../store'
 import { bodies, player } from './bodies'
 import { plates, type Lod } from './plates'
 import { footstep } from '../audio/footsteps'
 import { revealed } from '../audio/cues'
 import type { Profile } from './profiles'
+import { Wanderer } from './wander'
+import { rayDistance, resolveCircle } from '../player/collision'
 
-const WALK = 1.35
 const PLATE_Y = 2.2
 
 // Nameplate detail by distance (design.md §10.5)
@@ -62,13 +62,13 @@ export function Person({ p }: { p: Profile }) {
   const st = useRef({
     pos: new THREE.Vector3(start[0], 0, start[1]),
     facing: p.spot?.face ?? 0,
-    wp: 1 % (p.path?.length ?? 1),
-    wait: Math.random() * 2,
     occT: Math.random() * 0.2,
     occluded: false,
     engaged: false,
     want: 'off' as Lod,
   })
+  // offline: the character keeps walking around their neighbourhood
+  const walker = useMemo(() => new Wanderer(start[0], start[1], p.spot?.face ?? 0, p.location), [p.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const ring = useRef<THREE.Mesh>(null!)
   const marker = useRef<THREE.Group>(null!)
   const markerMat = useMemo(
@@ -108,25 +108,18 @@ export function Person({ p }: { p: Profile }) {
     let speed = 0
     if (engaged && player.pos) {
       s.facing = dampAngle(s.facing, Math.atan2(player.pos.x - s.pos.x, player.pos.z - s.pos.z), 7, dt)
-    } else if (p.path) {
-      const [tx, tz] = p.path[s.wp]
-      const dx = tx - s.pos.x
-      const dz = tz - s.pos.z
-      const dist = Math.hypot(dx, dz)
-      if (s.wait > 0) s.wait -= dt
-      else if (dist < 0.12) {
-        s.wp = (s.wp + 1) % p.path.length
-        s.wait = p.pause ?? 1.2
-      } else {
-        speed = WALK
-        const step = Math.min(dist, WALK * dt)
-        s.pos.x += (dx / dist) * step
-        s.pos.z += (dz / dist) * step
-        s.facing = dampAngle(s.facing, Math.atan2(dx, dz), 8, dt)
-      }
-    } else if (p.spot) {
-      s.facing = dampAngle(s.facing, p.spot.face, 4, dt)
+      walker.speed = 0
+    } else {
+      walker.update(dt)
+      s.pos.x = walker.x
+      s.pos.z = walker.z
+      resolveCircle(s.pos, 0.3) // never clip into buildings or props
+      walker.x = s.pos.x
+      walker.z = s.pos.z
+      s.facing = walker.facing
+      speed = walker.speed
     }
+    walker.facing = s.facing
     s.pos.y = THREE.MathUtils.damp(s.pos.y, groundHeight(s.pos.x, s.pos.z), 20, dt)
     root.current.position.copy(s.pos)
     root.current.rotation.y = s.facing
