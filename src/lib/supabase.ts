@@ -1,9 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const url = process.env.SUPABASE_URL
+const key = process.env.SUPABASE_PUBLISHABLE_KEY
 
-/** Browser client (anon key — safe to ship; row-level security does the guarding). Null if not configured. */
+/** Browser client (publishable key — safe to ship; row-level security does the guarding). Null if not configured. */
 export const supabase: SupabaseClient | null =
   url && key
     ? createClient(url, key, {
