@@ -2,16 +2,29 @@
 
 import * as THREE from 'three'
 import { useLayoutEffect, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { player } from '../people/bodies'
+import { useGame } from '../store'
 import { Environment, Lightformer } from '@react-three/drei'
 import { C } from '@/lib/palette'
-import { quality } from '../device'
+import { flag, quality, showQualityDebug, useDebugToggles } from '../device'
+
+const SHADOWS = flag('shadows') // diagnostics: 'off' | 'static'
 
 // Late-morning Bengaluru sun (design.md §7.1): warm key from the south-west,
 // cool sky fill, warm ground bounce, cool rim from behind.
 export const SUN_DIR = new THREE.Vector3(-0.55, 0.78, 0.42).normalize()
 
+// The sun's own axes. The shadow box is snapped along THESE (not world x/z), so it
+// only ever moves by whole shadow-map texels and nothing re-samples as you walk.
+const LIGHT_X = new THREE.Vector3()
+const LIGHT_Y = new THREE.Vector3()
+new THREE.Matrix4().lookAt(SUN_DIR, new THREE.Vector3(), new THREE.Vector3(0, 1, 0)).extractBasis(LIGHT_X, LIGHT_Y, new THREE.Vector3())
+const _center = new THREE.Vector3()
+
 export function Lighting() {
   const sun = useRef<THREE.DirectionalLight>(null!)
+  const dbgShadows = useDebugToggles((s) => s.shadows)
 
   useLayoutEffect(() => {
     const s = sun.current
@@ -29,6 +42,33 @@ export function Lighting() {
 
   const sunPos = SUN_DIR.clone().multiplyScalar(130)
 
+  // Shadows follow you: a tight box around the player = much sharper shadows from the
+  // same shadow map. The wide intro orbit still gets the whole district.
+  const extent = useRef(62)
+  useFrame(() => {
+    const s = sun.current
+    const playing = SHADOWS !== 'static' && useGame.getState().phase !== 'intro' && player.pos
+    const want = playing ? 34 : 62
+    if (want !== extent.current) {
+      extent.current = want
+      const cam = s.shadow.camera
+      cam.left = cam.bottom = -want
+      cam.right = cam.top = want
+      cam.updateProjectionMatrix()
+    }
+    if (playing) {
+      const p = player.pos!
+      const texel = (want * 2) / quality.shadowMap
+      const u = Math.round(p.dot(LIGHT_X) / texel) * texel
+      const v = Math.round(p.dot(LIGHT_Y) / texel) * texel
+      // no component along the sun: depth values in the shadow map never drift
+      _center.copy(LIGHT_X).multiplyScalar(u).addScaledVector(LIGHT_Y, v)
+    } else _center.set(0, 0, 0)
+    s.position.copy(_center).addScaledVector(SUN_DIR, 130)
+    s.target.position.copy(_center)
+    s.target.updateMatrixWorld()
+  })
+
   return (
     <>
       <hemisphereLight args={[C.SKY_TOP_LIGHT, C.GROUND_BOUNCE, 1.15]} />
@@ -37,7 +77,7 @@ export function Lighting() {
         position={sunPos}
         color={C.SUN}
         intensity={3.1}
-        castShadow
+        castShadow={SHADOWS !== 'off' && (!showQualityDebug || dbgShadows)}
         shadow-mapSize={[quality.shadowMap, quality.shadowMap]}
         shadow-bias={-0.0003}
         shadow-normalBias={0.04}

@@ -73,7 +73,7 @@ function HSRGround() {
       {slab(-EXT, -MEDIAN_GAP, -MEDIAN, MEDIAN, mat(C.CONCRETE_WARM), BASE + 0.05)}
       {slab(MEDIAN_GAP, EXT, -MEDIAN, MEDIAN, mat(C.CONCRETE_WARM), BASE + 0.05)}
       {[-1, 1].map((s) => (
-        <mesh key={s} geometry={plane(EXT - MEDIAN_GAP, MEDIAN * 2 - 0.4)} material={grass} position={[s * (EXT + MEDIAN_GAP) / 2, BASE + 0.051, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow />
+        <mesh key={s} geometry={plane(EXT - MEDIAN_GAP, MEDIAN * 2 - 0.4)} material={grass} position={[s * (EXT + MEDIAN_GAP) / 2, BASE + 0.065, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow />
       ))}
       {marks.map(([x, z, w, l, r], i) => (
         <mesh key={i} geometry={plane(w, l)} material={paint} position={[x, 0.012, z]} rotation={[-Math.PI / 2, 0, r]} receiveShadow />
@@ -223,7 +223,7 @@ function ShipClub() {
       </group>
       {/* timber deck out front: planters, bike rack and the demo-night board */}
       <Box s={[w - 2, 0.12, 2.6]} p={[x, BASE + 0.06, 11.4]} c={C.WOOD} rough={0.75} />
-      {[-22.5, -9.5].map((px) => (
+      {[-22.4, -9.6].map((px) => (
         <group key={px} position={[px, BASE, 11.1]}>
           <Box s={[1, 0.7, 1]} p={[0, 0.35, 0]} c={C.CONCRETE_AGED} />
           <Bush p={[0, 0.9, 0]} s={0.75} seed={Math.round(px * -7)} />

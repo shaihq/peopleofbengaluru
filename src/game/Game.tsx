@@ -27,7 +27,8 @@ import { Tracker } from './hud/Tracker'
 import { Trail } from './world/Trail'
 import { AudioDirector } from './audio/AudioDirector'
 import { useGame } from './store'
-import { isTouch, quality } from './device'
+import { isTouch, profile, showQualityDebug, useDebugToggles, useQuality, type DebugToggles } from './device'
+import { PerformanceMonitor } from '@react-three/drei'
 import { TouchControls } from './hud/TouchControls'
 
 function Ready() {
@@ -41,6 +42,8 @@ function Ready() {
 }
 
 export default function Game() {
+  const level = useQuality((s) => s.level)
+  const step = useQuality((s) => s.step)
   return (
     <div
       className="game-root"
@@ -52,12 +55,21 @@ export default function Game() {
       <Canvas
         shadows={{ type: THREE.PCFShadowMap }}
         flat
-        dpr={quality.dpr}
+        dpr={profile(level).dpr}
         gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
         camera={{ fov: 56, near: 0.2, far: 1200, position: [40, 16, 30] }}
       >
         <color attach="background" args={[C.SKY_HORIZON]} />
         <fog attach="fog" args={[C.SKY_HORIZON, 85, 430]} />
+        {/* adaptive quality: step down if this device can't hold ~45fps, back up when it can */}
+        <PerformanceMonitor
+          bounds={() => [32, 55]}
+          flipflops={2}
+          onDecline={() => step(-1)}
+          onIncline={() => step(1)}
+          onFallback={() => useQuality.getState().lock()}
+          onChange={({ fps }) => useQuality.getState().setFps(Math.round(fps))}
+        />
         <Suspense fallback={null}>
           <SkyDome />
           <Clouds />
@@ -73,6 +85,7 @@ export default function Game() {
         </Suspense>
       </Canvas>
       <HUD />
+      {showQualityDebug && <QualityDebug />}
       <TouchControls />
       <Interaction />
       <Tracker />
@@ -85,6 +98,35 @@ export default function Game() {
       <Toast />
       <Session />
       <Intro />
+    </div>
+  )
+}
+
+function QualityDebug() {
+  const level = useQuality((s) => s.level)
+  const fps = useQuality((s) => s.fps)
+  const locked = useQuality((s) => s.locked)
+  const p = profile(level)
+  const t = useDebugToggles()
+  const keys: [keyof DebugToggles, string][] = [
+    ['shadows', 'SHADOWS'],
+    ['bloom', 'BLOOM'],
+    ['tone', 'TONEMAP'],
+    ['grade', 'GRADE'],
+    ['vignette', 'VIGNETTE'],
+    ['clamp', 'CLAMP FIX'],
+    ['mark', 'MARK BAD PIXELS'],
+  ]
+  return (
+    <div className="quality-debug">
+      <div className="qd-toggles">
+        {keys.map(([k, label]) => (
+          <button key={k} className={t[k] ? 'on' : ''} onClick={() => t.toggle(k)} onTouchStart={(e) => e.stopPropagation()}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {typeof window !== 'undefined' ? window.location.search.replace(/[?&]?debug/, '') + ' ' : ''}Q{level} · DPR {p.dpr.toFixed(2)}/{typeof window !== 'undefined' ? window.devicePixelRatio : 1} · AO {p.ao ?? 'off'} · {fps || '…'} FPS{locked ? ' · LOCKED' : ''}
     </div>
   )
 }

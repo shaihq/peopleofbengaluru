@@ -9,6 +9,13 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
  * bakes every static mesh into one merged mesh per material, so the GPU sees
  * a few dozen draw calls instead of thousands.
  */
+// Dev-only: every kit piece's bounds before merging, for finding coplanar faces that z-fight.
+type Piece = { box: THREE.Box3; mat: string; color: string; aligned: boolean; type: string; normal?: number[] }
+const debugPieces: Piece[] | null =
+  process.env.NODE_ENV !== 'production' && typeof window !== 'undefined'
+    ? (((window as unknown as { __dobPieces?: Piece[] }).__dobPieces = []) as Piece[])
+    : null
+
 export function StaticMerge({ children }: { children: ReactNode }) {
   const ref = useRef<THREE.Group>(null!)
   const [merged, setMerged] = useState<THREE.Mesh[]>([])
@@ -33,6 +40,14 @@ export function StaticMerge({ children }: { children: ReactNode }) {
       }
       const geo = m.geometry.clone()
       geo.applyMatrix4(tmp.multiplyMatrices(inv, m.matrixWorld))
+      if (debugPieces) {
+        geo.computeBoundingBox()
+        const e = m.matrixWorld.elements
+        const axisAligned = [e[0], e[1], e[2], e[4], e[5], e[6], e[8], e[9], e[10]].every((v) => Math.abs(v) < 1e-4 || Math.abs(Math.abs(v) - 1) < 1e-4)
+        const c = (m.material as THREE.MeshStandardMaterial).color
+        const normal = m.geometry.type === 'PlaneGeometry' ? new THREE.Vector3(0, 0, 1).transformDirection(m.matrixWorld).toArray().map(Math.round) : undefined
+        debugPieces.push({ box: geo.boundingBox!.clone(), mat: m.material.uuid, color: c ? '#' + c.getHexString() : '?', aligned: axisAligned, type: m.geometry.type, normal })
+      }
       g.geos.push(geo)
       sources.push(m)
     })

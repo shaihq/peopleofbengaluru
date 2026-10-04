@@ -26,8 +26,10 @@ export function Darshini() {
       <Box s={[0.4, G, 3.5]} p={[-w / 2 + 0.2, G / 2, 2.75]} c={C.WALL_WHITE} />
       <Box s={[0.4, G, 3.5]} p={[w / 2 - 0.2, G / 2, 2.75]} c={C.WALL_WHITE} />
       <Box s={[0.5, 3.0, 0.5]} p={[0, 1.5, front - 0.3]} c={C.TERRACOTTA} />
-      <Box s={[w, G - 3.0, 0.5]} p={[0, 3.0 + (G - 3) / 2, front - 0.25]} c={C.TERRACOTTA} />
-      <Box s={[w, 0.3, 3.5]} p={[0, G - 0.15, 2.75]} c={C.WALL_WHITE} />
+      {/* fascia stands proud of the side walls and the ceiling sits between them —
+          no two faces share a plane, so nothing z-fights at the corners */}
+      <Box s={[w + 0.06, G - 3.0, 0.56]} p={[0, 3.0 + (G - 3) / 2, front - 0.22]} c={C.TERRACOTTA} />
+      <Box s={[w - 0.8, 0.3, 3.4]} p={[0, G - 0.15, 2.7]} c={C.WALL_WHITE} />
       <Box s={[w - 0.8, 0.06, 3.4]} p={[0, 0.03, 2.8]} c={C.KOTA} grade={false} shadow={false} />
 
       {/* upper floor */}
@@ -51,7 +53,7 @@ export function Darshini() {
 
       {/* signboard + awning */}
       <Sign
-        p={[0, 3.6, front + 0.15]}
+        p={[0, 3.6, front + 0.22]}
         w={10}
         h={1.05}
         spec={{ title: 'NAMMA DARSHINI', kn: 'ನಮ್ಮ ದರ್ಶಿನಿ', sub: 'FILTER COFFEE · IDLI · VADA · DOSA', bg: C.KERB_YELLOW, fg: C.SIGN_RED }}

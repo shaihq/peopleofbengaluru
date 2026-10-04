@@ -52,7 +52,7 @@ export function ShopUnit({ x, floors, wall, sign, shutter, goods, balcony, seed,
       <Box s={[W - 2, 0.95, 0.6]} p={[0, 0.475, 3.3]} c={C.WOOD} rough={0.7} />
       <Box s={[W - 1.9, 0.06, 0.7]} p={[0, 0.98, 3.3]} c={C.WALL_WHITE} rough={0.4} grade={false} />
       {/* shutter */}
-      <Box s={[W - 1.1, 0.26, 0.32]} p={[0, 2.68, front - 0.16]} c="#8E98A3" metal={0.3} rough={0.5} grade={false} />
+      <Box s={[W - 1.24, 0.26, 0.32]} p={[0, 2.68, front - 0.17]} c="#8E98A3" metal={0.3} rough={0.5} grade={false} />
       {shutter === 'half' && <Shutter p={[0, 2.1, front - 0.05]} w={W - 1.2} h={1.0} />}
       {shutter === 'closed' && <Shutter p={[0, 1.27, front - 0.05]} w={W - 1.2} h={2.54} />}
 
