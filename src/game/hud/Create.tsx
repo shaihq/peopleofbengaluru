@@ -147,6 +147,7 @@ function GoLiveStep({ d }: { d: Draft }) {
               : "You’ll see yourself straight away; everyone else sees you once your profile is approved."}
           </p>
           <button
+            autoFocus
             className="btn-primary slant cr-golive"
             onClick={goLive}
             disabled={saving}
@@ -217,29 +218,34 @@ export function Create() {
   useEffect(() => {
     if (phase !== "create") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.code === "Escape") exit();
-      if (
-        e.code === "Enter" &&
-        step < last &&
-        (e.target as HTMLElement).tagName !== "BUTTON"
-      )
-        next();
-      if (step === 0 && (e.target as HTMLElement).tagName !== "INPUT") {
+      const t = e.target as HTMLElement;
+      if (e.code === "Escape") return exit();
+
+      // Enter = Next, from anywhere on the step (fields, chips, toggles, spots).
+      // The Back / Next / Go-live buttons keep their own Enter; held keys don't skip steps.
+      if (e.code === "Enter" && step < last && !t.closest(".cr-nav")) {
+        e.preventDefault();
+        if (!e.repeat) document.querySelector<HTMLButtonElement>(".cr-next")?.click(); // same path as clicking: validation + sound
+        return;
+      }
+
+      // Pick your look: ← → / A D / ↑ ↓ all move through the styles.
+      if (step === 0 && t.tagName !== "INPUT") {
+        const dir =
+          e.code === "ArrowLeft" || e.code === "KeyA" || e.code === "ArrowUp"
+            ? -1
+            : e.code === "ArrowRight" || e.code === "KeyD" || e.code === "ArrowDown"
+              ? 1
+              : 0;
+        if (!dir) return;
+        e.preventDefault();
         const i = PLAYABLE.findIndex((c) => c.id === styleOf(d.character));
-        if (e.code === "ArrowLeft" || e.code === "KeyA")
-          patch({
-            character: withGender(
-              PLAYABLE[(i - 1 + PLAYABLE.length) % PLAYABLE.length].id,
-              d.gender,
-            ),
-          });
-        if (e.code === "ArrowRight" || e.code === "KeyD")
-          patch({
-            character: withGender(
-              PLAYABLE[(i + 1) % PLAYABLE.length].id,
-              d.gender,
-            ),
-          });
+        patch({
+          character: withGender(
+            PLAYABLE[(i + dir + PLAYABLE.length) % PLAYABLE.length].id,
+            d.gender,
+          ),
+        });
       }
     };
     window.addEventListener("keydown", onKey);
