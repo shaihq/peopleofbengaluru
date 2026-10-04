@@ -7,7 +7,7 @@ import { useAnimations, useGLTF } from '@react-three/drei'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useGame } from '../store'
-import { CLIPS, ROSTER, getCharacter, type CharacterDef, type Rig } from './roster'
+import { ALL_FILES, CLIPS, getCharacter, type CharacterDef, type Rig } from './roster'
 
 export type AvatarState = {
   mode: 'idle' | 'walk' | 'run'
@@ -200,4 +200,4 @@ export function Avatar({ id, state, onStep }: { id: string; state: MutableRefObj
   )
 }
 
-for (const c of ROSTER) useGLTF.preload(c.file)
+for (const f of ALL_FILES) useGLTF.preload(f)

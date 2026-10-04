@@ -2389,3 +2389,38 @@ textarea {
   background: transparent;
   padding: 6px 0;
 }
+
+/* --- Body choice (become visible, step 1) ---------------------------------- */
+
+.cr-gender {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.cr-gender .chip {
+  background: var(--ink-soft);
+  box-shadow: none;
+  padding: 9px 22px;
+  font-size: 16px;
+}
+
+.cr-gender .chip--on {
+  background: var(--saffron);
+  color: var(--ink);
+  box-shadow: 0 3px 0 #b36f00;
+}
+
+.cr-gender .chip:disabled {
+  opacity: 0.35;
+  cursor: var(--cur-no);
+}
+
+.cr-gender-note {
+  margin-left: 6px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.5);
+}

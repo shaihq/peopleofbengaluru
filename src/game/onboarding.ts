@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
-import { DEFAULT_CHARACTER } from './characters/roster'
+import { DEFAULT_CHARACTER, genderOf, type Gender } from './characters/roster'
 import { refreshDirectory, useDirectory } from './people/directory'
 import type { SpotId } from './people/spots'
 
@@ -9,6 +9,8 @@ import type { SpotId } from './people/spots'
 
 export type Draft = {
   character: string
+  /** Preferred body — kept when switching between styles. */
+  gender: Gender
   name: string
   role: string
   company: string
@@ -31,6 +33,7 @@ const KEY = 'dob.draft'
 
 const EMPTY: Draft = {
   character: DEFAULT_CHARACTER,
+  gender: 'f',
   name: '',
   role: '',
   company: '',
@@ -93,6 +96,7 @@ export const useOnboarding = create<Onboarding>((set, get) => ({
     if (!me) return
     get().patch({
       character: me.character,
+      gender: genderOf(me.character) ?? 'f',
       name: me.name,
       role: me.role,
       company: me.company ?? '',

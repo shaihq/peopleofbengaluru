@@ -25,7 +25,14 @@ export type CharacterDef = {
   glass?: string[]
   /** Not offered on the character-select screen. */
   hidden?: boolean
+  /** Which body this style's default model has (null = neither, e.g. helmet / robot). */
+  gender?: Gender | null
+  /** The other body for this style. */
+  alt?: Variant
 }
+
+export type Gender = 'm' | 'f'
+type Variant = { file: string; colors: Record<string, string>; hide?: string[] }
 
 const SKIN = { a: '#8D5A3B', b: '#A86F4C', c: '#7A4A30', d: '#B57E5A', e: '#C68E68' }
 const HAIR = '#1F1A18'
@@ -44,6 +51,11 @@ export const ROSTER: CharacterDef[] = [
     tagline: 'Pixels with attitude.',
     file: '/models/characters/designer.glb',
     rig: 'modular',
+    gender: 'f',
+    alt: {
+      file: '/models/characters/rockstar.glb',
+      colors: { Skin: SKIN.d, Black: INK, LightBlue: '#23262F', White: CREAM, Red_Dark: C.FLAME, Red: C.FLAME, Earrings: C.KERB_YELLOW, Eyebrows: HAIR, Eye: '#1C1F2B' },
+    },
     accent: C.FLAME,
     colors: { Skin: SKIN.b, Pink: C.FLAME, Black: INK, Grey: '#6B7083', Hair_Brown: HAIR, Brown: '#4A3A30' },
   },
@@ -53,6 +65,11 @@ export const ROSTER: CharacterDef[] = [
     tagline: 'Ships at 2 AM.',
     file: '/models/characters/developer.glb',
     rig: 'modular',
+    gender: 'm',
+    alt: {
+      file: '/models/characters/creative.glb',
+      colors: { Skin: SKIN.b, White: '#1F8A70', Orange: INK, Grey: INK, Hair_Blond: HAIR, Hair_Brown: HAIR, Brown: '#3B302A' },
+    },
     accent: '#1F8A70',
     colors: { Skin: SKIN.a, Purple: '#1F8A70', White: CREAM, LightBlue: INK, Hair: HAIR, Eyebrows: HAIR, Eye: '#1C1F2B' },
   },
@@ -62,6 +79,11 @@ export const ROSTER: CharacterDef[] = [
     tagline: 'Pitch deck always loaded.',
     file: '/models/characters/founder.glb',
     rig: 'modular',
+    gender: 'f',
+    alt: {
+      file: '/models/characters/investor.glb',
+      colors: { Skin: SKIN.a, Suit: C.BMTC_BLUE, Black: '#2B2D33', White: CREAM, Tie: C.KERB_YELLOW, Hair: HAIR, Eyebrows: HAIR, Eye: '#1C1F2B' },
+    },
     accent: C.BMTC_BLUE,
     colors: { Skin: SKIN.d, Black: C.BMTC_BLUE, White: CREAM, Hair_Blond: HAIR, Hair_Brown: HAIR, Brown: '#2B2D33' },
   },
@@ -71,6 +93,21 @@ export const ROSTER: CharacterDef[] = [
     tagline: 'Builds in public.',
     file: '/models/characters/maker.glb',
     rig: 'modular',
+    gender: 'm',
+    alt: {
+      file: '/models/characters/adventurer_f.glb',
+      colors: {
+        Skin: SKIN.e,
+        Green: '#D9A441',
+        LightGreen: C.WALL_BUTTER,
+        White: CREAM,
+        Brown2: '#3B302A',
+        Gold: C.KERB_YELLOW,
+        Brown_02: '#5B4A40',
+        Hair_Brown: HAIR,
+        Brown: '#4A3A30',
+      },
+    },
     accent: '#D9A441',
     colors: {
       Skin: SKIN.c,
@@ -92,6 +129,11 @@ export const ROSTER: CharacterDef[] = [
     tagline: 'Brand, motion, magic.',
     file: '/models/characters/creative.glb',
     rig: 'modular',
+    gender: 'f',
+    alt: {
+      file: '/models/characters/developer.glb',
+      colors: { Skin: SKIN.c, Purple: C.TERRACOTTA, White: CREAM, LightBlue: '#4A4D55', Hair: HAIR, Eyebrows: HAIR, Eye: '#1C1F2B' },
+    },
     accent: C.TERRACOTTA,
     colors: { Skin: SKIN.e, White: CREAM, Orange: C.TERRACOTTA, Grey: '#4A4D55', Hair_Blond: HAIR, Hair_Brown: HAIR, Brown: '#3B302A' },
   },
@@ -101,6 +143,11 @@ export const ROSTER: CharacterDef[] = [
     tagline: 'Roadmaps & filter coffee.',
     file: '/models/characters/pm.glb',
     rig: 'modular',
+    gender: 'm',
+    alt: {
+      file: '/models/characters/formal_f.glb',
+      colors: { Skin: SKIN.d, Red: HAIR, LimeGreen: C.WALL_BUTTER, Brown: '#3E5C8A', Gold: C.KERB_YELLOW },
+    },
     accent: '#3E5C8A',
     colors: {
       Skin: SKIN.a,
@@ -120,6 +167,11 @@ export const ROSTER: CharacterDef[] = [
     tagline: 'Loud colours, louder ideas.',
     file: '/models/characters/rockstar.glb',
     rig: 'modular',
+    gender: 'm',
+    alt: {
+      file: '/models/characters/designer.glb',
+      colors: { Skin: SKIN.e, Pink: C.WALL_PINK, Black: '#23262F', Grey: '#4A6FA8', Hair_Brown: HAIR, Brown: '#3B302A' },
+    },
     accent: C.WALL_PINK,
     colors: {
       Skin: SKIN.b,
@@ -139,6 +191,11 @@ export const ROSTER: CharacterDef[] = [
     tagline: 'Looking for the next unicorn.',
     file: '/models/characters/investor.glb',
     rig: 'modular',
+    gender: 'm',
+    alt: {
+      file: '/models/characters/founder.glb',
+      colors: { Skin: SKIN.b, Black: '#3A3F55', White: CREAM, Hair_Blond: HAIR, Hair_Brown: HAIR, Brown: '#23262F' },
+    },
     accent: '#3A3F55',
     colors: { Skin: SKIN.d, Suit: '#3A3F55', Black: '#23262F', White: CREAM, Tie: C.FLAME, Hair: HAIR, Eyebrows: HAIR, Eye: '#1C1F2B' },
   },
@@ -148,6 +205,11 @@ export const ROSTER: CharacterDef[] = [
     tagline: 'Saves the sprint.',
     file: '/models/characters/hero.glb',
     rig: 'modular',
+    gender: 'f',
+    alt: {
+      file: '/models/characters/swat_m.glb',
+      colors: { Skin: SKIN.a, Swat: '#FFB020', Swat_Black: '#23262F', Visor: '#1C2433' },
+    },
     accent: '#FFB020',
     colors: {
       Skin: SKIN.c,
@@ -200,4 +262,33 @@ export const PLAYABLE = ROSTER.filter((c) => !c.hidden)
 
 export const DEFAULT_CHARACTER = 'designer'
 
-export const getCharacter = (id: string) => ROSTER.find((c) => c.id === id) ?? ROSTER[0]
+// A character id is the style, optionally with a body: "designer", "designer:m", "designer:f".
+// A bare style means its default model (so existing saved ids keep working).
+export const styleOf = (id: string) => id.split(':')[0]
+export const hasGenders = (style: string) => !!ROSTER.find((c) => c.id === style)?.alt
+
+export function genderOf(id: string): Gender | null {
+  const [style, g] = id.split(':')
+  const def = ROSTER.find((c) => c.id === style)
+  if (!def?.alt) return def?.gender ?? null
+  return g === 'm' || g === 'f' ? g : (def.gender ?? null)
+}
+
+export function withGender(id: string, g: Gender) {
+  const style = styleOf(id)
+  return hasGenders(style) ? `${style}:${g}` : style
+}
+
+const resolved = new Map<string, CharacterDef>()
+export function getCharacter(id: string): CharacterDef {
+  let d = resolved.get(id)
+  if (d) return d
+  const base = ROSTER.find((c) => c.id === styleOf(id)) ?? ROSTER[0]
+  const g = genderOf(id)
+  d = base.alt && g && g !== base.gender ? { ...base, ...base.alt, id, gender: g } : { ...base, id }
+  resolved.set(id, d)
+  return d
+}
+
+/** Every model file a character could use (for preloading). */
+export const ALL_FILES = [...new Set(ROSTER.flatMap((c) => [c.file, ...(c.alt ? [c.alt.file] : [])]))]
