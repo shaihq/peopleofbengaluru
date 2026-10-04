@@ -98,3 +98,7 @@ export async function refreshDirectory() {
   })
 }
 
+
+if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
+  ;(window as unknown as { __dir?: typeof useDirectory }).__dir = useDirectory
+}

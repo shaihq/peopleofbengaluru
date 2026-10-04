@@ -10,6 +10,8 @@ import { rayDistance } from '../player/collision'
 import { useGame } from '../store'
 import { bodies, player } from './bodies'
 import { plates, type Lod } from './plates'
+import { footstep } from '../audio/footsteps'
+import { revealed } from '../audio/cues'
 import type { Profile } from './profiles'
 
 const WALK = 1.35
@@ -65,6 +67,7 @@ export function Person({ p }: { p: Profile }) {
     occT: Math.random() * 0.2,
     occluded: false,
     engaged: false,
+    want: 'off' as Lod,
   })
   const ring = useRef<THREE.Mesh>(null!)
   const marker = useRef<THREE.Group>(null!)
@@ -158,7 +161,10 @@ export function Person({ p }: { p: Profile }) {
       tmp.dir.subVectors(tmp.head, camera.position).normalize()
       s.occluded = rayDistance(camera.position, tmp.dir, d) < d - 0.6
     }
-    const want: Lod = !playing || g.openId || g.searchOpen || s.occluded || d > FAR ? 'off' : d < NEAR ? 'near' : d < MID ? 'mid' : 'far'
+    const want: Lod = !playing || g.openId || g.searchOpen || g.paused || s.occluded || d > FAR ? 'off' : d < NEAR ? 'near' : d < MID ? 'mid' : 'far'
+    // they just came into view (≈22m) → the discovery cue, from where they stand
+    if ((want === 'near' || want === 'mid') && (s.want === 'off' || s.want === 'far')) revealed(p.id, s.pos.x, s.pos.y, s.pos.z)
+    s.want = want
     tmp.scr.set(s.pos.x, s.pos.y + PLATE_Y, s.pos.z).project(camera)
     // hand off to the declutter pass in <People/>
     const req = plates.get(p.id)
@@ -169,7 +175,14 @@ export function Person({ p }: { p: Profile }) {
   return (
     <group ref={root}>
       <Suspense fallback={null}>
-        <Avatar id={p.character} state={avatar} />
+        <Avatar
+          id={p.character}
+          state={avatar}
+          onStep={() => {
+            const q = st.current.pos
+            if (camera.position.distanceToSquared(q) < 196) footstep(p.character, q.x, q.y, q.z, false, false)
+          }}
+        />
       </Suspense>
       <mesh ref={ring} material={ringMat} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]} renderOrder={2} visible={false}>
         <ringGeometry args={[0.55, 0.68, 40, 1, 0, Math.PI * 1.7]} />

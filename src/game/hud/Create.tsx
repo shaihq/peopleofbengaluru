@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { PLAYABLE, getCharacter } from '../characters/roster'
+import { PLAYABLE } from '../characters/roster'
 import { useDirectory } from '../people/directory'
 import { NEIGHBOURHOODS, SPOTS, SPOT_IDS } from '../people/spots'
 import { STEPS, sendMagicLink, submitProfile, useOnboarding, validateStep, type Draft } from '../onboarding'
@@ -43,40 +43,20 @@ function Field({
 }
 
 function LookStep({ d, patch }: { d: Draft; patch: (p: Partial<Draft>) => void }) {
-  const i = Math.max(0, PLAYABLE.findIndex((c) => c.id === d.character))
-  const def = getCharacter(d.character)
-  const step = (n: number) => patch({ character: PLAYABLE[(i + n + PLAYABLE.length) % PLAYABLE.length].id })
   return (
-    <>
-      <div className="cr-look">
-        <div className="select-count">
-          {String(i + 1).padStart(2, '0')} / {String(PLAYABLE.length).padStart(2, '0')}
-        </div>
-        <h3 key={def.id}>{def.name}</h3>
-        <p>{def.tagline}</p>
-        <div className="select-arrows">
-          <button className="arrow slant" onClick={() => step(-1)} aria-label="Previous look">
-            <span className="unslant">◀</span>
-          </button>
-          <button className="arrow slant" onClick={() => step(1)} aria-label="Next look">
-            <span className="unslant">▶</span>
-          </button>
-        </div>
-      </div>
-      <div className="cr-chips">
-        {PLAYABLE.map((c) => (
-          <button
-            key={c.id}
-            className={`chip slant${c.id === d.character ? ' chip--on' : ''}`}
-            onClick={() => patch({ character: c.id })}
-            aria-label={c.name}
-          >
-            <span className="chip-swatch" style={{ background: c.accent }} />
-            <span className="unslant chip-name">{c.name.replace('THE ', '')}</span>
-          </button>
-        ))}
-      </div>
-    </>
+    <div className="cr-chips">
+      {PLAYABLE.map((c) => (
+        <button
+          key={c.id}
+          className={`chip slant${c.id === d.character ? ' chip--on' : ''}`}
+          onClick={() => patch({ character: c.id })}
+          aria-label={c.name}
+        >
+          <span className="chip-swatch" style={{ background: c.accent }} />
+          <span className="unslant chip-name">{c.name.replace('THE ', '')}</span>
+        </button>
+      ))}
+    </div>
   )
 }
 

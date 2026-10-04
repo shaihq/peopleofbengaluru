@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useGame } from '../store'
 import { hasSamples, usePeople } from '../people/directory'
 
@@ -13,13 +12,8 @@ export function HUD() {
   const phase = useGame((s) => s.phase)
   const landmark = useGame((s) => s.landmark)
   const locked = useGame((s) => s.pointerLocked)
-  const talking = useGame((s) => !!s.openId || s.searchOpen)
-  const [hint, setHint] = useState(true)
+  const talking = useGame((s) => !!s.openId || s.searchOpen || s.paused)
   const people = usePeople()
-
-  useEffect(() => {
-    if (locked) setHint(false)
-  }, [locked])
 
   if (phase !== 'play') return null
 
@@ -75,11 +69,11 @@ export function HUD() {
           <Keycap k="F" /> FIND
         </div>
         <div className="hud-key">
-          <Keycap k="ESC" wide /> CURSOR
+          <Keycap k="ESC" wide /> PAUSE
         </div>
       </div>
 
-      {hint && !talking && (
+      {!locked && !talking && (
         <div className="hud-hint slant">
           <span className="unslant">CLICK TO LOOK AROUND</span>
         </div>

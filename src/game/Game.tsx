@@ -14,12 +14,14 @@ import { requestLook } from './player/input'
 import { HUD } from './hud/HUD'
 import { Intro } from './hud/Intro'
 import { Create } from './hud/Create'
+import { Pause } from './hud/Pause'
 import { YouCard, Toast } from './hud/YouCard'
 import { Session } from './Session'
 import { Interaction } from './hud/Interaction'
 import { Search } from './hud/Search'
 import { Tracker } from './hud/Tracker'
 import { Trail } from './world/Trail'
+import { AudioDirector } from './audio/AudioDirector'
 import { useGame } from './store'
 
 function Ready() {
@@ -58,6 +60,7 @@ export default function Game() {
           <Player />
           <People />
           <Trail />
+          <AudioDirector />
           <Effects />
           <Ready />
         </Suspense>
@@ -68,6 +71,7 @@ export default function Game() {
       <Search />
       <YouCard />
       <Create />
+      <Pause />
       <Toast />
       <Session />
       <Intro />

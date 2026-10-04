@@ -62,7 +62,7 @@ export function Search() {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
       if (g.phase !== 'play') return
-      if (!g.searchOpen && !g.openId && e.code === 'KeyF' && !isTyping(e)) {
+      if (!g.searchOpen && !g.openId && !g.paused && e.code === 'KeyF' && !isTyping(e)) {
         e.preventDefault()
         setSearch(true)
       } else if (g.searchOpen && e.code === 'Escape') setSearch(false)

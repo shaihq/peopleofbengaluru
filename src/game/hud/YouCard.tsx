@@ -2,14 +2,15 @@
 
 import { useEffect } from 'react'
 import { useDirectory } from '../people/directory'
-import { signOut, useOnboarding } from '../onboarding'
+import { useOnboarding } from '../onboarding'
 import { useGame } from '../store'
 import { isTyping } from '../player/input'
 
 /** Bottom-right: the invisible guest's call to action, or your own status card. */
 export function YouCard() {
   const phase = useGame((s) => s.phase)
-  const busy = useGame((s) => !!s.openId || s.searchOpen)
+  const busy = useGame((s) => !!s.openId || s.searchOpen || s.paused)
+  const tracking = useGame((s) => !!s.trackId)
   const startCreate = useGame((s) => s.startCreate)
   const me = useDirectory((s) => s.me)
 
@@ -26,7 +27,7 @@ export function YouCard() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
-      if (e.code !== 'KeyV' || isTyping(e) || g.phase !== 'play' || g.openId || g.searchOpen) return
+      if (e.code !== 'KeyV' || isTyping(e) || g.phase !== 'play' || g.openId || g.searchOpen || g.paused) return
       become()
     }
     window.addEventListener('keydown', onKey)
@@ -35,13 +36,21 @@ export function YouCard() {
 
   if (phase !== 'play' || busy) return null
 
-  if (!me)
+  if (!me) {
+    // the tracking banner owns top-centre while you're heading to someone
+    if (tracking) return null
     return (
-      <div className="you you--guest slant">
-        <span className="unslant you-body">
-          <span className="you-k">YOU’RE INVISIBLE</span>
-          <span className="you-v">Nobody can see you yet.</span>
-          <button className="btn-primary slant you-cta" onClick={become}>
+      <div className="ghostbar slant">
+        <span className="unslant ghostbar-inner">
+          <svg className="ghostbar-icon" viewBox="0 0 24 32" aria-hidden>
+            <circle cx="12" cy="8" r="5.5" />
+            <path d="M2.5 31v-7.5C2.5 18 6.8 15.5 12 15.5s9.5 2.5 9.5 8V31" />
+          </svg>
+          <span className="ghostbar-text">
+            <b>YOU’RE INVISIBLE</b>
+            <span>Nobody in the city can see you yet.</span>
+          </span>
+          <button className="btn-primary slant ghostbar-cta" onClick={become}>
             <span className="unslant">
               BECOME VISIBLE <span className="keycap">V</span>
             </span>
@@ -49,6 +58,7 @@ export function YouCard() {
         </span>
       </div>
     )
+  }
 
   const live = me.status === 'approved'
   return (
@@ -63,7 +73,6 @@ export function YouCard() {
           <button onClick={become}>
             EDIT PROFILE <span className="keycap">V</span>
           </button>
-          <button onClick={() => signOut()}>SIGN OUT</button>
         </span>
       </span>
     </div>

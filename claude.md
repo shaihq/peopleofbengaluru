@@ -737,6 +737,22 @@ Schema: supabase/migrations/0001_profiles.sql
 
 ---
 
+# PHASE 5C — SOUND OF BENGALURU
+
+Spec: sounddesign.md (read it before any audio work).
+
+Rules:
+
+- No sound without a visible source or a clear purpose. Exception: the distant city bed and far-off horns.
+- One key (D major) and one motif (D–F#–A–D) for every UI sound, stinger and the music. Never add a sound that doesn't belong to this vocabulary.
+- Music is generative lofi synthesized in code (src/game/audio/music.ts). While exploring it plays from the darshini's radio, not everywhere — silence and city sound are part of the design.
+- UI sounds are synthesized; recordings only where synthesis can't fake it. Every audio file must be CC0 or owned, and listed in public/audio/CREDITS.md.
+- Discovery cue: once per person per approach, never more than one every 5 seconds. Hover sounds are rate-limited and menu-only.
+- Sound starts after the first click. M mutes. Volume lives in the pause menu. Audio suspends when the tab is hidden.
+- Menus muffle the world; UI stays crisp. Stingers duck the music.
+
+---
+
 # PHASE 6 — LIVING BENGALURU
 
 Add:

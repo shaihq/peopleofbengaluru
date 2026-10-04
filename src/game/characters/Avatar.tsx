@@ -23,16 +23,44 @@ const HEIGHT = 1.75
 const PROPORTIONS: Record<string, number> = {
   Chest: 1.05,
   Head: 1.16,
-  'Wrist.L': 1.25,
-  'Wrist.R': 1.25,
-  'Foot.L': 1.12,
-  'Foot.R': 1.12,
+  // (GLTFLoader strips '.' from node names: Foot.L → FootL)
+  WristL: 1.25,
+  WristR: 1.25,
+  FootL: 1.12,
+  FootR: 1.12,
 }
 
 // Natural ground speed of each rig's clips (m/s), for foot-sync time scaling.
 const STRIDE: Record<Rig, { walk: number; run: number }> = {
   modular: { walk: 1.7, run: 5.2 },
   robot: { walk: 2.6, run: 6.2 },
+}
+
+/** Clear glass with a bright fresnel rim — reads as "invisible" without vanishing. */
+function glassMaterial() {
+  const m = new THREE.MeshPhysicalMaterial({
+    color: '#DCEBFA',
+    roughness: 0.06,
+    metalness: 0,
+    clearcoat: 1,
+    clearcoatRoughness: 0.05,
+    envMapIntensity: 2.2,
+    transparent: true,
+    opacity: 0.12,
+  })
+  m.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      `#include <opaque_fragment>
+      {
+        float fres = pow(1.0 - clamp(abs(dot(normalize(normal), normalize(vViewPosition))), 0.0, 1.0), 2.4);
+        gl_FragColor.rgb += vec3(0.78, 0.9, 1.0) * fres * 0.95;
+        gl_FragColor.a = clamp(diffuseColor.a + fres * 0.8, 0.0, 1.0);
+      }`,
+    )
+  }
+  m.customProgramCacheKey = () => 'invisible-glass'
+  return m
 }
 
 /** One-time per GLB: crease-angle normals, so faceted low-poly reads as painted, chunky forms. */
@@ -56,7 +84,8 @@ function buildCharacter(source: THREE.Object3D, def: CharacterDef) {
     m.castShadow = true
     m.receiveShadow = true
     m.frustumCulled = false
-    const restyle = (src: THREE.Material) => {
+    const restyle = (src: THREE.Material): THREE.Material => {
+      if (def.glass?.includes(src.name)) return glassMaterial()
       const mat = (src as THREE.MeshStandardMaterial).clone()
       const c = def.colors[mat.name]
       if (c && mat.color) mat.color.set(c)
@@ -84,7 +113,13 @@ function buildCharacter(source: THREE.Object3D, def: CharacterDef) {
   return { root, scale: s, offset: -box.min.y * s }
 }
 
-export function Avatar({ id, state }: { id: string; state: MutableRefObject<AvatarState> }) {
+type Foot = { bone: THREE.Object3D | null; lifted: boolean; last: number }
+
+/**
+ * `onStep` fires when a foot actually plants in the animation: it must clearly
+ * lift, then come back down near the ground (hysteresis, so heel+toe count once).
+ */
+export function Avatar({ id, state, onStep }: { id: string; state: MutableRefObject<AvatarState>; onStep?: () => void }) {
   const def = getCharacter(id)
   const gltf = useGLTF(def.file)
   const built = useMemo(() => buildCharacter(gltf.scene, def), [gltf, def])
@@ -92,6 +127,13 @@ export function Avatar({ id, state }: { id: string; state: MutableRefObject<Avat
   const { actions } = useAnimations(gltf.animations, group)
   const clips = CLIPS[def.rig]
   const current = useRef<string>('')
+  const feet = useMemo<Foot[]>(() => {
+    const find = (n: string) => built.root.getObjectByName(n) ?? null
+    return ['FootL', 'FootR'].map((n) => ({ bone: find(n), lifted: false, last: 0 }))
+  }, [built])
+  const range = useRef({ lo: Infinity, hi: -Infinity })
+  const tmpV = useMemo(() => new THREE.Vector3(), [])
+  const rootV = useMemo(() => new THREE.Vector3(), [])
 
   useEffect(() => {
     const idle = actions[clips.idle]
@@ -124,6 +166,31 @@ export function Avatar({ id, state }: { id: string; state: MutableRefObject<Avat
     const stride = STRIDE[def.rig]
     if (walk) walk.timeScale = THREE.MathUtils.clamp(st.speed / stride.walk, 0.8, 2.2)
     if (run) run.timeScale = THREE.MathUtils.clamp(st.speed / stride.run, 0.8, 1.6)
+
+    // --- footfalls ---------------------------------------------------------
+    if (!onStep || st.mode === 'idle' || !group.current) {
+      range.current.lo = Infinity
+      range.current.hi = -Infinity
+      return
+    }
+    group.current.getWorldPosition(rootV)
+    const r = range.current
+    const now = performance.now()
+    for (const f of feet) {
+      if (!f.bone) continue
+      f.bone.updateWorldMatrix(true, false)
+      const h = tmpV.setFromMatrixPosition(f.bone.matrixWorld).y - rootV.y
+      r.lo = Math.min(r.lo + 0.0004, h)
+      r.hi = Math.max(r.hi - 0.0004, h)
+      const span = r.hi - r.lo
+      if (span < 0.03) continue
+      if (h > r.lo + span * 0.55) f.lifted = true
+      else if (f.lifted && h < r.lo + span * 0.18 && now - f.last > 200) {
+        f.lifted = false
+        f.last = now
+        onStep()
+      }
+    }
   })
 
   return (

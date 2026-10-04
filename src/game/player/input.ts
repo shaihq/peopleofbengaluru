@@ -20,7 +20,7 @@ export function installInput() {
   installed = true
 
   const down = (e: KeyboardEvent) => {
-    if (isTyping(e)) return
+    if (isTyping(e) || useGame.getState().paused) return
     keys[e.code] = true
   }
   const up = (e: KeyboardEvent) => {
@@ -32,7 +32,7 @@ export function installInput() {
   }
   const move = (e: MouseEvent) => {
     const g = useGame.getState()
-    if (g.phase !== 'play' || g.searchOpen || g.openId) return
+    if (g.phase !== 'play' || g.searchOpen || g.openId || g.paused) return
     if (!document.pointerLockElement && !look.dragging) return
     look.yaw -= e.movementX * 0.0024
     look.pitch = clamp(look.pitch + e.movementY * 0.0018, -0.2, 0.8)
@@ -62,7 +62,7 @@ export function installInput() {
 /** Ask for pointer lock. `drag` = this came from pressing on the world, so drag-to-look works as a fallback. */
 export function requestLook(drag = false) {
   const g = useGame.getState()
-  if (g.openId || g.searchOpen) return
+  if (g.openId || g.searchOpen || g.paused) return
   if (drag) look.dragging = true
   const canvas = document.querySelector<HTMLCanvasElement>('.game-root canvas')
   try {

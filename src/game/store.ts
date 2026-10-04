@@ -17,6 +17,9 @@ type GameState = {
   /** Person whose profile panel is open. */
   openId: string | null
   searchOpen: boolean
+  /** Pause menu (Esc while exploring). */
+  paused: boolean
+  pausedAt: number
   /** Person being located / walked to. */
   trackId: string | null
   trackStage: TrackStage
@@ -33,6 +36,7 @@ type GameState = {
   openProfile: (id: string) => void
   closeProfile: () => void
   setSearch: (open: boolean) => void
+  setPaused: (paused: boolean) => void
   track: (id: string) => void
   setTrackStage: (stage: TrackStage) => void
   stopTracking: () => void
@@ -52,6 +56,8 @@ export const useGame = create<GameState>((set) => ({
   focusId: null,
   openId: null,
   searchOpen: false,
+  paused: false,
+  pausedAt: 0,
   trackId: null,
   trackStage: null,
   trackT0: 0,
@@ -60,7 +66,7 @@ export const useGame = create<GameState>((set) => ({
   enter: () => set({ phase: 'play', enteredAt: performance.now() }),
   startCreate: () => {
     releaseMouse()
-    set({ phase: 'create', openId: null, searchOpen: false, focusId: null, trackId: null, trackStage: null })
+    set({ phase: 'create', openId: null, searchOpen: false, paused: false, focusId: null, trackId: null, trackStage: null })
   },
   endCreate: () => set({ phase: 'play', enteredAt: performance.now() }),
   setLandmark: (landmark) => set({ landmark }),
@@ -74,6 +80,10 @@ export const useGame = create<GameState>((set) => ({
   setSearch: (searchOpen) => {
     if (searchOpen) releaseMouse()
     set({ searchOpen })
+  },
+  setPaused: (paused) => {
+    if (paused) releaseMouse()
+    set(paused ? { paused, pausedAt: performance.now() } : { paused })
   },
   track: (trackId) => set({ trackId, trackStage: 'fly', trackT0: performance.now(), searchOpen: false, openId: null }),
   setTrackStage: (trackStage) => set({ trackStage, trackT0: performance.now() }),

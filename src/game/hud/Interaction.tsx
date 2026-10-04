@@ -130,7 +130,7 @@ export function Interaction() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
-      if (g.phase !== 'play' || isTyping(e) || g.searchOpen) return
+      if (g.phase !== 'play' || isTyping(e) || g.searchOpen || g.paused) return
       if (e.code === 'KeyE') {
         if (g.openId) g.closeProfile()
         else if (g.focusId) g.openProfile(g.focusId)

@@ -15,6 +15,7 @@ import { route } from '../tracking'
 import { useDirectory } from '../people/directory'
 import { useOnboarding } from '../onboarding'
 import { DraftPlate } from '../hud/DraftPlate'
+import { footstep } from '../audio/footsteps'
 
 const WALK = 3.0
 const RUN = 6.8
@@ -42,6 +43,8 @@ export function Player() {
   const draftCharacter = useOnboarding((s) => s.draft.character)
   // guests are invisible; creating shows the draft look; members are themselves
   const characterId = phase === 'create' ? draftCharacter : me ? me.character : 'invisible'
+  const charRef = useRef(characterId)
+  charRef.current = characterId
   const avatar = useRef<AvatarState>({ mode: 'idle', speed: 0, waveUntil: 0 })
 
   const st = useRef({
@@ -106,7 +109,7 @@ export function Player() {
     const tracking = game.trackId ? bodies.get(game.trackId) : undefined
     const stage = tracking ? game.trackStage : null
     const cinematic = stage === 'fly' || stage === 'hold'
-    const play = game.phase === 'play' && !talking && !game.searchOpen && !cinematic
+    const play = game.phase === 'play' && !talking && !game.searchOpen && !game.paused && !cinematic
     const select = game.phase === 'create'
     if (game.phase !== s.phase) {
       // character creation always happens on the home street, facing the camera
@@ -304,7 +307,15 @@ export function Player() {
   return (
     <group ref={root}>
       <Suspense fallback={null}>
-        <Avatar key={characterId} id={characterId} state={avatar} />
+        <Avatar
+          key={characterId}
+          id={characterId}
+          state={avatar}
+          onStep={() => {
+            const p = st.current.pos
+            footstep(charRef.current, p.x, p.y, p.z, avatar.current.mode === 'run', true)
+          }}
+        />
       </Suspense>
       {phase === 'create' && (
         <Html position={[0, 2.2, 0]} center zIndexRange={[20, 0]} wrapperClass="np-wrap">

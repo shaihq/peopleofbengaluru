@@ -19,8 +19,10 @@ export type CharacterDef = {
   /** Material name → colour. Unlisted materials keep a neutral restyle. */
   colors: Record<string, string>
   hide?: string[]
-  /** Materials to make invisible (the guest look: clothes, no body). */
+  /** Materials to hide entirely. */
   invisible?: string[]
+  /** Materials rendered as clear glass with a bright rim (the guest look). */
+  glass?: string[]
   /** Not offered on the character-select screen. */
   hidden?: boolean
 }
@@ -180,7 +182,7 @@ export const ROSTER: CharacterDef[] = [
   },
 ]
 
-// Guests explore as the Invisible: a hoodie, shorts and sneakers with nobody inside.
+// Guests explore as the Invisible: a glass body in a hoodie, shorts and sneakers.
 ROSTER.push({
   id: 'invisible',
   name: 'THE INVISIBLE',
@@ -189,7 +191,8 @@ ROSTER.push({
   rig: 'modular',
   accent: '#9AA0A8',
   colors: { Purple: '#ECE6DA', White: '#ECE6DA', LightBlue: '#7D8791' },
-  invisible: ['Skin', 'Eye', 'Eyebrows', 'Hair'],
+  glass: ['Skin', 'Hair'],
+  invisible: ['Eye', 'Eyebrows'],
   hidden: true,
 })
 
