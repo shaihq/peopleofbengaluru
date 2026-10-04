@@ -1,5 +1,6 @@
 'use client'
 
+import './districts' // registers every built district (must load first)
 import * as THREE from 'three'
 import { Suspense, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
@@ -7,7 +8,10 @@ import { C } from '@/lib/palette'
 import { Lighting } from './scene/Lighting'
 import { Clouds, SkyDome } from './scene/Sky'
 import { Effects } from './scene/Effects'
-import { World } from './world/World'
+import { DistrictWorld } from './world/DistrictWorld'
+import { PortalController } from './world/PortalController'
+import { PortalPicker } from './hud/PortalPicker'
+import { Travel } from './hud/Travel'
 import { Player } from './player/Player'
 import { People } from './people/People'
 import { requestLook } from './player/input'
@@ -23,6 +27,8 @@ import { Tracker } from './hud/Tracker'
 import { Trail } from './world/Trail'
 import { AudioDirector } from './audio/AudioDirector'
 import { useGame } from './store'
+import { isTouch, quality } from './device'
+import { TouchControls } from './hud/TouchControls'
 
 function Ready() {
   const setReady = useGame((s) => s.setReady)
@@ -40,13 +46,13 @@ export default function Game() {
       className="game-root"
       onMouseDown={(e) => {
         // only the canvas grabs the mouse — HUD buttons must stay clickable
-        if (e.target instanceof HTMLCanvasElement && useGame.getState().phase === 'play') requestLook(true)
+        if (!isTouch && e.target instanceof HTMLCanvasElement && useGame.getState().phase === 'play') requestLook(true)
       }}
     >
       <Canvas
         shadows={{ type: THREE.PCFShadowMap }}
         flat
-        dpr={[1, 1.75]}
+        dpr={quality.dpr}
         gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
         camera={{ fov: 56, near: 0.2, far: 1200, position: [40, 16, 30] }}
       >
@@ -56,7 +62,8 @@ export default function Game() {
           <SkyDome />
           <Clouds />
           <Lighting />
-          <World />
+          <DistrictWorld />
+          <PortalController />
           <Player />
           <People />
           <Trail />
@@ -66,9 +73,12 @@ export default function Game() {
         </Suspense>
       </Canvas>
       <HUD />
+      <TouchControls />
       <Interaction />
       <Tracker />
       <Search />
+      <PortalPicker />
+      <Travel />
       <YouCard />
       <Create />
       <Pause />

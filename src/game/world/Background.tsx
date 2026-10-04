@@ -11,6 +11,8 @@ import { RainTree } from './Trees'
 // dissolve into the horizon haze.
 
 const METRO_Z = -66
+let SEED = 77
+let metroZ = METRO_Z
 const CONCRETE = '#CDBFA6'
 
 /** Namma Metro elevated viaduct crossing the far end of the street. */
@@ -18,7 +20,7 @@ function MetroViaduct() {
   const pillars: number[] = []
   for (let x = -132; x <= 132; x += 22) pillars.push(x)
   return (
-    <group position={[0, 0, METRO_Z]}>
+    <group position={[0, 0, metroZ]}>
       {pillars.map((x) => (
         <group key={x} position={[x, 0, 0]}>
           <Box s={[1.9, 11, 1.9]} p={[0, 5.5, 0]} c={CONCRETE} radius={0.3} />
@@ -38,7 +40,7 @@ const WALLS = [C.WALL_MINT, C.WALL_BUTTER, C.WALL_POWDER, C.WALL_SALMON, C.WALL_
 
 /** Distant blocks lining the roads beyond the playable area. */
 function farBlocks(): Far[] {
-  const r = rng(77)
+  const r = rng(SEED)
   const out: Far[] = []
   const pick = () => WALLS[Math.floor(r() * WALLS.length)]
   for (const s of [1, -1]) {
@@ -55,7 +57,7 @@ function farBlocks(): Far[] {
     }
   }
   // keep clear of the metro viaduct
-  return out.filter(([, z]) => Math.abs(z - METRO_Z) > 11)
+  return out.filter(([, z]) => Math.abs(z - metroZ) > 11)
 }
 
 function FarBlock({ b: [x, z, w, d, h, wall] }: { b: Far }) {
@@ -114,10 +116,13 @@ function TreeMasses() {
   )
 }
 
-export function Background() {
+/** Distant city. `seed` varies the far blocks; `metro` places the viaduct (z) or omits it. */
+export function Background({ seed = 77, metro = METRO_Z as number | null }: { seed?: number; metro?: number | null } = {}) {
+  SEED = seed
+  metroZ = metro ?? 9999
   return (
     <>
-      <MetroViaduct />
+      {metro !== null && <MetroViaduct />}
       {farBlocks().map((b, i) => (
         <FarBlock key={i} b={b} />
       ))}

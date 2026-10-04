@@ -7,6 +7,8 @@ import { usePeople } from '../people/directory'
 import { look, isTyping } from '../player/input'
 import { CATEGORIES, searchPeople, whereIs, type Category } from '../search'
 import { useGame } from '../store'
+import { isTouch } from '../device'
+import { districtInfo, homeDistrict } from '../districts/registry'
 
 const EXAMPLES = ['design engineer', 'open to work', 'Indiranagar', 'design systems', 'founder']
 
@@ -76,7 +78,7 @@ export function Search() {
     if (!open) return
     setSel(0)
     const id = setInterval(() => setTick((t) => t + 1), 500)
-    requestAnimationFrame(() => input.current?.focus())
+    if (!isTouch) requestAnimationFrame(() => input.current?.focus()) // (phones: don't throw up the keyboard)
     return () => clearInterval(id)
   }, [open])
 
@@ -99,7 +101,16 @@ export function Search() {
 
   if (phase !== 'play' || !open) return null
 
-  const choose = (id: string) => track(id)
+  // someone in another district → walk to the portal, go through, then find them
+  const choose = (id: string) => {
+    const person = people.find((x) => x.id === id)
+    const g = useGame.getState()
+    const there = person ? homeDistrict(person.location) : g.district
+    if (there === g.district) return track(id)
+    g.setSearch(false)
+    g.setPortalFor({ id, district: there })
+    track('portal')
+  }
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -117,7 +128,7 @@ export function Search() {
           <span className="find-tag">
             <span className="find-glass" /> FIND SOMEONE IN THE CITY
           </span>
-          <span className="find-count">{people.length} PEOPLE IN 5TH BLOCK</span>
+          <span className="find-count">{people.length} PEOPLE ACROSS BENGALURU</span>
           <button className="find-esc" onClick={() => setSearch(false)} aria-label="Close search">
             <span className="keycap">ESC</span>
           </button>
@@ -205,7 +216,10 @@ export function Search() {
                     </span>
                   </span>
                   <span className="find-where">
-                    <span className="find-place">{pos ? whereIs(pos.x, pos.z) : '—'}</span>
+                    <span className="find-place">
+                      {pos ? whereIs(pos.x, pos.z) : `IN ${districtInfo(homeDistrict(p.location)).title}`}
+                    </span>
+                    {!pos && <span className="find-dir">VIA THE PORTAL</span>}
                     {pos && Number.isFinite(dist) && (
                       <span className="find-dir">
                         <b>{Math.round(dist)}m</b> · {direction(pos.x, pos.z, dist)}

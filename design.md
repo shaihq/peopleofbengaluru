@@ -321,3 +321,17 @@ Rules:
 7. Would an art director believe one team made everything on screen?
 
 If any answer is no, redesign before continuing.
+
+---
+
+# 14. PORTALS (the one sanctioned sci-fi element)
+
+Portals connect the districts. They are deliberately sci-fi, in the Overwatch sense of clean, painted, readable tech. Never cyberpunk.
+
+- **Hardware:** a chunky, bevelled ring frame in cream and ink with saffron light strips, standing on a stepped circular plinth. Big confident shapes, worn painted edges like everything else (§5).
+- **Energy:** an animated surface inside the ring that swirls inward, built from warm colours only: saffron core → cream → a soft powder-blue rim (WALL_POWDER). **Never purple, magenta or cyan.**
+- **Motion:** slow rotation with layered swirl and gentle pulses. Particles drift inward. It should feel alive, not frantic.
+- **Light:** the portal is a real light source, so it may bloom (§7.4). It casts a soft warm glow on the plinth. Nothing else around it glows.
+- **Signage:** a Kannada + English signboard ("TRAVEL · ಪ್ರಯಾಣ") in the same hand-painted style as the street signs.
+- **Travel transition:** slanted game panels wipe across the screen (§10.1) and reveal the destination's title card: name, Kannada name, identity line and how many designers live there. Then the panels wipe away to the new district.
+- One plaza per district, placed in open space with clear sight lines so players can find it.

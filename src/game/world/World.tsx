@@ -1,6 +1,8 @@
 'use client'
 
 import { FILLERS } from '../layout'
+import { KORA_PORTAL } from '../districts/koramangala'
+import { Portal } from './Portal'
 import { Apartment } from './Apartment'
 import { Background } from './Background'
 import { Building } from './Building'
@@ -35,6 +37,7 @@ export function World() {
         <Background />
       </StaticMerge>
       <Kerbs />
+      <Portal pose={KORA_PORTAL} />
     </>
   )
 }

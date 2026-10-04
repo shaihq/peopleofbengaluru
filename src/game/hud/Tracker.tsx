@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { bodies, player } from '../people/bodies'
 import { getPeople } from '../people/directory'
+import { districtInfo } from '../districts/registry'
 import { isTyping } from '../player/input'
 import { useGame } from '../store'
 
@@ -12,7 +13,9 @@ export function Tracker() {
   const stage = useGame((s) => s.trackStage)
   const stopTracking = useGame((s) => s.stopTracking)
   const dist = useRef<HTMLSpanElement>(null)
-  const p = getPeople().find((x) => x.id === trackId)
+  const portalFor = useGame((s) => s.portalFor)
+  const toPortal = trackId === 'portal' && portalFor
+  const p = toPortal ? getPeople().find((x) => x.id === portalFor.id) : getPeople().find((x) => x.id === trackId)
 
   useEffect(() => {
     if (!trackId) return
@@ -26,7 +29,10 @@ export function Tracker() {
     loop()
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e)) return
-      if (e.code === 'KeyX') stopTracking()
+      if (e.code === 'KeyX') {
+        stopTracking()
+        useGame.getState().setPortalFor(null)
+      }
       // skip the fly-over with any movement key
       const g = useGame.getState()
       if ((g.trackStage === 'fly' || g.trackStage === 'hold') && /^(Key[WASD]|Arrow|Space|Escape)/.test(e.code)) g.setTrackStage('walk')
@@ -43,7 +49,7 @@ export function Tracker() {
   return (
     <div className={`tracker slant${found ? ' tracker--found' : ''}`} key={`${p.id}-${found}`}>
       <span className="unslant tracker-body">
-        <span className="tracker-tag">{found ? 'FOUND' : stage === 'walk' ? 'HEADING TO' : 'LOCATING'}</span>
+        <span className="tracker-tag">{toPortal ? `TO THE PORTAL → ${districtInfo(portalFor.district).title}` : found ? 'FOUND' : stage === 'walk' ? 'HEADING TO' : 'LOCATING'}</span>
         <span className="tracker-name">{p.name}</span>
         {!found && <span className="tracker-dist" ref={dist} />}
         {!found && (

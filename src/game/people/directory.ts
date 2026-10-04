@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { supabase, type ProfileRow } from '@/lib/supabase'
 import { PEOPLE as SAMPLES, type Profile } from './profiles'
-import { SPOTS, type SpotId } from './spots'
+import { getDistrict } from '../districts/active'
+import { homeDistrict } from '../districts/registry'
 
 // Who lives in the district: real approved profiles from Supabase + the
 // sample cast (retired automatically once the real community is big enough).
@@ -42,12 +43,16 @@ export function rowToProfile(r: ProfileRow, slot: [number, number, number]): Pro
 function place(rows: ProfileRow[]) {
   const bySpot = new Map<string, ProfileRow[]>()
   for (const r of [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
-    const id = r.spot in SPOTS ? r.spot : 'junction'
-    bySpot.set(id, [...(bySpot.get(id) ?? []), r])
+    // spots belong to the district the person appears in; unknown → that district's first spot
+    const spots = getDistrict(homeDistrict(r.location)).spots
+    const id = r.spot in spots ? r.spot : Object.keys(spots)[0]
+    const key = `${homeDistrict(r.location)}|${id}`
+    bySpot.set(key, [...(bySpot.get(key) ?? []), r])
   }
   const out = new Map<string, [number, number, number]>()
-  for (const [id, list] of bySpot) {
-    const slots = SPOTS[id as SpotId].slots
+  for (const [key, list] of bySpot) {
+    const [district, id] = key.split('|')
+    const slots = getDistrict(district as Parameters<typeof getDistrict>[0]).spots[id].slots
     list.forEach((r, i) => {
       if (i < slots.length) return out.set(r.id, slots[i])
       const [x, z, f] = slots[i % slots.length]

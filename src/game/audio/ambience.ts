@@ -1,24 +1,25 @@
 import { audioCtx, emitter, env, noiseSource, out, ready, replaceSlot, type Emitter } from './engine'
-import { TREES } from '../layout'
+import { active } from '../districts/active'
 
 // Stylized Bengaluru soundscape (sounddesign.md §2, §4, §20).
 // Synthesized, placed in the world. Rule: nothing audible without a visible
 // source — except the distant city bed and far-off horns (off-screen city).
 
 export const emitters: Emitter[] = []
-let started = false
-let alive = true
+let started = ''
+let gen = 0
 let root: GainNode
-const sources: AudioScheduledSourceNode[] = []
-const track = <T extends AudioScheduledSourceNode>(s: T) => (sources.push(s), s)
+let bag: AudioScheduledSourceNode[] = []
+const track = <T extends AudioScheduledSourceNode>(s: T) => (bag.push(s), s)
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a)
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]
 
 /** Repeat `fn` at random intervals while audio runs. */
 function every(min: number, max: number, fn: () => void, first = rand(min, max)) {
+  const mine = gen
   const loop = () => {
-    if (!alive) return
+    if (mine !== gen) return // this district's soundscape was torn down
     if (ready()) fn()
     setTimeout(loop, rand(min, max) * 1000)
   }
@@ -160,7 +161,8 @@ function crow(to: AudioNode) {
 }
 
 function park() {
-  const trees = TREES.map((t) => place(t.x, 6, t.z, 4, 1.2))
+  const trees = active.def.trees.map((t) => place(t.x, 6, t.z, 4, 1.2))
+  if (!trees.length) return
   emitters.push(...trees)
   const c = audioCtx()!
   // leaves: gusty rustle from the big rain tree
@@ -192,24 +194,58 @@ function place(x: number, y: number, z: number, ref: number, rolloff = 1.4) {
   return e
 }
 
+/** Build the soundscape for the loaded district (re-run on travel — tears the old one down). */
+/** The portal's low, warm hum — you hear it before you see it. */
+function portalHum() {
+  const c = audioCtx()!
+  const p = active.def.portal
+  const e = place(p.x, 2.5, p.z, 3, 1.5)
+  const g = c.createGain()
+  g.gain.value = 0.05
+  for (const [f, d] of [
+    [110, 0],
+    [165, 4],
+    [220.5, -3],
+  ] as const) {
+    const o = track(c.createOscillator())
+    o.frequency.value = f
+    o.detune.value = d
+    o.connect(g)
+    o.start()
+  }
+  const lfo = track(c.createOscillator())
+  lfo.frequency.value = 0.6
+  const ld = c.createGain()
+  ld.gain.value = 0.02
+  lfo.connect(ld).connect(g.gain)
+  lfo.start()
+  g.connect(e.input)
+}
+
 export function startAmbience() {
-  if (started || !audioCtx()) return
-  started = true
-  root = audioCtx()!.createGain()
-  root.connect(out('ambience'))
+  const c = audioCtx()
+  if (!c || started === active.def.id) return
+  started = active.def.id
+  gen++ // stops the old district's timers
+  const myBag: AudioScheduledSourceNode[] = (bag = [])
+  const myRoot = (root = c.createGain())
+  myRoot.gain.value = 0
+  myRoot.gain.setTargetAtTime(1, c.currentTime, 0.8) // fade in, no hard cut (sounddesign.md §16)
+  myRoot.connect(out('ambience'))
+  // disposes the PREVIOUS district's soundscape, then registers this one's
   replaceSlot('ambience', () => {
-    alive = false
-    sources.forEach((s) => {
+    for (const s of myBag) {
       try {
         s.stop()
       } catch {
         // already stopped
       }
-    })
-    root.disconnect()
-    emitters.length = 0
+    }
+    myRoot.disconnect()
   })
+  emitters.length = 0
   cityBed()
   park()
+  portalHum()
   every(7, 18, horn, 3)
 }

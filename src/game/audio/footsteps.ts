@@ -1,23 +1,12 @@
 import { at, out, playSample, ready } from './engine'
-import { PARK, ROAD } from '../layout'
+import { active, type Surface } from '../districts/active'
 import { styleOf } from '../characters/roster'
 
 // Footsteps respond to the surface (sounddesign.md §6). One plain step per
 // animation footfall — no extra layers. CC0 Kenney samples, randomised
 // (5 variations × slight pitch jitter) so they never sound looped.
 
-type Surface = 'asphalt' | 'pavers' | 'grass' | 'kota'
-
-export function surfaceAt(x: number, z: number): Surface {
-  if (Math.abs(x) < ROAD || Math.abs(z) < ROAD) return 'asphalt'
-  if (x > PARK.x0 && x < PARK.x1 && z > PARK.z0 && z < PARK.z1) {
-    const loop = Math.abs(Math.max(Math.abs(x - 20), Math.abs(z - 20)) - 7) < 0.85
-    return loop ? 'pavers' : 'grass'
-  }
-  if (z < -8 && z > -11.6 && x > 9 && x < 45) return 'kota'
-  if (x > -20 && x < -10 && z > 10.9 && z < 13.1) return 'kota'
-  return 'pavers'
-}
+export const surfaceAt = (x: number, z: number) => active.def.surface(x, z)
 
 const SET: Record<Surface, { base: string; rate: number; gain: number }> = {
   asphalt: { base: 'footstep_concrete', rate: 0.9, gain: 0.55 },

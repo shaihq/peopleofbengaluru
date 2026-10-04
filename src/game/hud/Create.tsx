@@ -9,7 +9,15 @@ import {
   type Gender,
 } from "../characters/roster";
 import { useDirectory } from "../people/directory";
-import { NEIGHBOURHOODS, SPOTS, SPOT_IDS } from "../people/spots";
+import { DISTRICTS, districtOfLocation, homeDistrict } from "../districts/registry";
+import { getDistrict } from "../districts/active";
+
+/** Spots in the district this person will appear in (visitors use Koramangala until theirs is built). */
+const spotsFor = (location: string) => getDistrict(homeDistrict(location)).spots;
+const districtInfoTitle = (location: string) => {
+  const d = districtOfLocation(location);
+  return d.built ? d.title : "KORAMANGALA";
+};
 import {
   STEPS,
   sendMagicLink,
@@ -20,6 +28,7 @@ import {
 } from "../onboarding";
 import { requestLook } from "../player/input";
 import { useGame } from "../store";
+import { isTouch } from "../device";
 
 function Field({
   label,
@@ -133,7 +142,7 @@ function GoLiveStep({ d }: { d: Draft }) {
     <div className="cr-live">
       <div className="cr-summary">
         <span className="cr-summary-k">YOU’LL HANG OUT AT</span>
-        <span className="cr-summary-v">{SPOTS[d.spot].label}</span>
+        <span className="cr-summary-v">{(spotsFor(d.location)[d.spot] ?? Object.values(spotsFor(d.location))[0]).label}</span>
         <span className="cr-summary-k">FROM</span>
         <span className="cr-summary-v">{d.location}, Bengaluru</span>
       </div>
@@ -253,7 +262,7 @@ export function Create() {
   });
 
   useEffect(() => {
-    panel.current?.querySelector<HTMLInputElement>("input")?.focus();
+    if (!isTouch) panel.current?.querySelector<HTMLInputElement>("input")?.focus();
   }, [step]);
 
   if (phase !== "create") return null;
@@ -378,28 +387,39 @@ export function Create() {
           <div className="cr-fields">
             <span className="cr-label">YOUR NEIGHBOURHOOD</span>
             <div className="cr-chips cr-chips--tight">
-              {NEIGHBOURHOODS.map((n) => (
+              {DISTRICTS.map((n) => (
                 <button
-                  key={n}
-                  className={`chip slant${d.location === n ? " chip--on" : ""}`}
-                  onClick={() => patch({ location: n })}
+                  key={n.id}
+                  className={`chip slant${districtOfLocation(d.location).id === n.id ? " chip--on" : ""}`}
+                  onClick={() =>
+                    patch({
+                      location: n.name,
+                      // keep the spot if it exists there, otherwise that district's first spot
+                      spot: d.spot in spotsFor(n.name) ? d.spot : Object.keys(spotsFor(n.name))[0],
+                    })
+                  }
                 >
-                  <span className="unslant chip-name">{n.toUpperCase()}</span>
+                  <span className="unslant chip-name">{n.title}</span>
                 </button>
               ))}
             </div>
+            {!districtOfLocation(d.location).built && (
+              <span className="cr-gender-note" style={{ margin: "8px 0 0" }}>
+                {districtOfLocation(d.location).title} isn’t built yet. You’ll be visiting Koramangala until it is.
+              </span>
+            )}
             <span className="cr-label" style={{ marginTop: 18 }}>
-              WHERE YOU’LL BE FOUND IN 5TH BLOCK
+              WHERE YOU’LL BE FOUND IN {districtInfoTitle(d.location)}
             </span>
             <div className="cr-spots">
-              {SPOT_IDS.map((id) => (
+              {Object.entries(spotsFor(d.location)).map(([id, sp]) => (
                 <button
                   key={id}
                   className={`cr-spot${d.spot === id ? " cr-spot--on" : ""}`}
                   onClick={() => patch({ spot: id })}
                 >
-                  <b>{SPOTS[id].label}</b>
-                  <em>{SPOTS[id].blurb}</em>
+                  <b>{sp.label}</b>
+                  <em>{sp.blurb}</em>
                 </button>
               ))}
             </div>

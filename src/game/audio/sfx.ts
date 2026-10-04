@@ -287,6 +287,41 @@ export const sfx = {
     pluck(MOTIF[0], t, 0.05, dest('ui'), 0.5)
     pluck(MOTIF[1], t + 0.12, 0.05, dest('ui'), 0.6)
   },
+  /** Standing in the portal: "where to?" */
+  portalOpen() {
+    if (!ready()) return
+    const t = now()
+    whoosh(t, 0.5, true, 0.08, dest('ui'), 300, 5000)
+    bell(MOTIF[1], t + 0.05, 0.14, dest('ui'), 1.2)
+    bell(MOTIF[3], t + 0.13, 0.12, dest('ui'), 1.4)
+  },
+  /** Travel: a long rising warp as the panels close in. */
+  warp() {
+    if (!ready()) return
+    const t = now()
+    duckMusic(0.2, 2.2)
+    whoosh(t, 1.4, true, 0.12, dest('ui'), 120, 7000)
+    thump(t + 0.55, 0.3, dest('ui'), 90, 35, 0.6)
+    const c = audioCtx()!
+    const o = c.createOscillator()
+    o.type = 'sine'
+    o.frequency.setValueAtTime(110, t)
+    o.frequency.exponentialRampToValueAtTime(880, t + 1.1)
+    const g = c.createGain()
+    o.connect(g).connect(dest('ui'))
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.linearRampToValueAtTime(0.06, t + 0.6)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2)
+    o.start(t)
+    o.stop(t + 1.25)
+  },
+  /** Arrival title card — the motif, a little brighter. */
+  arrive() {
+    if (!ready()) return
+    const t = now()
+    MOTIF.forEach((m, i) => bell(m, t + i * 0.09, 0.14 + i * 0.02, dest('ui'), 1.3))
+    shimmer(t + 0.4, 0.05, dest('ui'))
+  },
   /** Character accents. */
   servo(x: number, y: number, z: number) {
     if (!ready()) return

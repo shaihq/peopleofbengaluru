@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { audioCtx, loadSample, onReady, ready, setListener, setMuffle, unlock, useAudio } from './engine'
 import { emitters, startAmbience } from './ambience'
-import { radioEmitter, setMusicMode } from './music'
+import { radioEmitter, setMusicMode, syncRadio } from './music'
+import { onDistrictChange } from '../districts/active'
 import { STEP_SAMPLES } from './footsteps'
 import { sfx } from './sfx'
 import { rayDistance } from '../player/collision'
@@ -33,7 +34,13 @@ export function AudioDirector() {
       startAmbience()
       syncMusic()
     })
+    // travel: new district, new soundscape (crossfaded)
+    const off = onDistrictChange(() => {
+      startAmbience()
+      syncRadio()
+    })
     return () => {
+      off()
       window.removeEventListener('pointerdown', go, true)
       window.removeEventListener('keydown', go, true)
     }
@@ -45,8 +52,8 @@ export function AudioDirector() {
     const unsub = useGame.subscribe((s, p) => {
       if (s.phase !== p.phase) syncMusic()
       if (s.phase === 'create' && p.phase !== 'create') sfx.step(0)
-      const busy = s.paused || s.searchOpen || !!s.openId || s.phase === 'create'
-      const wasBusy = p.paused || p.searchOpen || !!p.openId || p.phase === 'create'
+      const busy = s.paused || s.searchOpen || !!s.openId || s.phase === 'create' || s.portalOpen
+      const wasBusy = p.paused || p.searchOpen || !!p.openId || p.phase === 'create' || p.portalOpen
       if (busy !== wasBusy) setMuffle(busy ? (s.paused ? 0.85 : 0.55) : 0)
 
       if (s.focusId && s.focusId !== p.focusId && !s.openId) sfx.prompt()
@@ -60,6 +67,9 @@ export function AudioDirector() {
       if (s.paused && !p.paused) sfx.pauseOpen()
       if (!s.paused && p.paused) sfx.pauseClose()
       if (s.trackStage === 'fly' && p.trackStage !== 'fly') sfx.locate()
+      if (s.portalOpen && !p.portalOpen) sfx.portalOpen()
+      if (s.travel?.stage === 'cover' && p.travel?.stage !== 'cover') sfx.warp()
+      if (s.travel?.stage === 'card' && p.travel?.stage !== 'card') sfx.arrive()
       if (s.trackStage === 'found' && p.trackStage !== 'found') sfx.found()
       if (s.toast && s.toast !== p.toast) (s.toast.msg.includes('VISIBLE') && s.toast.tone === 'good' ? sfx.goLive() : sfx.toast(s.toast.tone))
       if (s.landmark !== p.landmark && s.phase === 'play' && s.landmark !== '5TH BLOCK') sfx.landmark()

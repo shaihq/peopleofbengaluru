@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { groundHeight } from '../layout'
+import { active } from '../districts/active'
 import { route } from '../tracking'
 
 const MAX = 90
@@ -37,7 +37,7 @@ export function Trail() {
           const along = travelled + d
           // grow in from the player's feet
           const s = THREE.MathUtils.smoothstep(along, 0.6, 2.2)
-          m.makeScale(s, 1, s).setPosition(x, groundHeight(x, z) + 0.045, z)
+          m.makeScale(s, 1, s).setPosition(x, active.def.ground(x, z) + 0.045, z)
           ref.current.setMatrixAt(n++, m)
           d += SPACING
         }

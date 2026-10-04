@@ -39,7 +39,7 @@ export function Pause() {
     const plain = () => {
       const g = useGame.getState()
       const cinematic = g.trackStage === 'fly' || g.trackStage === 'hold'
-      return g.phase === 'play' && !g.openId && !g.searchOpen && !g.paused && !cinematic
+      return g.phase === 'play' && !g.openId && !g.searchOpen && !g.paused && !cinematic && !g.portalOpen && !g.travel
     }
 
     // Capture phase: we look at the state *before* the other Esc handlers close their own panels.

@@ -1,4 +1,5 @@
-import { audioCtx, emitter, mtof, noise, out, replaceSlot, type Emitter } from './engine'
+import { audioCtx, emitter, moveEmitter, mtof, noise, out, replaceSlot, type Emitter } from './engine'
+import { active } from '../districts/active'
 import { MOTIF } from './sfx'
 
 // Generative lofi hip-hop, synthesized live — 100% original, no samples, no
@@ -63,7 +64,8 @@ function build() {
   g.mix.connect(g.global).connect(out('music'))
 
   // The darshini radio: the same beat, gently band-limited (clean — no distortion), placed in the world.
-  g.radioEm = emitter(14.5, 2.4, -10.5, 'music', 6, 1.6)
+  const [rx, ry, rz] = active.def.radio ?? [0, -50, 0]
+  g.radioEm = emitter(rx, ry, rz, 'music', 6, 1.6)
   const hp = c.createBiquadFilter()
   hp.type = 'highpass'
   hp.frequency.value = 160
@@ -393,7 +395,7 @@ export function setMusicMode(m: MusicMode) {
   const L = LEVELS[m]
   const t = c.currentTime
   g.global.gain.setTargetAtTime(L.global, t, 0.6)
-  g.radio.gain.setTargetAtTime(L.radio, t, 0.6)
+  g.radio.gain.setTargetAtTime(active.def.radio ? L.radio : 0, t, 0.6)
   g.crackle.gain.setTargetAtTime(L.crackle * 0.6, t, 0.4)
   g.drums.gain.setTargetAtTime(L.drums, t, 0.3)
   if (m === 'off') {
@@ -409,3 +411,12 @@ export function setMusicMode(m: MusicMode) {
 }
 
 export const radioEmitter = () => (built ? g.radioEm : null)
+
+/** Travel: the radio moves to the new district's café (or goes quiet if it has none). */
+export function syncRadio() {
+  const c = audioCtx()
+  if (!c || !built) return
+  const r = active.def.radio
+  if (r) moveEmitter(g.radioEm, r[0], r[1], r[2])
+  g.radio.gain.setTargetAtTime(r ? LEVELS[mode].radio : 0, c.currentTime, 0.6)
+}

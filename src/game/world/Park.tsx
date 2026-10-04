@@ -11,7 +11,7 @@ import { Bush } from './Trees'
 const RAIL = { c: C.RAIL_GREEN, rough: 0.5, metal: 0.25, grade: false }
 
 /** Green-painted municipal railing between concrete posts. */
-function Railing({ from, to }: { from: [number, number]; to: [number, number] }) {
+export function Railing({ from, to }: { from: [number, number]; to: [number, number] }) {
   const dx = to[0] - from[0]
   const dz = to[1] - from[1]
   const len = Math.hypot(dx, dz)
@@ -36,7 +36,7 @@ function Railing({ from, to }: { from: [number, number]; to: [number, number] })
   )
 }
 
-function Bench({ p, rot = 0 }: { p: [number, number]; rot?: number }) {
+export function Bench({ p, rot = 0 }: { p: [number, number]; rot?: number }) {
   return (
     <group position={[p[0], BASE + 0.08, p[1]]} rotation={[0, rot, 0]}>
       {[-0.75, 0.75].map((x) => (

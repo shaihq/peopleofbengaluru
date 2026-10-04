@@ -11,7 +11,7 @@ const W = 6
 const D = 8
 
 /** One shophouse on 80 Feet Road: open shop below, home above. Local +Z faces the road. */
-function ShopUnit({ x, floors, wall, sign, shutter, goods, balcony, seed }: ShopSpec) {
+export function ShopUnit({ x, floors, wall, sign, shutter, goods, balcony, seed, z = SHOP_Z }: ShopSpec & { z?: number }) {
   const H = G + (floors - 1) * FH
   const r = rng(seed)
   const front = D / 2
@@ -39,7 +39,7 @@ function ShopUnit({ x, floors, wall, sign, shutter, goods, balcony, seed }: Shop
   }
 
   return (
-    <group position={[x, BASE, SHOP_Z]}>
+    <group position={[x, BASE, z]}>
       {/* ground: back block, piers, lintel, floor */}
       <Box s={[W, G, 5]} p={[0, G / 2, -1.5]} c={wall} />
       <Box s={[0.6, G, 3]} p={[-W / 2 + 0.3, G / 2, 2.5]} c={wall} />

@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import { DEFAULT_CHARACTER, genderOf, type Gender } from './characters/roster'
 import { refreshDirectory, useDirectory } from './people/directory'
-import type { SpotId } from './people/spots'
 
 // "Become visible" — character-creation style onboarding (CLAUDE.md §1).
 // The draft lives in localStorage so the magic-link round trip never loses it.
@@ -22,7 +21,8 @@ export type Draft = {
   linkedin: string
   x: string
   location: string
-  spot: SpotId
+  /** Spot id within the district they appear in. */
+  spot: string
   /** Set when we're waiting on a magic link — submit as soon as the session arrives. */
   pendingSubmit: boolean
 }
@@ -108,7 +108,7 @@ export const useOnboarding = create<Onboarding>((set, get) => ({
       linkedin: me.linkedin ?? '',
       x: me.x ?? '',
       location: me.location,
-      spot: me.spot as SpotId,
+      spot: me.spot,
     })
   },
 }))

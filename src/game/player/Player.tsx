@@ -4,10 +4,11 @@ import * as THREE from 'three'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
-import { BOUNDS, LANDMARKS, groundHeight } from '../layout'
+import { BOUNDS } from '../layout'
+import { active } from '../districts/active'
 import { useGame } from '../store'
 import { Avatar, type AvatarState } from '../characters/Avatar'
-import { installInput, keys, look } from './input'
+import { camRef, installInput, keys, look, stick } from './input'
 import { rayDistance, resolveCircle } from './collision'
 import { bodies, player, resolveBodies } from '../people/bodies'
 import { findPath } from '../nav'
@@ -20,7 +21,7 @@ import { footstep } from '../audio/footsteps'
 const WALK = 3.0
 const RUN = 6.8
 const RADIUS = 0.38
-const SPAWN = new THREE.Vector3(1.6, 0, 21)
+const spawnOf = () => new THREE.Vector3(active.def.spawn.x, 0, active.def.spawn.z)
 const TALK_RANGE = 2.7
 const ARRIVE = 2.3
 const FLY = 2.4 // seconds: camera arcs over the city to them
@@ -38,6 +39,9 @@ function dampAngle(a: number, b: number, rate: number, dt: number) {
 export function Player() {
   const root = useRef<THREE.Group>(null!)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
+  useEffect(() => {
+    camRef.current = camera
+  }, [camera])
   const phase = useGame((s) => s.phase)
   const me = useDirectory((s) => s.me)
   const draftCharacter = useOnboarding((s) => s.draft.character)
@@ -48,7 +52,8 @@ export function Player() {
   const avatar = useRef<AvatarState>({ mode: 'idle', speed: 0, waveUntil: 0 })
 
   const st = useRef({
-    pos: SPAWN.clone(),
+    pos: spawnOf(),
+    district: '',
     vel: new THREE.Vector3(),
     facing: Math.PI,
     camPos: new THREE.Vector3(),
@@ -109,12 +114,28 @@ export function Player() {
     const tracking = game.trackId ? bodies.get(game.trackId) : undefined
     const stage = tracking ? game.trackStage : null
     const cinematic = stage === 'fly' || stage === 'hold'
-    const play = game.phase === 'play' && !talking && !game.searchOpen && !game.paused && !cinematic
+    const play = game.phase === 'play' && !talking && !game.searchOpen && !game.paused && !cinematic && !game.portalOpen && !game.travel
     const select = game.phase === 'create'
+    if (game.district !== s.district) {
+      // arrived in a district: step out of its portal (or start at its spawn)
+      const first = s.district === ''
+      const p = first ? active.def.spawn : active.def.arrival
+      s.pos.set(p.x, active.def.ground(p.x, p.z), p.z)
+      s.vel.set(0, 0, 0)
+      s.facing = p.face
+      if (!first) {
+        look.yaw = p.face + Math.PI
+        look.pitch = 0.18
+        s.camPos.set(p.x - Math.sin(p.face) * 4.2, 2.2, p.z - Math.cos(p.face) * 4.2)
+        s.lookAt.set(p.x, 1.5, p.z)
+      }
+      route.path = []
+      s.district = game.district
+    }
     if (game.phase !== s.phase) {
       // character creation always happens on the home street, facing the camera
       if (select) {
-        s.pos.copy(SPAWN)
+        s.pos.copy(spawnOf())
         s.vel.set(0, 0, 0)
       }
       s.phase = game.phase
@@ -140,7 +161,11 @@ export function Player() {
       if (keys.KeyD || keys.ArrowRight) ix += 1
       if (keys.KeyA || keys.ArrowLeft) ix -= 1
     }
-    let running = play && (keys.ShiftLeft || keys.ShiftRight)
+    if (play && (stick.x || stick.y)) {
+      ix += stick.x
+      iz += stick.y
+    }
+    let running = play && (keys.ShiftLeft || keys.ShiftRight || stick.run)
     const yaw = look.yaw
     v.fwd.set(-Math.sin(yaw), 0, -Math.cos(yaw))
     v.right.set(Math.cos(yaw), 0, -Math.sin(yaw))
@@ -174,15 +199,17 @@ export function Player() {
     if (stage === 'found' && stageT > 2.2) game.stopTracking()
 
     const moving = v.wish.lengthSq() > 0
+    // analog stick: a gentle push walks slowly (keyboard is always full speed)
+    const analog = !running && (stick.x || stick.y) ? Math.min(1, Math.hypot(stick.x, stick.y)) : 1
     if (moving) v.wish.normalize()
-    v.target.copy(v.wish).multiplyScalar(running ? RUN : WALK)
+    v.target.copy(v.wish).multiplyScalar((running ? RUN : WALK) * analog)
     s.vel.lerp(v.target, 1 - Math.exp(-(moving ? 9 : 12) * dt))
     s.pos.addScaledVector(s.vel, dt)
     resolveBodies(s.pos, RADIUS)
     resolveCircle(s.pos, RADIUS)
     s.pos.x = THREE.MathUtils.clamp(s.pos.x, -BOUNDS, BOUNDS)
     s.pos.z = THREE.MathUtils.clamp(s.pos.z, -BOUNDS, BOUNDS)
-    s.pos.y = damp(s.pos.y, groundHeight(s.pos.x, s.pos.z), 20, dt)
+    s.pos.y = damp(s.pos.y, active.def.ground(s.pos.x, s.pos.z), 20, dt)
 
     const speed = Math.hypot(s.vel.x, s.vel.z)
     const since = (performance.now() - game.enteredAt) / 1000
@@ -230,8 +257,15 @@ export function Player() {
       const rx = v.face.z
       const rz = -v.face.x
       // camera swings out to the side so you step out of the shot (under the panel)
-      v.goal.set(talking.x + v.face.x * 3.5 - rx * 1.8, talking.y + 1.5, talking.z + v.face.z * 3.5 - rz * 1.8)
-      v.head.set(talking.x + rx * 0.8, talking.y + 1.1, talking.z + rz * 0.8)
+      if (camera.aspect < 1) {
+        // portrait phone: the profile is a bottom sheet — centre them in the top third
+        // (camera swings off to the side so you don't stand between it and them)
+        v.goal.set(talking.x + v.face.x * 6.2 - rx * 3.4, talking.y + 2.4, talking.z + v.face.z * 6.2 - rz * 3.4)
+        v.head.set(talking.x - rx * 0.3, talking.y - 0.8, talking.z - rz * 0.3)
+      } else {
+        v.goal.set(talking.x + v.face.x * 3.5 - rx * 1.8, talking.y + 1.5, talking.z + v.face.z * 3.5 - rz * 1.8)
+        v.head.set(talking.x + rx * 0.8, talking.y + 1.1, talking.z + rz * 0.8)
+      }
       s.camPos.lerp(v.goal, 1 - Math.exp(-4 * dt))
       s.lookAt.lerp(v.head, 1 - Math.exp(-5 * dt))
       camera.fov = damp(camera.fov, 46, 4, dt)
@@ -239,21 +273,28 @@ export function Player() {
     } else if (select) {
       // character-select framing: hero on the right, junction + metro behind
       // pulled back enough that your live nameplate preview fits in frame
-      v.goal.set(s.pos.x - 0.45, s.pos.y + 1.45, s.pos.z + 5.6)
-      v.head.set(s.pos.x - 1.45, s.pos.y + 1.25, s.pos.z)
+      if (camera.aspect < 1) {
+        // portrait phone: the creator is a bottom sheet — frame the character in the top half
+        v.goal.set(s.pos.x, s.pos.y + 2.3, s.pos.z + 6.4)
+        v.head.set(s.pos.x, s.pos.y - 0.55, s.pos.z)
+      } else {
+        v.goal.set(s.pos.x - 0.45, s.pos.y + 1.45, s.pos.z + 5.6)
+        v.head.set(s.pos.x - 1.45, s.pos.y + 1.25, s.pos.z)
+      }
       s.camPos.lerp(v.goal, 1 - Math.exp(-3 * dt))
       s.lookAt.lerp(v.head, 1 - Math.exp(-4 * dt))
       camera.fov = damp(camera.fov, 42, 3, dt)
       camera.updateProjectionMatrix()
     } else if (game.phase === 'intro') {
       const a = t * 0.05 + 0.5
-      v.goal.set(6 + Math.sin(a) * 42, 23 + Math.sin(t * 0.13) * 2, -2 + Math.cos(a) * 42)
+      const [ox, oy, oz] = active.def.orbit
+      v.goal.set(ox + Math.sin(a) * 42, 23 + Math.sin(t * 0.13) * 2, oz + 2 + Math.cos(a) * 42)
       if (!s.initialised) {
         s.camPos.copy(v.goal)
         s.initialised = true
       }
       s.camPos.lerp(v.goal, 1 - Math.exp(-2 * dt))
-      s.lookAt.lerp(v.head.set(6, 3, -4), 1 - Math.exp(-3 * dt))
+      s.lookAt.lerp(v.head.set(...active.def.orbit), 1 - Math.exp(-3 * dt))
     } else {
       // blend from the cinematic orbit (or a locate shot) into the follow cam
       const sinceStage = stage === 'walk' || stage === 'found' ? stageT : Infinity
@@ -282,6 +323,7 @@ export function Player() {
       const fx = Math.sin(s.facing)
       const fz = Math.cos(s.facing)
       for (const [id, b] of bodies) {
+        if (id === 'portal') continue
         const dx = b.x - s.pos.x
         const dz = b.z - s.pos.z
         const d = Math.hypot(dx, dz)
@@ -299,7 +341,7 @@ export function Player() {
     s.landmarkT -= dt
     if (s.landmarkT <= 0) {
       s.landmarkT = 0.3
-      const lm = LANDMARKS.find((l) => Math.hypot(l.x - s.pos.x, l.z - s.pos.z) < l.r)?.label ?? '5TH BLOCK'
+      const lm = active.def.landmarks.find((l) => Math.hypot(l.x - s.pos.x, l.z - s.pos.z) < l.r)?.label ?? active.def.area
       if (lm !== game.landmark) game.setLandmark(lm)
     }
   })

@@ -1,10 +1,10 @@
 import type * as THREE from 'three'
-import { colliders } from '../layout'
+import { active } from '../districts/active'
 
 /** Push a circle (the player) out of any static AABB it overlaps, in XZ. */
 export function resolveCircle(pos: THREE.Vector3, r: number) {
   for (let pass = 0; pass < 2; pass++) {
-    for (const b of colliders) {
+    for (const b of active.def.colliders) {
       if (b.min[1] > pos.y + 1.6 || b.max[1] < pos.y + 0.3) continue
       const cx = Math.min(Math.max(pos.x, b.min[0]), b.max[0])
       const cz = Math.min(Math.max(pos.z, b.min[2]), b.max[2])
@@ -34,7 +34,7 @@ export function resolveCircle(pos: THREE.Vector3, r: number) {
 /** Distance along a ray to the first static AABB, for camera collision. */
 export function rayDistance(o: THREE.Vector3, d: THREE.Vector3, max: number) {
   let best = max
-  for (const b of colliders) {
+  for (const b of active.def.colliders) {
     let tmin = 0
     let tmax = best
     let hit = true

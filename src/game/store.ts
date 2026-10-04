@@ -1,8 +1,12 @@
 import { create } from 'zustand'
+import { activateDistrict } from './districts/active'
+import type { DistrictId } from './districts/registry'
 
 type Phase = 'intro' | 'create' | 'play'
 
 export type TrackStage = 'fly' | 'hold' | 'walk' | 'found' | null
+
+export type Travel = { to: DistrictId; stage: 'cover' | 'card' | 'reveal'; findId?: string } | null
 
 type Toast = { msg: string; tone: 'good' | 'info' | 'bad'; id: number } | null
 
@@ -25,6 +29,19 @@ type GameState = {
   trackStage: TrackStage
   trackT0: number
   toast: Toast
+  /** The district currently loaded. */
+  district: DistrictId
+  /** Standing in the portal: the "WHERE TO?" picker is open. */
+  portalOpen: boolean
+  travel: Travel
+  /** Heading to the portal to reach someone in another district. */
+  portalFor: { id: string; district: DistrictId } | null
+  setDistrict: (d: DistrictId) => void
+  setPortalOpen: (open: boolean) => void
+  /** Start a trip. `findId`: track this person on arrival. */
+  startTravel: (to: DistrictId, findId?: string) => void
+  setTravelStage: (stage: 'cover' | 'card' | 'reveal' | null) => void
+  setPortalFor: (v: { id: string; district: DistrictId } | null) => void
   setReady: () => void
   enter: () => void
   /** Open "become visible" (character creation + profile). */
@@ -62,6 +79,21 @@ export const useGame = create<GameState>((set) => ({
   trackStage: null,
   trackT0: 0,
   toast: null,
+  district: 'koramangala',
+  portalOpen: false,
+  travel: null,
+  portalFor: null,
+  setDistrict: (district) => {
+    activateDistrict(district)
+    set({ district, focusId: null, openId: null, trackId: null, trackStage: null })
+  },
+  setPortalOpen: (portalOpen) => {
+    if (portalOpen) releaseMouse()
+    set({ portalOpen })
+  },
+  startTravel: (to, findId) => set({ travel: { to, stage: 'cover', findId }, portalOpen: false, searchOpen: false, openId: null, portalFor: null, trackId: null, trackStage: null }),
+  setTravelStage: (stage) => set((s) => ({ travel: stage && s.travel ? { ...s.travel, stage } : null })),
+  setPortalFor: (portalFor) => set({ portalFor }),
   setReady: () => set({ ready: true }),
   enter: () => set({ phase: 'play', enteredAt: performance.now() }),
   startCreate: () => {

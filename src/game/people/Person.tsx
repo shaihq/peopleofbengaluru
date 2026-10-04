@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { Avatar, type AvatarState } from '../characters/Avatar'
-import { groundHeight } from '../layout'
+import { active } from '../districts/active'
 import { useGame } from '../store'
 import { bodies, player } from './bodies'
 import { plates, type Lod } from './plates'
@@ -120,7 +120,7 @@ export function Person({ p }: { p: Profile }) {
       speed = walker.speed
     }
     walker.facing = s.facing
-    s.pos.y = THREE.MathUtils.damp(s.pos.y, groundHeight(s.pos.x, s.pos.z), 20, dt)
+    s.pos.y = THREE.MathUtils.damp(s.pos.y, active.def.ground(s.pos.x, s.pos.z), 20, dt)
     root.current.position.copy(s.pos)
     root.current.rotation.y = s.facing
     avatar.current.speed = speed

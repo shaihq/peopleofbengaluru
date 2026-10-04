@@ -133,7 +133,6 @@ export const FILLERS: BuildingSpec[] = [
   { x: 14.5, z: -31, rot: -H, w: 12, d: 11, floors: 4, wall: C.WALL_SALMON, stilt: true, seed: 4 },
   { x: 14.5, z: -46, rot: -H, w: 12, d: 11, floors: 3, wall: C.WALL_MINT, accent: C.WALL_BUTTER, seed: 5 },
   { x: -14.5, z: -46, rot: H, w: 12, d: 11, floors: 4, wall: C.WALL_PINK, accent: C.WALL_WHITE, seed: 6 },
-  { x: 14.5, z: 41, rot: -H, w: 12, d: 11, floors: 2, wall: C.WALL_BUTTER, seed: 8, balconies: 'all' },
   { x: -14.5, z: 30.5, rot: H, w: 12, d: 11, floors: 3, wall: C.WALL_SALMON, accent: C.WALL_WHITE, seed: 9 },
   { x: -31.5, z: -14, rot: 0, w: 12, d: 11, floors: 3, wall: C.WALL_MINT, accent: C.TERRACOTTA, seed: 10 },
   { x: -31.5, z: 14, rot: Math.PI, w: 12, d: 11, floors: 2, wall: C.WALL_POWDER, accent: C.WALL_WHITE, seed: 11 },
@@ -156,7 +155,7 @@ export const POLE_RUNS: [number, number, number, number][][] = [
   [-41, -27, -13].map((z) => [-7.3, z, 1, 0]),
   [-41, -27, -13].map((z) => [7.3, z, -1, 0]),
   [13, 27, 41].map((z) => [-7.3, z, 1, 0]),
-  [13, 27, 41].map((z) => [7.3, z, -1, 0]),
+  [13, 27].map((z) => [7.3, z, -1, 0]), // (no pole at 41 — keeps the portal plaza in clear view)
   [21, 33, 45].map((x) => [x, -7.3, 0, 1]),
   [-41, -27, -13].map((x) => [x, -7.3, 0, 1]),
   [13, 29, 43].map((x) => [x, 7.3, 0, -1]),

@@ -2,6 +2,7 @@
 
 import { useGame } from '../store'
 import { hasSamples, usePeople } from '../people/directory'
+import { districtInfo, homeDistrict } from '../districts/registry'
 
 function Keycap({ k, wide }: { k: string; wide?: boolean }) {
   return <span className={`keycap${wide ? ' keycap--wide' : ''}`}>{k}</span>
@@ -13,7 +14,9 @@ export function HUD() {
   const landmark = useGame((s) => s.landmark)
   const locked = useGame((s) => s.pointerLocked)
   const talking = useGame((s) => !!s.openId || s.searchOpen || s.paused)
-  const people = usePeople()
+  const district = useGame((s) => s.district)
+  const info = districtInfo(district)
+  const people = usePeople().filter((p) => homeDistrict(p.location) === district)
 
   if (phase !== 'play') return null
 
@@ -23,7 +26,7 @@ export function HUD() {
         <div className="slant panel">
           <div className="unslant">
             <div className="hud-city">BENGALURU</div>
-            <div className="hud-district">KORAMANGALA</div>
+            <div className="hud-district">{info.title}</div>
           </div>
         </div>
         <div key={landmark} className="slant hud-landmark">
@@ -34,7 +37,8 @@ export function HUD() {
       <div className="hud-status">
         <div className="slant panel hud-online">
           <span className="unslant">
-            <span className="dot" /> {people.length} DESIGNERS IN 5TH BLOCK
+            <span className="dot" /> {people.length} <span className="hud-online-long">DESIGNERS IN {info.title}</span>
+            <span className="hud-online-short">HERE</span>
           </span>
         </div>
         {hasSamples() && (

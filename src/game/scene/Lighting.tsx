@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { useLayoutEffect, useRef } from 'react'
 import { Environment, Lightformer } from '@react-three/drei'
 import { C } from '@/lib/palette'
+import { quality } from '../device'
 
 // Late-morning Bengaluru sun (design.md §7.1): warm key from the south-west,
 // cool sky fill, warm ground bounce, cool rim from behind.
@@ -37,7 +38,7 @@ export function Lighting() {
         color={C.SUN}
         intensity={3.1}
         castShadow
-        shadow-mapSize={[4096, 4096]}
+        shadow-mapSize={[quality.shadowMap, quality.shadowMap]}
         shadow-bias={-0.0003}
         shadow-normalBias={0.04}
         shadow-radius={3}

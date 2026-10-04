@@ -1,4 +1,5 @@
-import { BOUNDS, colliders } from './layout'
+import { BOUNDS } from './layout'
+import { active } from './districts/active'
 
 // Walkability grid + A* over the district, for "take me to them".
 
@@ -7,11 +8,11 @@ const HALF = BOUNDS
 const N = Math.ceil((HALF * 2) / CELL)
 const INFLATE = 0.45
 
-let grid: Uint8Array | null = null
+const grids = new Map<string, Uint8Array>()
 
 function build() {
   const g = new Uint8Array(N * N)
-  for (const b of colliders) {
+  for (const b of active.def.colliders) {
     if (b.min[1] > 1.6 || b.max[1] < 0.3) continue
     const i0 = Math.max(0, cell(b.min[0] - INFLATE))
     const i1 = Math.min(N - 1, cell(b.max[0] + INFLATE))
@@ -50,8 +51,8 @@ function lineOfSight(g: Uint8Array, ax: number, az: number, bx: number, bz: numb
 
 /** Grid A* (8-way, no corner cutting) + line-of-sight smoothing. Returns world XZ waypoints. */
 export function findPath(fx: number, fz: number, tx: number, tz: number): [number, number][] | null {
-  grid ??= build()
-  const g = grid
+  let g = grids.get(active.def.id)
+  if (!g) grids.set(active.def.id, (g = build()))
   const s = nearestFree(g, cell(fx), cell(fz))
   const e = nearestFree(g, cell(tx), cell(tz))
   if (!s || !e) return null

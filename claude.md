@@ -753,7 +753,51 @@ Rules:
 
 ---
 
-# PHASE 6 — LIVING BENGALURU
+# PHASE 6 — THE CITY: DISTRICTS + PORTALS
+
+Goal:
+
+Bengaluru becomes several hand-designed districts, connected by portals.
+
+The first five districts:
+
+KORAMANGALA — Startup / Design / Founder district (built)
+HSR LAYOUT — Builder / Indie district (built: 27th Main, Ship Club, Brew Lab, the mural wall, Sector 2 park)
+BELLANDUR — Tech corridor district (Outer Ring Road, tech parks, the lake)
+WHITEFIELD — Enterprise / Tech district (tech-park campus, wide boulevards)
+DOMLUR — Old meets new (the flyover, office parks beside tiled-roof houses)
+
+Rules:
+
+- Build ONE district at a time. Each must pass the quality bar (section 18) before the next one starts. A district that isn't built shows as "coming soon" in the portal.
+- Each district has its own identity: layout, signature landmarks, palette accents, props and sound palette (sounddesign.md §3). It must still feel like the same game.
+- Only the active district is loaded. Travelling unloads the old one.
+- Every district has ONE portal plaza. Walking into the portal opens a "WHERE TO?" picker. Travel plays a full-screen transition with the district's title card, which doubles as the loading screen.
+- The portal is a deliberate sci-fi element in the Overwatch style: clean, chunky, painted tech hardware in our palette with animated warm energy. Not cyberpunk, not neon (design.md §14).
+- People live in the district they chose. People from a district that isn't built yet stay as visitors in Koramangala until their district exists.
+- Onboarding neighbourhoods are limited to these five districts for now.
+- The finder is city-wide. Finding someone in another district routes you through the portal to them.
+
+---
+
+# PHASE 6B — MOBILE + TOUCH
+
+Goal:
+
+Everything in the game works properly on a phone. Not a fallback screen: the real game.
+
+- Touch controls: a floating joystick for the left thumb (push far = run), drag to look with the right thumb, and contextual action buttons (TALK when someone is near, FIND, PAUSE). Tap a person to talk to them.
+- Every screen fits a phone: compact HUD, bottom-sheet profile panel, full-width finder / portal menu / pause, Become Visible usable with the on-screen keyboard.
+- Respect safe areas (notches). No pinch-zoom, no pull-to-refresh, no accidental text selection.
+- Phone quality profile: lower resolution, lighter shadows and post-effects, so it stays smooth without looking cheap.
+- Works in landscape and portrait (landscape recommended, never forced).
+- RULE: from now on, every new feature must work on touch as well as keyboard + mouse.
+
+---
+
+# PHASE 7 — LIVING BENGALURU
+
+Built on top of the district system (Phase 6), so every district gets it.
 
 Add:
 
@@ -774,7 +818,7 @@ Every new area must maintain the same art direction.
 
 ---
 
-# PHASE 7 — SOCIAL WORLD
+# PHASE 8 — SOCIAL WORLD
 
 Eventually add:
 
@@ -798,7 +842,7 @@ WHAT IS HAPPENING
 
 ---
 
-# PHASE 8 — THE WORLD
+# PHASE 9 — THE WORLD
 
 Long-term vision:
 
@@ -806,22 +850,15 @@ Bengaluru becomes a persistent professional game world.
 
 Different neighborhoods have different identities.
 
-Examples:
-
-KORAMANGALA
-Startup / Design / Founder district
+Districts beyond the first five (Phase 6), for example:
 
 INDIRANAGAR
 Creative / Culture district
 
-HSR
-Builder / Indie district
-
-WHITEFIELD
-Enterprise / Tech district
-
 ELECTRONIC CITY
 Engineering / Enterprise district
+
+JAYANAGAR, MALLESHWARAM, and more.
 
 The map should continue expanding only when each area feels intentionally designed.
 

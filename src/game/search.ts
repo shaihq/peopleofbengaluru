@@ -1,5 +1,5 @@
 import { getCharacter } from './characters/roster'
-import { LANDMARKS } from './layout'
+import { active } from './districts/active'
 import type { Profile } from './people/profiles'
 import { getPeople } from './people/directory'
 
@@ -31,7 +31,7 @@ export function inCategory(p: Profile, c: Category) {
 
 /** Where someone is right now, as the city knows it. */
 export function whereIs(x: number, z: number) {
-  return LANDMARKS.find((l) => Math.hypot(l.x - x, l.z - z) < l.r)?.label ?? '5TH BLOCK'
+  return active.def.landmarks.find((l) => Math.hypot(l.x - x, l.z - z) < l.r)?.label ?? active.def.area
 }
 
 export type Result = { p: Profile; score: number }

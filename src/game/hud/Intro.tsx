@@ -3,6 +3,7 @@
 import { useProgress } from '@react-three/drei'
 import { useGame } from '../store'
 import { useDirectory } from '../people/directory'
+import { districtInfo, homeDistrict } from '../districts/registry'
 import { requestLook } from '../player/input'
 
 /** Title screen over a slow cinematic orbit of the block. */
@@ -16,6 +17,8 @@ export function Intro() {
 
   const start = () => {
     if (!ready) return
+    // signed-in players start in the district they live in
+    if (me) useGame.getState().setDistrict(homeDistrict(me.location))
     enter()
     requestLook()
   }
@@ -35,7 +38,7 @@ export function Intro() {
       <div className="intro-cta">
         {ready ? (
           <button className="btn-primary slant" onClick={start} autoFocus>
-            <span className="unslant">{me ? `ENTER AS ${me.name.split(' ')[0].toUpperCase()} ▸` : 'ENTER KORAMANGALA ▸'}</span>
+            <span className="unslant">{me ? `ENTER ${districtInfo(homeDistrict(me.location)).title} AS ${me.name.split(' ')[0].toUpperCase()} ▸` : 'ENTER KORAMANGALA ▸'}</span>
           </button>
         ) : (
           <div className="loader slant">

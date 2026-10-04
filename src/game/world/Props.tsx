@@ -85,7 +85,7 @@ function CoconutCart() {
 }
 
 /** Gearless scooter — the vehicle of the city. Local +Z = front. */
-function Scooter({ x, z, rot, color }: { x: number; z: number; rot: number; color: string }) {
+export function Scooter({ x, z, rot, color }: { x: number; z: number; rot: number; color: string }) {
   const body = { c: color, rough: 0.35, metal: 0.15, grade: false }
   return (
     <group position={[x, BASE, z]} rotation={[0, rot, 0]}>

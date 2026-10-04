@@ -1,6 +1,7 @@
 import { BOUNDS } from '../layout'
 import { findPath } from '../nav'
-import { SPOTS } from './spots'
+import { active, type Pose } from '../districts/active'
+import { districtOfLocation } from '../districts/registry'
 
 // Offline characters: they keep walking around their neighbourhood.
 // Nothing more — pick a walkable destination, walk there around buildings, repeat.
@@ -10,17 +11,10 @@ const WALK_MAX = 1.5
 const TURN_RATE = 2.6 // rad/s — calm, natural turns
 const VISITOR_RADIUS = 14
 
-/** Neighbourhoods that exist in the world. */
-const HOODS: Record<string, { minX: number; maxX: number; minZ: number; maxZ: number }> = {
-  Koramangala: { minX: -BOUNDS + 3, maxX: BOUNDS - 3, minZ: -BOUNDS + 3, maxZ: BOUNDS - 3 },
-}
+const FULL = { minX: -BOUNDS + 3, maxX: BOUNDS - 3, minZ: -BOUNDS + 3, maxZ: BOUNDS - 3 }
 
-// Café break spots: darshini standing tables + the darshini front + the coconut cart.
-type Break = { x: number; z: number; face: number }
-const BREAKS: Break[] = [
-  ...[11, 14.5, 18].map((x) => ({ x, z: -5.85, face: Math.PI })),
-  ...[...SPOTS.darshini.slots, ...SPOTS.coconut.slots].map(([x, z, face]) => ({ x, z, face })),
-]
+// Café break spots come from the loaded district (darshini tables, coconut cart, café fronts…).
+type Break = Pose
 const taken = new Set<Break>()
 
 let budget = 0
@@ -62,7 +56,9 @@ export class Wanderer {
     this.x = this.lastX = x
     this.z = this.lastZ = z
     this.facing = facing
-    this.area = HOODS[neighbourhood] ?? { minX: x - VISITOR_RADIUS, maxX: x + VISITOR_RADIUS, minZ: z - VISITOR_RADIUS, maxZ: z + VISITOR_RADIUS }
+    // residents roam their whole district; visitors (district not built yet) stay near their spot
+    const home = districtOfLocation(neighbourhood)
+    this.area = home.built && home.id === active.def.id ? FULL : { minX: x - VISITOR_RADIUS, maxX: x + VISITOR_RADIUS, minZ: z - VISITOR_RADIUS, maxZ: z + VISITOR_RADIUS }
   }
 
   private pickDestination() {
@@ -103,7 +99,7 @@ export class Wanderer {
     }
     const roll = Math.random()
     if (roll < 0.3) {
-      const free = BREAKS.filter((b) => !taken.has(b) && this.inArea(b.x, b.z))
+      const free = active.def.breaks.filter((b) => !taken.has(b) && this.inArea(b.x, b.z))
       const b = free[Math.floor(Math.random() * free.length)]
       if (b && budget > 0) {
         budget--

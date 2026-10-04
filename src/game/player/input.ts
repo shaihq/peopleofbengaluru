@@ -1,4 +1,5 @@
 import { useGame } from '../store'
+import { isTouch } from '../device'
 
 // Keyboard + mouse-look state, read every frame by the player controller.
 
@@ -10,6 +11,12 @@ export const isTyping = (e: KeyboardEvent) => {
   return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
 }
 export const look = { yaw: 0, pitch: 0.22, dragging: false }
+
+/** Virtual joystick (touch): x = strafe, y = forward, both -1..1; run when pushed far. */
+export const stick = { x: 0, y: 0, run: false }
+
+/** The game camera (for touch hit-tests from the DOM layer). */
+export const camRef = { current: null as import('three').Camera | null }
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v))
 
@@ -61,6 +68,7 @@ export function installInput() {
 
 /** Ask for pointer lock. `drag` = this came from pressing on the world, so drag-to-look works as a fallback. */
 export function requestLook(drag = false) {
+  if (isTouch) return // touch: the right thumb looks, there's no pointer to lock
   const g = useGame.getState()
   if (g.openId || g.searchOpen || g.paused) return
   if (drag) look.dragging = true
