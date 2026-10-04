@@ -11,24 +11,28 @@ export const isTouch =
 
 /** Phones and small tablets. */
 export const isPhone = hasWindow && isTouch && Math.min(window.innerWidth, window.innerHeight) < 820
+/** iPads and other large touch screens: mobile GPUs driving a lot of pixels. */
+export const isTablet = isTouch && !isPhone
 
 const deviceDpr = hasWindow ? window.devicePixelRatio || 1 : 1
 
 /** 2 = high · 1 = medium · 0 = low */
 export type Level = 0 | 1 | 2
 
-// Sharpness matters more than effects on a small screen. Phones skip screen-space AO
-// entirely (it renders black blotches on some mobile GPUs) and only step resolution.
-const PROFILE: Record<Level, { dpr: number; ao: 'medium' | 'performance' | null }> = isPhone
+// Touch devices (phones AND tablets) run mobile GPUs: no screen-space AO, and
+// resolution is set by a PIXEL BUDGET, not a fixed ratio — a phone stays at a crisp
+// 2x while an iPad's much bigger screen gets a ratio that costs about the same.
+type Profile = { dpr: number; pixels: number; ao: 'medium' | 'performance' | null }
+const PROFILE: Record<Level, Profile> = isTouch
   ? {
-      2: { dpr: 2, ao: null },
-      1: { dpr: 1.75, ao: null },
-      0: { dpr: 1.5, ao: null },
+      2: { dpr: 2, pixels: 2.6e6, ao: null },
+      1: { dpr: 1.75, pixels: 2.0e6, ao: null },
+      0: { dpr: 1.5, pixels: 1.5e6, ao: null },
     }
   : {
-      2: { dpr: 1.75, ao: 'medium' },
-      1: { dpr: 1.5, ao: 'performance' },
-      0: { dpr: 1.25, ao: null },
+      2: { dpr: 1.75, pixels: Infinity, ao: 'medium' },
+      1: { dpr: 1.5, pixels: Infinity, ao: 'performance' },
+      0: { dpr: 1.25, pixels: Infinity, ao: null },
     }
 
 const params = hasWindow ? new URLSearchParams(window.location.search) : null
@@ -46,6 +50,8 @@ type QualityState = {
   fps: number
   /** Settled: no more switching this session (switching back and forth is what stutters). */
   locked: boolean
+  /** Lowest level reached so far this session. */
+  low: Level
   step: (d: 1 | -1) => void
   lock: () => void
   setFps: (f: number) => void
@@ -55,34 +61,35 @@ export const useQuality = create<QualityState>((set, get) => ({
   level: pinned ?? 2,
   fps: 0,
   locked: qualityPinned,
+  low: pinned ?? 2,
   step: (d) => {
-    if (!get().locked) set({ level: Math.max(0, Math.min(2, get().level + d)) as Level })
+    if (get().locked) return
+    const level = Math.max(0, Math.min(2, get().level + d)) as Level
+    set({ level, low: Math.min(get().low, level) as Level })
   },
-  lock: () => set({ locked: true }),
+  // settle at the LOWEST level this device needed, not wherever the last flip landed
+  lock: () => set({ locked: true, level: get().low }),
   setFps: (fps) => set({ fps }),
 }))
 
 export function profile(level: Level) {
   const p = PROFILE[level]
-  return { dpr: Math.min(deviceDpr, p.dpr), ao: p.ao }
+  const css = hasWindow ? window.innerWidth * window.innerHeight : 1
+  const budget = Math.sqrt(p.pixels / css)
+  return { dpr: Math.max(1, Math.min(deviceDpr, p.dpr, budget)), ao: p.ao }
 }
 
 /** Fixed per device (changing these at runtime would rebuild every shadow / pass). */
 export const quality = {
-  shadowMap: isPhone ? 2048 : 4096,
+  shadowMap: isTouch ? 2048 : 4096,
 }
 
 if (hasWindow && isTouch) document.documentElement.classList.add('touch')
 
-/** ?debug: live switches for each render stage, to find GPU-specific breakage on a real phone. */
-export type DebugToggles = { shadows: boolean; bloom: boolean; tone: boolean; grade: boolean; vignette: boolean; clamp: boolean; mark: boolean }
+/** ?debug: live switches, to measure what each stage costs on a real device. */
+export type DebugToggles = { shadows: boolean; bloom: boolean }
 export const useDebugToggles = create<DebugToggles & { toggle: (k: keyof DebugToggles) => void }>((set, get) => ({
   shadows: true,
   bloom: true,
-  tone: true,
-  grade: true,
-  vignette: true,
-  clamp: false,
-  mark: false,
   toggle: (k) => set({ [k]: !get()[k] } as Partial<DebugToggles>),
 }))

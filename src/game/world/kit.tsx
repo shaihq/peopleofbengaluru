@@ -4,7 +4,8 @@ import * as THREE from 'three'
 import { useMemo } from 'react'
 import { C } from '@/lib/palette'
 import { glassMat, leafMat, mat, texMat } from '../materials'
-import { canopyGeo, cyl, plane, rbox } from '../geometry'
+import { canopyGeo, chamferBox, cyl, plane, rbox } from '../geometry'
+import { isTouch } from '../device'
 import { rng, shutterTex, signTexture, stripeTex, useFontsReady, repeated, type SignSpec } from '../textures'
 
 // The building kit (design.md §6.1). Every building in the district is
@@ -28,7 +29,8 @@ type BoxProps = {
 export function Box({ s, p, r, c = C.WALL_WHITE, rough, metal, grade, radius, shadow = true, material }: BoxProps) {
   return (
     <mesh
-      geometry={rbox(s[0], s[1], s[2], radius)}
+      // touch devices: untextured pieces use the lighter chamfered build of the same bevel
+      geometry={isTouch && !material ? chamferBox(s[0], s[1], s[2], radius) : rbox(s[0], s[1], s[2], radius)}
       material={material ?? mat(c, { rough, metal, grade })}
       position={p}
       rotation={r}

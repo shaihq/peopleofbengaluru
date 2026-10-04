@@ -39,6 +39,8 @@ function dampAngle(a: number, b: number, rate: number, dt: number) {
 export function Player() {
   const root = useRef<THREE.Group>(null!)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
+  const scene = useThree((s) => s.scene)
+  const gl = useThree((s) => s.gl)
   useEffect(() => {
     camRef.current = camera
   }, [camera])
@@ -81,6 +83,8 @@ export function Player() {
   useEffect(() => {
     if (process.env.NODE_ENV === 'production') return
     ;(window as unknown as { __dob?: unknown }).__dob = {
+      scene: () => scene,
+      gl: () => gl,
       pos: () => st.current.pos.toArray().map((n) => +n.toFixed(2)),
       teleport: (x: number, z: number, yaw: number, pitch = 0.22) => {
         st.current.pos.set(x, 0, z)

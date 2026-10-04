@@ -27,7 +27,8 @@ import { Tracker } from './hud/Tracker'
 import { Trail } from './world/Trail'
 import { AudioDirector } from './audio/AudioDirector'
 import { useGame } from './store'
-import { isTouch, profile, showQualityDebug, useDebugToggles, useQuality, type DebugToggles } from './device'
+import { isTablet, isTouch, profile, showQualityDebug, useDebugToggles, useQuality, type DebugToggles } from './device'
+import { FrameGraph, RenderStats } from './hud/FrameGraph'
 import { PerformanceMonitor } from '@react-three/drei'
 import { TouchControls } from './hud/TouchControls'
 
@@ -62,6 +63,7 @@ export default function Game() {
         <color attach="background" args={[C.SKY_HORIZON]} />
         <fog attach="fog" args={[C.SKY_HORIZON, 85, 430]} />
         {/* adaptive quality: step down if this device can't hold ~45fps, back up when it can */}
+        {showQualityDebug && <RenderStats />}
         <PerformanceMonitor
           bounds={() => [32, 55]}
           flipflops={2}
@@ -104,18 +106,12 @@ export default function Game() {
 
 function QualityDebug() {
   const level = useQuality((s) => s.level)
-  const fps = useQuality((s) => s.fps)
   const locked = useQuality((s) => s.locked)
   const p = profile(level)
   const t = useDebugToggles()
   const keys: [keyof DebugToggles, string][] = [
     ['shadows', 'SHADOWS'],
     ['bloom', 'BLOOM'],
-    ['tone', 'TONEMAP'],
-    ['grade', 'GRADE'],
-    ['vignette', 'VIGNETTE'],
-    ['clamp', 'CLAMP FIX'],
-    ['mark', 'MARK BAD PIXELS'],
   ]
   return (
     <div className="quality-debug">
@@ -126,7 +122,8 @@ function QualityDebug() {
           </button>
         ))}
       </div>
-      {typeof window !== 'undefined' ? window.location.search.replace(/[?&]?debug/, '') + ' ' : ''}Q{level} · DPR {p.dpr.toFixed(2)}/{typeof window !== 'undefined' ? window.devicePixelRatio : 1} · AO {p.ao ?? 'off'} · {fps || '…'} FPS{locked ? ' · LOCKED' : ''}
+      {isTablet ? 'TABLET' : isTouch ? 'PHONE' : 'DESKTOP'} · Q{level} · DPR {p.dpr.toFixed(2)}/{typeof window !== 'undefined' ? window.devicePixelRatio : 1} · {typeof window !== 'undefined' ? ((window.innerWidth * window.innerHeight * p.dpr * p.dpr) / 1e6).toFixed(1) : 0}MP · AO {p.ao ?? 'off'}{locked ? ' · LOCKED' : ''}
+      <FrameGraph />
     </div>
   )
 }
