@@ -72,6 +72,7 @@ export function Travel() {
         <div className="warp-card-n">
           <span className="np-dot" /> {n} DESIGNER{n === 1 ? '' : 'S'} LIVE HERE
         </div>
+        <div className="warp-card-load" />
       </div>
     </div>
   )

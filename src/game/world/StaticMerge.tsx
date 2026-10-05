@@ -79,7 +79,9 @@ export function StaticMerge({ children }: { children: ReactNode }) {
         g = { mat, cast: m.castShadow, geos: [] }
         groups.set(key, g)
       }
-      const geo = m.geometry.clone()
+      // plain copy: RoundedBoxGeometry.clone() first builds a whole default rounded box
+      // (~0.2 ms each × 11k pieces = seconds of frozen screen on every district swap)
+      const geo = new THREE.BufferGeometry().copy(m.geometry)
       geo.applyMatrix4(tmp.multiplyMatrices(inv, m.matrixWorld))
       if (surface) {
         // bake this piece's paint colour into its vertices (linear, like material.color)
@@ -112,7 +114,15 @@ export function StaticMerge({ children }: { children: ReactNode }) {
         x.clearGroups()
         return x
       })
-      if (geos.some((x) => !x.index)) geos = geos.map((x) => (x.index ? x.toNonIndexed() : x))
+      // mergeGeometries needs all-indexed or all-not. Give the rare unindexed piece a
+      // trivial index (cheap) rather than un-indexing every box in the group (slow + heavier)
+      for (const x of geos)
+        if (!x.index) {
+          const n = x.getAttribute('position').count
+          const idx = n > 65535 ? new Uint32Array(n) : new Uint16Array(n)
+          for (let i = 0; i < n; i++) idx[i] = i
+          x.setIndex(new THREE.BufferAttribute(idx, 1))
+        }
       const geo = mergeGeometries(geos, false)
       g.geos.forEach((x) => x.dispose())
       if (!geo) continue
@@ -124,13 +134,34 @@ export function StaticMerge({ children }: { children: ReactNode }) {
       out.push(mesh)
     }
 
-    for (const s of sources) {
-      s.visible = false
-      s.matrixAutoUpdate = false
+    // Retire the originals. Any branch made ONLY of merged pieces is hidden and dropped
+    // from per-frame matrix updates as a whole — otherwise three.js still walks ~13k
+    // hidden nodes every frame. Branches holding live things (people, effects) stay.
+    const merged = new Set<THREE.Object3D>(sources)
+    const done = (o: THREE.Object3D): boolean => {
+      if (merged.has(o)) return true
+      if ((o as THREE.Mesh).isMesh || o.children.length === 0) return false
+      let all = true
+      for (const c of o.children) if (!done(c)) all = false // visit every child (fills `merged`)
+      if (all) merged.add(o)
+      return all
     }
+    done(root)
+    const retired: THREE.Object3D[] = []
+    root.traverse((o) => {
+      if (o !== root && merged.has(o) && (o.parent === root || !merged.has(o.parent!))) retired.push(o)
+    })
+    for (const o of retired) {
+      o.visible = false
+      o.matrixWorldAutoUpdate = false
+    }
+    for (const s of sources) s.matrixAutoUpdate = false
     setMerged(out)
     return () => {
-      for (const s of sources) s.visible = true
+      for (const o of retired) {
+        o.visible = true
+        o.matrixWorldAutoUpdate = true
+      }
       out.forEach((m) => m.geometry.dispose())
     }
   }, [])

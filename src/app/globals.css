@@ -2497,6 +2497,17 @@ textarea {
   transform: skewX(var(--skew)) translateY(120%);
 }
 
+/* The skew pulls each panel's slanted edges inward by (height × tan(skew) / 2). Let the
+   first and last panel run past the screen edges by more than that, at any aspect ratio. */
+.warp-panel:nth-child(1) {
+  left: calc(-6% - 18vh);
+  width: calc(26% + 18vh);
+}
+
+.warp-panel:nth-child(5) {
+  width: calc(26% + 18vh);
+}
+
 .warp-overlay--reveal .warp-panel {
   animation: warp-out 0.6s calc(var(--i) * 0.05s) cubic-bezier(0.7, 0, 0.2, 1) forwards;
 }
@@ -2604,6 +2615,41 @@ textarea {
   font-weight: 800;
   letter-spacing: 0.14em;
   color: rgba(255, 246, 229, 0.85);
+}
+
+/* Loading stripe: a slanted accent sweep under the card. Transform-only, so it runs on
+   the compositor and keeps moving even while the new district is being built. */
+.warp-card-load {
+  position: relative;
+  width: 220px;
+  height: 6px;
+  margin: 22px auto 0;
+  overflow: hidden;
+  background: rgba(255, 246, 229, 0.12);
+  transform: skewX(var(--skew));
+}
+
+.warp-card-load::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: var(--accent);
+  animation: warp-load 0.9s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+  will-change: transform;
+}
+
+.warp-overlay--reveal .warp-card-load::after {
+  animation-play-state: paused;
+}
+
+@keyframes warp-load {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(260%);
+  }
 }
 
 /* =========================================================================
