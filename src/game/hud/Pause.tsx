@@ -36,15 +36,26 @@ export function Pause() {
   }
 
   useEffect(() => {
+    // When a popup (portal menu, finder, profile) closes, the browser may still report
+    // the mouse-lock drop or a repeated Esc a moment later. Those belong to the popup
+    // that just closed — they must not open Pause.
+    let overlayClosedAt = -1e9
+    const unsub = useGame.subscribe((s, p) => {
+      const was = p.portalOpen || p.searchOpen || !!p.openId
+      const now = s.portalOpen || s.searchOpen || !!s.openId
+      if (was && !now) overlayClosedAt = performance.now()
+    })
     const plain = () => {
       const g = useGame.getState()
       const cinematic = g.trackStage === 'fly' || g.trackStage === 'hold'
-      return g.phase === 'play' && !g.openId && !g.searchOpen && !g.paused && !cinematic && !g.portalOpen && !g.travel
+      return (
+        g.phase === 'play' && !g.openId && !g.searchOpen && !g.paused && !cinematic && !g.portalOpen && !g.travel && performance.now() - overlayClosedAt > 700
+      )
     }
 
     // Capture phase: we look at the state *before* the other Esc handlers close their own panels.
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== 'Escape') return
+      if (e.code !== 'Escape' || e.repeat) return
       const g = useGame.getState()
       if (g.paused) {
         // some browsers deliver the Esc that released the mouse as well — don't let it close us instantly
@@ -61,6 +72,7 @@ export function Pause() {
     window.addEventListener('keydown', onKey, true)
     document.addEventListener('pointerlockchange', onLock)
     return () => {
+      unsub()
       window.removeEventListener('keydown', onKey, true)
       document.removeEventListener('pointerlockchange', onLock)
     }

@@ -8,9 +8,13 @@ import { bodies, player } from '../people/bodies'
 import { useGame } from '../store'
 
 /**
- * Walk into the portal → the "WHERE TO?" picker opens.
+ * Walk up to the portal → a "[E] TRAVEL" prompt appears (see Interaction.tsx); the
+ * "WHERE TO?" picker only opens when you choose to.
  * If you were heading to the portal to reach someone (finder), you go straight through.
  */
+const NEAR = 3.2 // prompt appears inside this…
+const FAR = 3.9 // …and stays until you're past this (no flicker at the edge)
+
 export function PortalController() {
   const district = useGame((s) => s.district)
   const armed = useRef(true)
@@ -40,11 +44,14 @@ export function PortalController() {
       return
     }
     if (d > 2.8) armed.current = true
-    if (armed.current && d < 1.0 && !g.portalOpen && !g.openId && !g.searchOpen && !g.paused) {
+    if (g.portalFor && armed.current && d < 1.0 && !g.portalOpen && !g.openId && !g.searchOpen && !g.paused) {
       armed.current = false
-      if (g.portalFor) g.startTravel(g.portalFor.district, g.portalFor.id)
-      else g.setPortalOpen(true)
+      g.startTravel(g.portalFor.district, g.portalFor.id)
+      return
     }
+
+    const near = g.nearPortal ? d < FAR : d < NEAR
+    if (near !== g.nearPortal) g.setNearPortal(near)
   })
 
   return null

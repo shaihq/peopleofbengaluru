@@ -32,6 +32,24 @@ function Prompt({ p, onOpen }: { p: Profile; onOpen: () => void }) {
   )
 }
 
+/** Standing at the portal: choose when to travel (never pops up on its own). */
+function PortalPrompt({ onOpen }: { onOpen: () => void }) {
+  return (
+    <button className="prompt prompt--portal slant" onClick={onOpen}>
+      <span className="unslant prompt-body">
+        <span className="prompt-open">
+          <span className="warp-ring" /> PORTAL · ಪ್ರಯಾಣ
+        </span>
+        <span className="prompt-name">TRAVEL</span>
+        <span className="prompt-role">Step through to another district</span>
+        <span className="prompt-action">
+          <span className="keycap">E</span> CHOOSE DESTINATION
+        </span>
+      </span>
+    </button>
+  )
+}
+
 function LinkButton({ label, href, primary }: { label: string; href?: string; primary?: boolean }) {
   const cls = `pp-btn slant${primary ? ' pp-btn--primary' : ''}${href ? '' : ' pp-btn--off'}`
   if (!href)
@@ -126,14 +144,18 @@ export function Interaction() {
   const openId = useGame((s) => s.openId)
   const openProfile = useGame((s) => s.openProfile)
   const closeProfile = useGame((s) => s.closeProfile)
+  const portalPrompt = useGame(
+    (s) => s.nearPortal && !s.focusId && !s.openId && !s.searchOpen && !s.paused && !s.portalOpen && !s.travel && s.trackStage !== 'fly' && s.trackStage !== 'hold',
+  )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
-      if (g.phase !== 'play' || isTyping(e) || g.searchOpen || g.paused) return
-      if (e.code === 'KeyE') {
+      if (g.phase !== 'play' || isTyping(e) || g.searchOpen || g.paused || g.portalOpen || g.travel) return
+      if (e.code === 'KeyE' && !e.repeat) {
         if (g.openId) g.closeProfile()
         else if (g.focusId) g.openProfile(g.focusId)
+        else if (g.nearPortal && g.trackStage !== 'fly' && g.trackStage !== 'hold') g.setPortalOpen(true)
       }
       if (e.code === 'Escape' && g.openId) g.closeProfile()
     }
@@ -147,6 +169,7 @@ export function Interaction() {
   return (
     <>
       {focus && !open && <Prompt p={focus} onOpen={() => openProfile(focus.id)} />}
+      {portalPrompt && <PortalPrompt onOpen={() => useGame.getState().setPortalOpen(true)} />}
       {open && <Panel p={open} onClose={closeProfile} />}
     </>
   )

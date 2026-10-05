@@ -33,11 +33,14 @@ type GameState = {
   district: DistrictId
   /** Standing in the portal: the "WHERE TO?" picker is open. */
   portalOpen: boolean
+  /** Close enough to the portal to be offered the travel menu (it never opens by itself). */
+  nearPortal: boolean
   travel: Travel
   /** Heading to the portal to reach someone in another district. */
   portalFor: { id: string; district: DistrictId } | null
   setDistrict: (d: DistrictId) => void
   setPortalOpen: (open: boolean) => void
+  setNearPortal: (near: boolean) => void
   /** Start a trip. `findId`: track this person on arrival. */
   startTravel: (to: DistrictId, findId?: string) => void
   setTravelStage: (stage: 'cover' | 'card' | 'reveal' | null) => void
@@ -81,17 +84,19 @@ export const useGame = create<GameState>((set) => ({
   toast: null,
   district: 'koramangala',
   portalOpen: false,
+  nearPortal: false,
   travel: null,
   portalFor: null,
   setDistrict: (district) => {
     activateDistrict(district)
-    set({ district, focusId: null, openId: null, trackId: null, trackStage: null })
+    set({ district, focusId: null, openId: null, nearPortal: false, trackId: null, trackStage: null })
   },
   setPortalOpen: (portalOpen) => {
     if (portalOpen) releaseMouse()
     set({ portalOpen })
   },
-  startTravel: (to, findId) => set({ travel: { to, stage: 'cover', findId }, portalOpen: false, searchOpen: false, openId: null, portalFor: null, trackId: null, trackStage: null }),
+  setNearPortal: (nearPortal) => set({ nearPortal }),
+  startTravel: (to, findId) => set({ travel: { to, stage: 'cover', findId }, portalOpen: false, nearPortal: false, searchOpen: false, openId: null, portalFor: null, trackId: null, trackStage: null }),
   setTravelStage: (stage) => set((s) => ({ travel: stage && s.travel ? { ...s.travel, stage } : null })),
   setPortalFor: (portalFor) => set({ portalFor }),
   setReady: () => set({ ready: true }),
