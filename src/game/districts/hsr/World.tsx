@@ -111,7 +111,9 @@ function KerbLines({ runs }: { runs: [number, number, number, number][] }) {
     ref.current.instanceMatrix.needsUpdate = true
     if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true
   }, [segs])
-  return <instancedMesh ref={ref} args={[rbox(0.96, 0.24, 0.26), material, segs.length]} castShadow receiveShadow />
+  // 0.30 deep around a centre 0.13 from the pavement edge: the road face stands 2 cm proud
+  // of the slab's edge instead of sharing its plane (which z-fought along every kerb)
+  return <instancedMesh ref={ref} args={[rbox(0.96, 0.24, 0.3), material, segs.length]} castShadow receiveShadow />
 }
 
 const KERBS: [number, number, number, number][] = [
