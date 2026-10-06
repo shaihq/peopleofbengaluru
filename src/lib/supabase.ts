@@ -26,6 +26,6 @@ export type ProfileRow = {
   x: string | null
   character: string
   spot: string
-  status: 'pending' | 'approved' | 'hidden'
+  status: 'pending' | 'approved' | 'hidden' | 'rejected'
   created_at: string
 }

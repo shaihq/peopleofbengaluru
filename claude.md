@@ -722,18 +722,24 @@ Goal:
 
 Let real designers put themselves in the city.
 
-Principles:
+Split into two sub-phases. The UX/UI is designed and built first; the database comes second and must not change the UX.
+
+## 5B-A — CREATION UX/UI (built)
 
 - Explore first, ask later. Guests enter instantly as THE INVISIBLE (clothes, no body) and are never blocked by a form.
 - "BECOME VISIBLE" (HUD button or V) opens a character-creation flow over the live street, never a web form:
   pick your look → who you are → what you're building → where people find you → neighbourhood + your spot in the district → go live.
 - Your own nameplate floats above your character and updates live as you type.
-- Saving uses Supabase (email magic link; no passwords). Draft survives the round trip in localStorage.
+- Keyboard: up/down on the look picker, Enter for next, through the whole flow.
+- The draft survives the magic-link round trip in localStorage.
+
+## 5B-B — PROFILES IN SUPABASE (built)
+
+- Email magic link; no passwords.
 - New profiles start PENDING. You see yourself immediately; everyone else sees you once an admin sets status = approved.
 - Row-level security: anyone can read approved profiles, people can only write their own, nobody can self-approve.
 - Sample profiles retire automatically once enough real people are approved.
-
-Schema: supabase/migrations/0001_profiles.sql
+- Schema: supabase/migrations/0001_profiles.sql
 
 ---
 
@@ -750,6 +756,114 @@ Rules:
 - Discovery cue: once per person per approach, never more than one every 5 seconds. Hover sounds are rate-limited and menu-only.
 - Sound starts after the first click. M mutes. Volume lives in the pause menu. Audio suspends when the tab is hidden.
 - Menus muffle the world; UI stays crisp. Stingers duck the music.
+
+---
+
+# PHASE 5D — THE GATE: INVITE OR PAY
+
+Goal:
+
+Being visible in the city is earned. Everyone can walk around and look; to be seen, you get in with an invite code, or you pay and are reviewed.
+
+Principles:
+
+- Gate first, effort second. "BECOME VISIBLE" opens the gate before anything else, so nobody builds an avatar and profile before they know whether they can get in. The city stays visible behind it, with the person's ghost previewed.
+- A person who is not in is simply a ghost: they walk, look and search, but nobody can see them. There is no waitlist and no dead end. They can come back to the gate any time (draft kept).
+- An invite is the best way in: instant entry, no review. The inviter vouches, so no review queue is needed.
+- Paying means review. Approved: live. Rejected: automatic refund, email, still a ghost.
+- Once inside everyone is equal. No perk difference between invited and paid members.
+- The profile is the application. For paid applicants, the profile they build is what the reviewer sees. There is no separate "intent" step: what someone is building already says what they are about.
+- Existing visible members never see the gate. Sample people (the NPCs) are untouched by this phase, and real profiles already approved stay visible.
+- RULE (Phase 6B): every screen here works on touch as well as keyboard.
+
+The flow:
+
+```
+BECOME VISIBLE (V)
+        ↓
+THE GATE  "How are you getting in?"
+   ├─ I have an invite code
+   ├─ Pay to apply
+   └─ Not now  → stays a ghost, returns any time
+```
+
+Path A, invite code:
+
+1. Enter and validate the code (exists, unused, not expired, not their own).
+2. Email.
+3. Pick your look → who you are → what you're building → where people find you → neighbourhood + spot.
+4. Magic link is sent; the avatar goes live instantly, no review.
+
+Path B, pay:
+
+1. Email (needed for status updates).
+2. The same profile steps as Path A. The reviewer sees this.
+3. Payment (Dodo Payments, to be integrated later; until then a clearly marked placeholder step).
+4. Status becomes UNDER REVIEW; the person stays a ghost.
+5. Approved: the payment stands, the magic link is sent, the avatar goes live. Rejected: automatic refund, notification, still a ghost.
+
+The progress bar covers the numbered steps only; the gate sits outside it. Email is collected early but the magic link is only sent at the end, once entry is granted.
+
+User states:
+
+| State | Visible to others | How |
+|---|---|---|
+| Ghost | No | default, or "Not now" |
+| Under review | No | paid, awaiting a decision |
+| Visible | Yes | valid code, or approved review |
+| Rejected | No | review failed, payment refunded |
+
+Invites:
+
+- Every member gets 2 codes on joining. The number is config-driven (a settings value), so it can change later without a release.
+- Unused codes a member holds never expire.
+- Creating an invite link for someone marks the slot as sent and starts a 30-day clock. If it is unredeemed after that, the slot returns to the member.
+- Invite links (`?invite=CODE`) pre-fill the gate.
+- Inviter accountability: if an invitee is removed, the inviter loses their remaining codes. "Removed" must be defined narrowly, with an appeal path.
+- Founder codes: the first members come from codes generated by the admin.
+
+Edge cases to design:
+
+- Invalid, used or expired code: a clear error, with "Pay instead".
+- Payment fails: allow retry; do not start review.
+- Under review and then given a code: may switch paths; payment refunded.
+- One account per email.
+- Rejected applicants: reapply rules and the reason they are shown.
+- A reviewer never decides: auto-refund after N days.
+- Refund timing and refund failure.
+
+Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both paths were designed, so new people can really get in; the rest of 5D-A (Your invites, invite landing, sign-in) is built on top of the real data.
+
+## 5D-A — GATE UX/UI (no integration) — gate + both paths built; Your invites, invite landing and sign-in still to do
+
+- The gate screen with the ghost preview behind it; the new step order; the progress bar.
+- Every state exists as a designed screen, driven by local mock data with a dev-only switch to jump between them: invalid / used / expired code, payment placeholder, under review, rejected, approved.
+- The payment step is a visible placeholder only. No payment code, no provider.
+- HUD: ghost / under review status; "Your invites" screen (2 slots: create link, copy, sent / used).
+- Touch and portrait versions of all of it.
+- Quality bar: it must feel like a game screen, not a form (design.md).
+
+## 5D-B — ACCESS DATA (Supabase, no payments) — built: supabase/migrations/0002_access.sql
+
+- Invites table, settings table, user states, RLS. Codes are BLR- + 6 characters (no look-alike letters), so they can't be guessed.
+- check_invite(code): ok / invalid / used / expired / own + who vouched. Uses nothing up.
+- redeem_invite(code, profile): one transaction after the magic-link sign-in — the code is re-checked and used, the profile goes live (approved, no review), the new member gets their codes.
+- Existing approved members get their codes; the admin mints founder codes with select public.issue_invites(null, n).
+- "Apply to join" stays visible as COMING SOON until payments (5D-C) — no free applications.
+- ?gatepreview runs every screen on local mocks (preview codes, all result states).
+- Still to do: proper rate limiting of code checks (an edge function), marking codes as sent (comes with the Your invites screen).
+
+## 5D-C — PAYMENTS (Dodo Payments)
+
+- Payment, refund trigger, failure and retry, refund failure handling.
+
+## 5D-D — REVIEW + EMAIL
+
+- Admin review queue (approve / reject, showing the applicant's profile).
+- Email templates: magic link, under review, approved, rejected + refunded.
+- Removal handling that revokes the inviter's remaining codes.
+
+Still to decide: the fee, review turnaround time, who reviews and on what criteria, whether the second invite is unlocked later (1 now, 1 after a week of activity) from day one or only if quality slips.
 
 ---
 

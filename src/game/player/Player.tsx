@@ -14,7 +14,8 @@ import { bodies, player, resolveBodies } from '../people/bodies'
 import { findPath } from '../nav'
 import { route } from '../tracking'
 import { useDirectory } from '../people/directory'
-import { useOnboarding } from '../onboarding'
+import { stepsFor, useOnboarding } from '../onboarding'
+import { useAccess } from '../access'
 import { DraftPlate } from '../hud/DraftPlate'
 import { footstep } from '../audio/footsteps'
 
@@ -47,8 +48,13 @@ export function Player() {
   const phase = useGame((s) => s.phase)
   const me = useDirectory((s) => s.me)
   const draftCharacter = useOnboarding((s) => s.draft.character)
-  // guests are invisible; creating shows the draft look; members are themselves
-  const characterId = phase === 'create' ? draftCharacter : me ? me.character : 'invisible'
+  const step = useOnboarding((s) => s.step)
+  const gateStage = useAccess((s) => s.stage)
+  const gatePath = useAccess((s) => s.path)
+  // Guests are invisible; members are themselves. While becoming visible, your ghost waits
+  // behind the gate (and the email step) and you take shape from "pick your look" onward.
+  const shaping = !!me || (gateStage === 'steps' && stepsFor(gatePath)[step] !== 'email')
+  const characterId = phase === 'create' && shaping ? draftCharacter : me ? me.character : 'invisible'
   const charRef = useRef(characterId)
   charRef.current = characterId
   const avatar = useRef<AvatarState>({ mode: 'idle', speed: 0, waveUntil: 0 })

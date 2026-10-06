@@ -3,8 +3,17 @@
 import { useEffect } from 'react'
 import { useDirectory } from '../people/directory'
 import { useOnboarding } from '../onboarding'
+import { useAccess } from '../access'
 import { useGame } from '../store'
 import { isTyping } from '../player/input'
+
+/** What the ghost bar says in each access state (CLAUDE.md Phase 5D). */
+const GHOST_COPY = {
+  ghost: { title: 'YOU’RE INVISIBLE', line: 'Nobody in the city can see you yet.', cta: 'BECOME VISIBLE' },
+  review: { title: 'UNDER REVIEW', line: 'You’re a ghost until a reviewer approves you.', cta: 'VIEW STATUS' },
+  rejected: { title: 'NOT APPROVED', line: 'Fee refunded. A member can still invite you in.', cta: 'SEE DETAILS' },
+  visible: { title: 'APPROVED', line: 'Open the link in your email to go live.', cta: 'VIEW' },
+} as const
 
 /** Bottom-right: the invisible guest's call to action, or your own status card. */
 export function YouCard() {
@@ -13,6 +22,8 @@ export function YouCard() {
   const tracking = useGame((s) => !!s.trackId)
   const startCreate = useGame((s) => s.startCreate)
   const me = useDirectory((s) => s.me)
+  const status = useAccess((s) => s.status)
+  const invited = useAccess((s) => !!s.linkCode)
 
   const become = () => {
     const ob = useOnboarding.getState()
@@ -47,12 +58,12 @@ export function YouCard() {
             <path d="M2.5 31v-7.5C2.5 18 6.8 15.5 12 15.5s9.5 2.5 9.5 8V31" />
           </svg>
           <span className="ghostbar-text">
-            <b>YOU’RE INVISIBLE</b>
-            <span>Nobody in the city can see you yet.</span>
+            <b>{GHOST_COPY[status].title}</b>
+            <span>{GHOST_COPY[status].line}</span>
           </span>
-          <button className="btn-primary slant ghostbar-cta" onClick={become}>
+          <button className={`btn-primary slant ghostbar-cta${status === 'rejected' ? ' ghostbar-cta--quiet' : ''}`} onClick={become}>
             <span className="unslant">
-              BECOME VISIBLE <span className="keycap">V</span>
+              {status === 'ghost' && invited ? 'USE YOUR INVITE' : GHOST_COPY[status].cta} <span className="keycap">V</span>
             </span>
           </button>
         </span>

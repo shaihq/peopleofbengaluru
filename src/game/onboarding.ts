@@ -7,6 +7,8 @@ import { refreshDirectory, useDirectory } from './people/directory'
 // The draft lives in localStorage so the magic-link round trip never loses it.
 
 export type Draft = {
+  /** Collected right after the gate; the sign-in link only goes out once entry is granted. */
+  email: string
   character: string
   /** Preferred body — kept when switching between styles. */
   gender: Gender
@@ -25,13 +27,36 @@ export type Draft = {
   spot: string
   /** Set when we're waiting on a magic link — submit as soon as the session arrives. */
   pendingSubmit: boolean
+  /** Invite path: the code to redeem once the session arrives (CLAUDE.md 5D-B). */
+  pendingInvite: string
 }
 
 export const STEPS = ['PICK YOUR LOOK', 'WHO ARE YOU?', 'WHAT ARE YOU BUILDING?', 'WHERE CAN PEOPLE FIND YOU?', 'WHERE DO YOU HANG OUT?', 'GO LIVE'] as const
 
+/** The numbered steps, by key. Which ones you get depends on how you're getting in. */
+export type StepKey = 'email' | 'look' | 'who' | 'building' | 'links' | 'hangout' | 'golive' | 'pay'
+export const STEP_TITLE: Record<StepKey, string> = {
+  email: 'WHERE DO WE REACH YOU?',
+  look: 'PICK YOUR LOOK',
+  who: 'WHO ARE YOU?',
+  building: 'WHAT ARE YOU BUILDING?',
+  links: 'WHERE CAN PEOPLE FIND YOU?',
+  hangout: 'WHERE DO YOU HANG OUT?',
+  golive: 'GO LIVE',
+  pay: 'SEND YOUR APPLICATION',
+}
+const PROFILE_STEPS: StepKey[] = ['look', 'who', 'building', 'links', 'hangout']
+/** Members editing (no gate) · invite (instant) · pay (reviewed: the profile IS the application). */
+export function stepsFor(path: 'invite' | 'pay' | null): StepKey[] {
+  if (path === 'invite') return ['email', ...PROFILE_STEPS, 'golive']
+  if (path === 'pay') return ['email', ...PROFILE_STEPS, 'pay']
+  return [...PROFILE_STEPS, 'golive']
+}
+
 const KEY = 'dob.draft'
 
 const EMPTY: Draft = {
+  email: '',
   character: DEFAULT_CHARACTER,
   gender: 'f',
   name: '',
@@ -47,6 +72,7 @@ const EMPTY: Draft = {
   location: 'Koramangala',
   spot: 'darshini',
   pendingSubmit: false,
+  pendingInvite: '',
 }
 
 function load(): Draft {
@@ -143,6 +169,13 @@ export function normX(v: string): Norm {
   return /^[A-Za-z0-9_]{1,15}$/.test(handle) ? `https://x.com/${handle}` : INVALID
 }
 
+export const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+
+export function validateKey(key: StepKey, d: Draft): string | null {
+  if (key === 'email' && !isEmail(d.email)) return 'That email doesn’t look right.'
+  return validateStep(key === 'who' ? 1 : key === 'links' ? 3 : -1, d)
+}
+
 export function validateStep(step: number, d: Draft): string | null {
   if (step === 1) {
     if (d.name.trim().length < 2) return 'Add your name so people know who you are.'
@@ -217,6 +250,38 @@ export async function submitProfile(): Promise<{ ok: boolean; error?: string }> 
     return { ok: false, error: msg }
   }
   useOnboarding.getState().patch({ pendingSubmit: false })
+  await refreshDirectory()
+  return { ok: true }
+}
+
+/**
+ * Invite path, after sign-in: re-check + use the code, publish the profile (approved,
+ * no review) and receive your own codes — one transaction on the server.
+ */
+export async function redeemInvite(): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'Sign-in isn’t configured yet.' }
+  const d = useOnboarding.getState().draft
+  if (!d.pendingInvite) return { ok: false, error: 'No invite code to use.' }
+  useOnboarding.setState({ saving: true, error: null })
+  const { data, error } = await supabase.rpc('redeem_invite', { p_code: d.pendingInvite, p_profile: payload(d) })
+  useOnboarding.setState({ saving: false })
+  const res = data as { ok: boolean; state?: string } | null
+  if (error || !res?.ok) {
+    const msg = error
+      ? error.code === 'PGRST202'
+        ? 'Invites aren’t set up on the server yet.'
+        : error.message
+      : res?.state === 'used'
+        ? 'That invite was used by someone else in the meantime.'
+        : res?.state === 'expired'
+          ? 'That invite expired before you finished.'
+          : res?.state === 'own'
+            ? 'You can’t use your own invite.'
+            : 'That invite isn’t valid any more.'
+    useOnboarding.setState({ error: msg })
+    return { ok: false, error: msg }
+  }
+  useOnboarding.getState().patch({ pendingSubmit: false, pendingInvite: '' })
   await refreshDirectory()
   return { ok: true }
 }
