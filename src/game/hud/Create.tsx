@@ -19,6 +19,8 @@ const districtInfoTitle = (location: string) => {
   return d.built ? d.title : "KORAMANGALA";
 };
 import {
+  ANSWER_MAX,
+  LINK_WHY_MAX,
   STEP_TITLE,
   sendMagicLink,
   stepsFor,
@@ -33,7 +35,6 @@ import {
   CODE_PREFIX,
   GATE_MOCK,
   MOCK_CODES,
-  PAY_OPEN,
   useAccess,
   type Path,
 } from "../access";
@@ -72,6 +73,107 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
       />
     </label>
+  );
+}
+
+/** A longer answer: cream slab like the other fields, body type so a paragraph stays readable. */
+function Answer({
+  label,
+  value,
+  onChange,
+  placeholder,
+  max,
+  rows = 4,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  max: number;
+  rows?: number;
+}) {
+  const left = max - value.length;
+  return (
+    <label className="cr-field">
+      <span className="cr-label">
+        {label} <em className={left < 40 ? "cr-count cr-count--low" : "cr-count"}>{left}</em>
+      </span>
+      <textarea
+        className="cr-answer"
+        value={value}
+        maxLength={max}
+        rows={rows}
+        placeholder={placeholder}
+        enterKeyHint="next"
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  );
+}
+
+/** The four application questions (CLAUDE.md 5E). One per screen, pay path only. */
+const QUESTIONS = {
+  why: {
+    lede: "Why do you want to be in this city of designers and builders?",
+    placeholder: "I’ve been designing in Bengaluru for six years and…",
+  },
+  want: {
+    lede: "Collaborators, a job, a co-founder, feedback, friends — what are you hoping to find here?",
+    placeholder: "Someone to pair with on a side project, and…",
+  },
+  bring: {
+    lede: "Your work, talks, mentoring, hiring, events — what do you give back to the people here?",
+    placeholder: "I run a monthly crit night in HSR and…",
+  },
+} as const;
+
+function QuestionStep({
+  k,
+  d,
+  patch,
+}: {
+  k: "why" | "want" | "bring";
+  d: Draft;
+  patch: (p: Partial<Draft>) => void;
+}) {
+  const field = k === "why" ? "appWhy" : k === "want" ? "appWant" : "appBring";
+  const q = QUESTIONS[k];
+  return (
+    <div className="cr-fields">
+      <p className="cr-copy cr-q-lede">{q.lede}</p>
+      <Answer
+        label="YOUR ANSWER"
+        value={d[field]}
+        onChange={(v) => patch({ [field]: v } as Partial<Draft>)}
+        placeholder={q.placeholder}
+        max={ANSWER_MAX}
+      />
+      <span className="cr-q-private">ONLY THE REVIEWERS SEE THIS · NEVER SHOWN IN THE CITY</span>
+    </div>
+  );
+}
+
+function ShowStep({ d, patch }: { d: Draft; patch: (p: Partial<Draft>) => void }) {
+  return (
+    <div className="cr-fields">
+      <p className="cr-copy cr-q-lede">One thing you made that you’re proud of. A shipped product, a case study, a repo, a talk.</p>
+      <Field
+        label="LINK"
+        value={d.appLink}
+        onChange={(appLink) => patch({ appLink })}
+        placeholder="yourname.design/the-thing"
+        max={200}
+      />
+      <Answer
+        label="WHY THIS ONE?"
+        value={d.appLinkWhy}
+        onChange={(appLinkWhy) => patch({ appLinkWhy })}
+        placeholder="It’s the first thing I shipped end to end…"
+        max={LINK_WHY_MAX}
+        rows={2}
+      />
+      <span className="cr-q-private">ONLY THE REVIEWERS SEE THIS · NEVER SHOWN IN THE CITY</span>
+    </div>
   );
 }
 
@@ -236,9 +338,7 @@ function Summary({ d }: { d: Draft }) {
 
 const OPTIONS: { path: Path; n: string; title: string; badge: string; blurb: string; open: boolean }[] = [
   { path: "invite", n: "01", title: "I HAVE AN INVITE CODE", badge: "INSTANT", blurb: "A member vouched for you. You go live as soon as you’re done — no review.", open: true },
-  PAY_OPEN
-    ? { path: "pay", n: "02", title: "APPLY TO JOIN", badge: "REVIEWED", blurb: "Build your profile, pay the application fee, and we review it. Not approved? Full refund.", open: true }
-    : { path: "pay", n: "02", title: "APPLY TO JOIN", badge: "COMING SOON", blurb: "Applications open soon. Until then, the way in is an invite from a member.", open: false },
+  { path: "pay", n: "02", title: "APPLY TO JOIN", badge: "REVIEWED", blurb: "Build your profile, pay the application fee, and we review it. Not approved? Full refund.", open: true },
 ];
 
 /** Step 0 — the gate. Nothing to fill in until you know you can get in. */
@@ -323,7 +423,7 @@ function CodeScreen() {
       {err && (
         <div className="cr-error gate-err">
           {err}
-          {PAY_OPEN && <button
+          <button
             className="gate-switch"
             onClick={() => {
               setStep(0);
@@ -331,7 +431,7 @@ function CodeScreen() {
             }}
           >
             APPLY INSTEAD ▸
-          </button>}
+          </button>
         </div>
       )}
       {GATE_MOCK && (
@@ -343,21 +443,31 @@ function CodeScreen() {
   );
 }
 
-/** Pay path, last step: the payment placeholder (Dodo Payments comes in 5D-C). */
+/** Pay path, last step: save the application, then the Dodo checkout (5E-B). */
 function PayStep({ d }: { d: Draft }) {
+  const signedIn = useDirectory((s) => !!s.userId);
+  const fee = useAccess((s) => s.fee);
+  const payError = useAccess((s) => s.payError);
   return (
     <div className="cr-live">
       <Summary d={d} />
       <div className="gate-pay slant">
         <span className="unslant gate-pay-body">
           <span className="gate-pay-k">APPLICATION FEE</span>
-          <span className="gate-pay-v">₹ —</span>
-          <span className="gate-pay-note">PAYMENT · COMING SOON — nothing is charged in this preview</span>
+          <span className="gate-pay-v">{fee}</span>
+          <span className="gate-pay-note">
+            {GATE_MOCK ? "PREVIEW · nothing is charged" : "ONE-TIME · FULL REFUND IF NOT APPROVED · SECURE CHECKOUT BY DODO PAYMENTS"}
+          </span>
         </span>
       </div>
+      {payError && <div className="cr-error">{payError}</div>}
       <ol className="gate-next">
-        <li><b>WE REVIEW</b> your profile. You stay a ghost meanwhile.</li>
-        <li><b>APPROVED</b> — we email {d.email || "you"} a sign-in link and you go live.</li>
+        {!GATE_MOCK && !signedIn && (
+          <li><b>CONFIRM YOUR EMAIL</b> — we send {d.email || "you"} a one-tap link. Open it and you go straight to payment.</li>
+        )}
+        <li><b>PAY {fee}</b> on the secure checkout, then you’re back in the city.</li>
+        <li><b>WE REVIEW</b> your profile and your four answers. You stay a ghost meanwhile.</li>
+        <li><b>APPROVED</b> — you go live in the city, with 2 invite codes of your own.</li>
         <li><b>NOT APPROVED</b> — your fee is refunded automatically.</li>
       </ol>
     </div>
@@ -387,6 +497,8 @@ function InviteGoLive({ d }: { d: Draft }) {
 
 const RESULT: Record<string, { tag: string; title: string; chip: string; tone: "open" | "wait" | "bad" }> = {
   inbox: { tag: "INVITED", title: "CHECK YOUR INBOX", chip: "NO REVIEW NEEDED", tone: "open" },
+  confirm: { tag: "APPLICATION", title: "CHECK YOUR INBOX", chip: "CONFIRM YOUR EMAIL", tone: "wait" },
+  saved: { tag: "APPLICATION", title: "ONE STEP LEFT", chip: "PAYMENT PENDING", tone: "wait" },
   review: { tag: "APPLICATION", title: "YOU’RE IN THE QUEUE", chip: "UNDER REVIEW", tone: "wait" },
   rejected: { tag: "APPLICATION", title: "NOT THIS TIME", chip: "FEE REFUNDED", tone: "bad" },
   approved: { tag: "APPLICATION", title: "YOU’RE IN", chip: "APPROVED", tone: "open" },
@@ -398,6 +510,11 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
   const choose = useAccess((s) => s.choose);
   const email = useOnboarding((s) => s.draft.email);
   const setStep = useOnboarding((s) => s.setStep);
+  const fee = useAccess((s) => s.fee);
+  const paying = useAccess((s) => s.paying);
+  const payError = useAccess((s) => s.payError);
+  const reason = useAccess((s) => s.reason);
+  const pay = useAccess((s) => s.pay);
   const r = RESULT[result];
   const useCode = () => {
     setStep(0);
@@ -413,6 +530,22 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
         <p className="cr-copy gate-lede">
           We sent a sign-in link to <b>{email}</b>. Open it on this device and you’re live.
         </p>
+      )}
+      {result === "confirm" && (
+        <p className="cr-copy gate-lede">
+          We sent a link to <b>{email}</b>. Open it on this device to confirm it’s you — your application is saved
+          the moment you’re back.
+        </p>
+      )}
+      {result === "saved" && (
+        <>
+          <p className="cr-copy gate-lede">
+            Your profile and answers are saved. Pay the <b>{fee}</b> application fee and they go to a reviewer.
+            Not approved? You get it all back.
+          </p>
+          {payError && <div className="cr-error">{payError}</div>}
+          <p className="cr-copy gate-aside">Got an invite code meanwhile? Use it and you’re in straight away.</p>
+        </>
       )}
       {result === "review" && (
         <>
@@ -430,7 +563,7 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
           </p>
           <div className="gate-note">
             <span className="cr-summary-k">REVIEWER’S NOTE</span>
-            <p>The reviewer’s reason appears here.</p>
+            <p>{reason ?? (GATE_MOCK ? "The reviewer’s reason appears here." : "No note was left.")}</p>
           </div>
           <p className="cr-copy gate-aside">A member can still invite you in.</p>
         </>
@@ -445,16 +578,22 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
       )}
       {GATE_MOCK && <p className="gate-preview">PREVIEW · nothing was sent or charged</p>}
       <div className="cr-nav">
-        {result === "review" || result === "rejected" ? (
+        {result === "saved" || result === "review" || result === "rejected" ? (
           <button className="pp-btn slant cr-back" onClick={useCode}>
             <span className="unslant">I HAVE A CODE</span>
           </button>
         ) : (
           <span />
         )}
-        <button className="btn-primary slant cr-next" autoFocus onClick={onDone}>
-          <span className="unslant">BACK TO THE CITY ▸</span>
-        </button>
+        {result === "saved" ? (
+          <button className="btn-primary slant cr-next" autoFocus onClick={() => pay()} disabled={paying}>
+            <span className="unslant">{paying ? "OPENING CHECKOUT…" : `PAY ${fee} ▸`}</span>
+          </button>
+        ) : (
+          <button className="btn-primary slant cr-next" autoFocus onClick={onDone}>
+            <span className="unslant">BACK TO THE CITY ▸</span>
+          </button>
+        )}
       </div>
     </>
   );
@@ -471,7 +610,10 @@ export function Create() {
   const member = useDirectory((s) => !!s.me);
   const panel = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState(0);
-  const busy = useOnboarding((s) => s.mail === "sending" || s.saving);
+  const saving = useOnboarding((s) => s.mail === "sending" || s.saving);
+  const paying = useAccess((s) => s.paying);
+  const busy = saving || paying;
+  const fee = useAccess((s) => s.fee);
 
   const keys: StepKey[] = stepsFor(member ? null : path);
   const key = keys[Math.min(step, keys.length - 1)];
@@ -505,6 +647,8 @@ export function Create() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (e.code === "Escape") return exit();
+      // answers: Shift+Enter is a new line, Enter alone moves on
+      if (e.code === "Enter" && e.shiftKey && t.tagName === "TEXTAREA") return;
       const a = useAccess.getState();
 
       if (a.stage === "gate") {
@@ -561,7 +705,7 @@ export function Create() {
   });
 
   useEffect(() => {
-    if (!isTouch) panel.current?.querySelector<HTMLInputElement>("input")?.focus();
+    if (!isTouch) panel.current?.querySelector<HTMLElement>("input, textarea")?.focus();
   }, [step, stage]);
 
   if (phase !== "create") return null;
@@ -760,6 +904,10 @@ export function Create() {
         )}
 
         {!gated && key === "golive" && (member ? <GoLiveStep d={d} /> : <InviteGoLive d={d} />)}
+        {!gated && (key === "why" || key === "want" || key === "bring") && (
+          <QuestionStep k={key} d={d} patch={patch} />
+        )}
+        {!gated && key === "show" && <ShowStep d={d} patch={patch} />}
         {!gated && key === "pay" && <PayStep d={d} />}
 
         {error && <div className="cr-error">{error}</div>}
@@ -795,7 +943,7 @@ export function Create() {
             {(step < last || !member) && (
               <button className="btn-primary slant cr-next" onClick={next} disabled={step === last && busy}>
                 <span className="unslant">
-                  {step < last ? "NEXT ▸" : busy ? "ONE MOMENT…" : key === "pay" ? "SUBMIT APPLICATION ▸" : "GO LIVE ▸"}
+                  {step < last ? "NEXT ▸" : busy ? "ONE MOMENT…" : key === "pay" ? `SUBMIT + PAY ${fee} ▸` : "GO LIVE ▸"}
                 </span>
               </button>
             )}

@@ -1,29 +1,33 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import { getPeople, useDirectory } from './people/directory'
-import { redeemInvite, sendMagicLink, useOnboarding } from './onboarding'
+import { redeemInvite, sendMagicLink, submitApplication, useOnboarding } from './onboarding'
 import { useGame } from './store'
 
 // THE GATE (CLAUDE.md Phase 5D). Being visible is earned: an invite code (instant) or
 // an application that is paid for and reviewed.
 //
-// 5D-B: invite codes are real (supabase/migrations/0002_access.sql). Applications open
-// with payments (5D-C) — until then "Apply to join" shows as coming soon.
+// 5D-B: invite codes are real (supabase/migrations/0002_access.sql).
+// 5E-A: applications are real (supabase/migrations/0003_applications.sql).
+// 5E-B: the fee is paid through Dodo Payments (src/app/api/apply/*); a reviewer decides on /admin.
 // `?gatepreview` swaps in local mocks for every state, payment path included.
 
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
 
 /** Preview mode: nothing is stored, charged or emailed; every screen is reachable. */
 export const GATE_MOCK = !!params?.has('gatepreview')
-/** "Apply to join" opens with Dodo Payments (5D-C). */
-export const PAY_OPEN = GATE_MOCK
+/** Shown until app_settings.application_fee loads. */
+const FEE_FALLBACK = '₹599'
+const formatFee = (f: { amount: number; currency: string }) =>
+  (f.currency === 'INR' ? '₹' : `${f.currency} `) + (f.amount / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })
 
-/** Where this person stands. Only `visible` can be seen by others. */
-export type AccessStatus = 'ghost' | 'review' | 'visible' | 'rejected'
+/** Where this person stands. Only `visible` can be seen by others. `applied` = saved, not paid yet. */
+export type AccessStatus = 'ghost' | 'applied' | 'review' | 'visible' | 'rejected'
 export type Path = 'invite' | 'pay'
 /** gate → (code) → numbered steps → result */
 export type Stage = 'gate' | 'code' | 'steps' | 'result'
-export type Result = 'inbox' | 'review' | 'rejected' | 'approved'
+/** inbox: invite link sent · confirm: applicant confirms email · saved: application in, unpaid */
+export type Result = 'inbox' | 'confirm' | 'saved' | 'review' | 'rejected' | 'approved'
 
 export type CodeState = 'idle' | 'checking' | 'ok' | 'invalid' | 'used' | 'expired' | 'own' | 'error'
 export type Inviter = { name: string; role: string }
@@ -66,6 +70,13 @@ type Access = {
   inviter: Inviter | null
   /** From an invite link (?invite=CODE): pre-fills the gate. */
   linkCode: string | null
+  /** The application fee, formatted ("₹599"). */
+  fee: string
+  /** Going to the Dodo checkout. */
+  paying: boolean
+  payError: string | null
+  /** The reviewer's note on a decided application. */
+  reason: string | null
   /** Called when "Become visible" opens. Members skip the gate entirely. */
   open: (member: boolean) => void
   choose: (path: Path) => void
@@ -75,6 +86,12 @@ type Access = {
   /** End of the numbered steps. */
   finish: () => Promise<void>
   setStatus: (s: AccessStatus) => void
+  /** Signed in, not a member: pick up an application in flight (5E-A). */
+  loadApplication: () => Promise<void>
+  /** Saved application → the Dodo checkout (leaves the page). */
+  pay: () => Promise<void>
+  /** Back from the checkout (?payment_id=…): ask the server what Dodo says. */
+  confirmPayment: (paymentId: string) => Promise<void>
 }
 
 const previewInviter = (): Inviter => {
@@ -91,11 +108,16 @@ export const useAccess = create<Access>((set, get) => ({
   codeState: 'idle',
   inviter: null,
   linkCode: null,
+  fee: FEE_FALLBACK,
+  paying: false,
+  payError: null,
+  reason: null,
 
   open: (member) => {
     const { status, linkCode } = get()
     if (member) return set({ stage: 'steps', path: null, result: null })
     // an application in flight shows its status instead of the gate
+    if (status === 'applied') return set({ stage: 'result', result: 'saved' })
     if (status === 'review') return set({ stage: 'result', result: 'review' })
     if (status === 'rejected') return set({ stage: 'result', result: 'rejected' })
     if (status === 'visible') return set({ stage: 'result', result: 'approved' })
@@ -139,8 +161,20 @@ export const useAccess = create<Access>((set, get) => ({
       else set({ stage: 'result', result: 'review', status: 'review' })
       return
     }
-    if (path !== 'invite') return // applications open with payments (5D-C)
     const ob = useOnboarding.getState()
+    if (path === 'pay') {
+      // signed in: save now · otherwise confirm the email first, save on return (Session.tsx)
+      if (useDirectory.getState().userId) {
+        const r = await submitApplication()
+        if (!r.ok) return
+        set({ stage: 'result', result: 'saved', status: 'applied' })
+        return get().pay()
+      }
+      ob.patch({ pendingApply: true, pendingInvite: '' })
+      await sendMagicLink(ob.draft.email)
+      if (useOnboarding.getState().mail === 'sent') set({ stage: 'result', result: 'confirm' })
+      return
+    }
     ob.patch({ pendingInvite: code })
     if (useDirectory.getState().userId) {
       ob.patch({ pendingSubmit: true })
@@ -158,14 +192,95 @@ export const useAccess = create<Access>((set, get) => ({
   },
 
   setStatus: (status) => set({ status }),
+
+  loadApplication: async () => {
+    if (GATE_MOCK || !supabase) return
+    const { userId, me } = useDirectory.getState()
+    if (!userId || me) return
+    const { data } = await supabase
+      .from('applications')
+      .select('status, reason')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const row = data as { status: string; reason: string | null } | null
+    const st = row?.status
+    if (!st) return
+    const status: AccessStatus =
+      st === 'draft' || st === 'submitted'
+        ? 'applied'
+        : st === 'paid' || st === 'under_review'
+          ? 'review'
+          : st === 'approved'
+            ? 'visible'
+            : 'rejected'
+    set({ status, reason: row?.reason ?? null })
+  },
+
+  pay: async () => {
+    if (GATE_MOCK) return set({ stage: 'result', result: 'review', status: 'review' })
+    if (!supabase) return
+    set({ paying: true, payError: null })
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+    if (!token) return set({ paying: false, payError: 'Sign in first.' })
+    const res = await fetch('/api/apply/checkout', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+    const body = (await res.json().catch(() => ({}))) as { url?: string; error?: string; status?: string }
+    if (body.url) {
+      window.location.href = body.url // stays `paying` until the page leaves
+      return
+    }
+    if (body.error === 'already_paid') {
+      set({ paying: false })
+      return get().loadApplication()
+    }
+    set({ paying: false, payError: 'Couldn’t open the payment page. Try again in a moment.' })
+  },
+
+  confirmPayment: async (paymentId) => {
+    if (!supabase) return
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+    if (!token) return
+    const res = await fetch('/api/apply/confirm', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_id: paymentId }),
+    })
+    const body = (await res.json().catch(() => ({}))) as { payment?: string; status?: string }
+    const toast = useGame.getState().showToast
+    if (body.status === 'under_review') {
+      set({ status: 'review' })
+      toast('PAYMENT RECEIVED · YOU’RE IN THE REVIEW QUEUE', 'good')
+    } else if (body.payment === 'processing' || body.payment === 'requires_customer_action') {
+      toast('PAYMENT PROCESSING · WE’LL UPDATE YOU SHORTLY', 'good')
+    } else if (body.payment) {
+      toast('PAYMENT DIDN’T GO THROUGH · NOTHING WAS CHARGED · TRY AGAIN', 'bad')
+    }
+    await get().loadApplication()
+  },
 }))
 
-// Invite links: ?invite=BLR-4K7Q9M · Preview states: ?gatepreview&access=review|rejected|approved
+/** Fee label from app_settings (public read). */
+if (typeof window !== 'undefined' && supabase && !GATE_MOCK) {
+  void supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'application_fee')
+    .maybeSingle()
+    .then(({ data }) => {
+      const f = data?.value as { amount: number; currency: string } | undefined
+      if (f?.amount) useAccess.setState({ fee: formatFee(f) })
+    })
+}
+
+// Invite links: ?invite=BLR-4K7Q9M · Preview states: ?gatepreview&access=applied|review|rejected|approved
 if (params) {
   const inv = params.get('invite')
   if (inv) useAccess.setState({ linkCode: normCode(inv) })
   const a = params.get('access')
-  if (GATE_MOCK && (a === 'review' || a === 'rejected' || a === 'ghost')) useAccess.setState({ status: a })
+  if (GATE_MOCK && (a === 'applied' || a === 'review' || a === 'rejected' || a === 'ghost')) useAccess.setState({ status: a })
   if (GATE_MOCK && a === 'approved') useAccess.setState({ status: 'visible' })
   if (process.env.NODE_ENV !== 'production') (window as unknown as { __access?: typeof useAccess }).__access = useAccess
 }

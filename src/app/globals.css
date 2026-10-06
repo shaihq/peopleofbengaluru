@@ -1568,6 +1568,63 @@ a.pp-btn:active {
   font-weight: 700;
 }
 
+/* application answers (5E-A): same cream slab, body type so a paragraph reads */
+.cr-answer {
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: var(--cream);
+  color: var(--ink);
+  padding: 12px 14px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: inset 0 -3px 0 rgba(28, 31, 43, 0.15);
+  user-select: text;
+}
+
+.cr-answer:focus {
+  box-shadow: inset 0 -4px 0 var(--saffron);
+}
+
+.cr-answer::placeholder {
+  color: rgba(28, 31, 43, 0.32);
+}
+
+.cr-label .cr-count {
+  float: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cr-label .cr-count--low {
+  color: var(--action);
+}
+
+.cr-q-lede {
+  margin: 0;
+  font-size: 17px;
+  color: var(--cream);
+}
+
+.cr-q-private {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255, 246, 229, 0.42);
+}
+
+@media (max-width: 820px), (max-height: 520px) {
+  .cr-answer {
+    font-size: 16px; /* 16px+ keeps iOS from zooming on focus */
+    padding: 10px 12px;
+  }
+
+  .cr-q-lede {
+    font-size: 15px;
+  }
+}
+
 .cr-toggle {
   display: flex;
   align-items: center;
@@ -3590,7 +3647,7 @@ html.touch .find-chips {
   color: rgba(255, 246, 229, 0.38);
 }
 
-/* payment placeholder (Dodo Payments in 5D-C) */
+/* payment placeholder (Dodo Payments in 5E) */
 .gate-pay {
   background: var(--ink-soft);
   border-left: 6px solid var(--saffron);

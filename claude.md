@@ -772,7 +772,7 @@ Principles:
 - An invite is the best way in: instant entry, no review. The inviter vouches, so no review queue is needed.
 - Paying means review. Approved: live. Rejected: automatic refund, email, still a ghost.
 - Once inside everyone is equal. No perk difference between invited and paid members.
-- The profile is the application. For paid applicants, the profile they build is what the reviewer sees. There is no separate "intent" step: what someone is building already says what they are about.
+- The profile plus four questions is the application. Paid applicants build their profile, then answer four short questions (Phase 5E). The reviewer sees both.
 - Existing visible members never see the gate. Sample people (the NPCs) are untouched by this phase, and real profiles already approved stay visible.
 - RULE (Phase 6B): every screen here works on touch as well as keyboard.
 
@@ -796,13 +796,14 @@ Path A, invite code:
 
 Path B, pay:
 
-1. Email (needed for status updates).
+1. Email (needed for status updates), confirmed by magic link before payment, so the application and the payment belong to a verified account.
 2. The same profile steps as Path A. The reviewer sees this.
-3. Payment (Dodo Payments, to be integrated later; until then a clearly marked placeholder step).
-4. Status becomes UNDER REVIEW; the person stays a ghost.
-5. Approved: the payment stands, the magic link is sent, the avatar goes live. Rejected: automatic refund, notification, still a ghost.
+3. The application: four questions (5E-A), saved to Supabase.
+4. Payment (Dodo Payments, 5E-B).
+5. Status becomes UNDER REVIEW; the person stays a ghost.
+6. Approved: the payment stands, the avatar goes live. Rejected: automatic refund, notification, still a ghost.
 
-The progress bar covers the numbered steps only; the gate sits outside it. Email is collected early but the magic link is only sent at the end, once entry is granted.
+The progress bar covers the numbered steps only; the gate sits outside it. Email is collected early but the magic link is only sent at the end, once entry is granted. Exception: on the pay path the email is confirmed before payment; the avatar still only goes live after approval.
 
 User states:
 
@@ -849,21 +850,88 @@ Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both
 - check_invite(code): ok / invalid / used / expired / own + who vouched. Uses nothing up.
 - redeem_invite(code, profile): one transaction after the magic-link sign-in — the code is re-checked and used, the profile goes live (approved, no review), the new member gets their codes.
 - Existing approved members get their codes; the admin mints founder codes with select public.issue_invites(null, n).
-- "Apply to join" stays visible as COMING SOON until payments (5D-C) — no free applications.
+- "Apply to join" is open to everyone; it is the paid path (Phase 5E) — no free applications.
 - ?gatepreview runs every screen on local mocks (preview codes, all result states).
 - Still to do: proper rate limiting of code checks (an edge function), marking codes as sent (comes with the Your invites screen).
 
-## 5D-C — PAYMENTS (Dodo Payments)
+## 5D-C / 5D-D — moved to Phase 5E (Apply to join)
 
-- Payment, refund trigger, failure and retry, refund failure handling.
+Payments, the admin review queue and the application emails now live in Phase 5E. Still owned here:
 
-## 5D-D — REVIEW + EMAIL
-
-- Admin review queue (approve / reject, showing the applicant's profile).
-- Email templates: magic link, under review, approved, rejected + refunded.
+- Email templates for the invite path (magic link).
 - Removal handling that revokes the inviter's remaining codes.
 
-Still to decide: the fee, review turnaround time, who reviews and on what criteria, whether the second invite is unlocked later (1 now, 1 after a week of activity) from day one or only if quality slips.
+Still to decide: whether the second invite is unlocked later (1 now, 1 after a week of activity) from day one or only if quality slips.
+
+---
+
+# PHASE 5E — APPLY TO JOIN
+
+Goal:
+
+The paid way in. Someone without an invite builds their profile, tells us why they belong here, pays, and a human decides. Approved: live. Rejected: full refund.
+
+The flow:
+
+```
+THE GATE → Pay to apply
+   → email (confirmed by magic link)
+   → profile steps (same as the invite path)
+   → THE APPLICATION: four questions
+   → saved to Supabase (status: submitted)
+   → payment (Dodo Payments)  → status: under review, still a ghost
+   → admin decides
+        ├─ ACCEPT  → profile approved, avatar goes live, email
+        └─ REJECT  → automatic refund (Dodo), email, still a ghost
+```
+
+The four questions (one per screen, game-style, short answers with a character limit):
+
+1. WHY HERE? — Why do you want to be in this city of designers and builders?
+2. WHAT ARE YOU LOOKING FOR? — Collaborators, a job, a co-founder, feedback, friends?
+3. WHAT WILL YOU BRING? — What do you give back: your work, talks, mentoring, hiring, events?
+4. SHOW US ONE THING — A link to one thing you made that you're proud of, and a line on why.
+
+Rules:
+
+- Questions come after the profile, before payment. Nobody pays before they have answered.
+- Answers are only seen by the applicant and reviewers. Never shown in the city or on the nameplate.
+- The draft (profile + answers) survives reloads and the magic-link round trip (localStorage), like 5B-A.
+- Payments are Dodo Payments only.
+- RULE (6B): every screen works on touch and keyboard, including with the on-screen keyboard.
+- Quality bar: the questions feel like a game screen, not a form (design.md).
+
+## 5E-A — APPLICATION FORM + SUPABASE (built: supabase/migrations/0003_applications.sql)
+
+- The four question screens inside the Become Visible flow, on the pay path only; the progress bar covers them.
+- supabase/migrations/0003_applications.sql: an applications table: user id, email, the four answers, a snapshot of the profile, status (draft / submitted / paid / under_review / approved / rejected / refunded / refund_failed), Dodo payment id, amount, reviewer, reason, timestamps.
+- RLS: applicants read and write only their own application, and only while it is draft / submitted. Nobody can set their own status. Admins read all.
+- One open application per email.
+- ?gatepreview covers every application screen and state on local mocks.
+- submit_application(answers, profile): signed-in only; creates the application or updates it while unpaid; never creates a profile (that happens on approval, 5E-B).
+- Admins live in public.admins (added by hand); is_admin() gates reviewer reads.
+
+## 5E-B — PAYMENT (DODO) + ADMIN REVIEW (built: supabase/migrations/0004_payments_review.sql; emails still to do)
+
+- Dodo Payments checkout once the application is saved. Payment is confirmed by a server-side Dodo webhook, never by the client → status under_review. Payment fails: retry, no review starts.
+- The admin page (/admin, admins only): a queue of applications under review, each showing the profile card, the four answers and the "one thing" link. Two actions: ACCEPT or REJECT + REFUND, with an optional reason.
+- ACCEPT: profile status = approved (goes live), the member gets their invite codes (same as redeem_invite), approval email.
+- REJECT: refund through Dodo from the server, status refunded, email with the reason. Refund failure → refund_failed, shown on the admin page for retry.
+- No decision after N days (settings value): automatic refund.
+- Applicant given an invite code while under review: may switch paths, payment refunded.
+- Emails: application received, approved, rejected + refunded.
+
+Built:
+
+- Fee: INR 599 (app_settings.application_fee). Dodo product per mode in app_settings.dodo_product_id ({"test": …, "live": …}), brand "People of Bangalore".
+- Server: src/lib/server/ (secret keys, never shipped to the browser). Routes: /api/apply/checkout, /api/apply/confirm (return page asks Dodo directly; same transition as the webhook, so either can arrive first), /api/dodo/webhook (Standard Webhooks signature, 5-min replay window), /api/admin/reject, /api/cron/auto-refund (Bearer CRON_SECRET).
+- The Dodo business is shared with other brands: the webhook ignores events tagged with another brand (BRAND in src/lib/server/dodo.ts) and payments without our application_id.
+- ACCEPT is approve_application() (checks is_admin() itself): the profile snapshot goes live, invite codes are issued.
+- Paid twice: the second payment is refunded automatically. Joined by invite while under review: the admin page flags it and offers REFUND.
+- Env: DODO_API_KEY, DODO_WEBHOOK_SECRET, DODO_ENV (test | live), CRON_SECRET. See .env.example.
+- Still to do: the emails (needs an email provider), and the cron schedule on the host.
+
+Still to decide: the fee, N days to auto-refund, who reviews and on what criteria, whether rejected applicants can reapply and after how long.
 
 ---
 

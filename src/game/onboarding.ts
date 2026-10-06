@@ -29,12 +29,20 @@ export type Draft = {
   pendingSubmit: boolean
   /** Invite path: the code to redeem once the session arrives (CLAUDE.md 5D-B). */
   pendingInvite: string
+  /** Pay path — the four application questions (CLAUDE.md 5E-A). Only applicants + reviewers see them. */
+  appWhy: string
+  appWant: string
+  appBring: string
+  appLink: string
+  appLinkWhy: string
+  /** Pay path: save the application as soon as the session arrives. */
+  pendingApply: boolean
 }
 
 export const STEPS = ['PICK YOUR LOOK', 'WHO ARE YOU?', 'WHAT ARE YOU BUILDING?', 'WHERE CAN PEOPLE FIND YOU?', 'WHERE DO YOU HANG OUT?', 'GO LIVE'] as const
 
 /** The numbered steps, by key. Which ones you get depends on how you're getting in. */
-export type StepKey = 'email' | 'look' | 'who' | 'building' | 'links' | 'hangout' | 'golive' | 'pay'
+export type StepKey = 'email' | 'look' | 'who' | 'building' | 'links' | 'hangout' | 'golive' | 'why' | 'want' | 'bring' | 'show' | 'pay'
 export const STEP_TITLE: Record<StepKey, string> = {
   email: 'WHERE DO WE REACH YOU?',
   look: 'PICK YOUR LOOK',
@@ -43,13 +51,23 @@ export const STEP_TITLE: Record<StepKey, string> = {
   links: 'WHERE CAN PEOPLE FIND YOU?',
   hangout: 'WHERE DO YOU HANG OUT?',
   golive: 'GO LIVE',
+  why: 'WHY HERE?',
+  want: 'WHAT ARE YOU LOOKING FOR?',
+  bring: 'WHAT WILL YOU BRING?',
+  show: 'SHOW US ONE THING',
   pay: 'SEND YOUR APPLICATION',
 }
+/** The application: one question per screen, after the profile, before payment (CLAUDE.md 5E). */
+export const QUESTION_STEPS: StepKey[] = ['why', 'want', 'bring', 'show']
+export const ANSWER_MIN = 20
+export const ANSWER_MAX = 400
+export const LINK_WHY_MIN = 10
+export const LINK_WHY_MAX = 200
 const PROFILE_STEPS: StepKey[] = ['look', 'who', 'building', 'links', 'hangout']
-/** Members editing (no gate) · invite (instant) · pay (reviewed: the profile IS the application). */
+/** Members editing (no gate) · invite (instant) · pay (reviewed: profile + four questions). */
 export function stepsFor(path: 'invite' | 'pay' | null): StepKey[] {
   if (path === 'invite') return ['email', ...PROFILE_STEPS, 'golive']
-  if (path === 'pay') return ['email', ...PROFILE_STEPS, 'pay']
+  if (path === 'pay') return ['email', ...PROFILE_STEPS, ...QUESTION_STEPS, 'pay']
   return [...PROFILE_STEPS, 'golive']
 }
 
@@ -73,6 +91,12 @@ const EMPTY: Draft = {
   spot: 'darshini',
   pendingSubmit: false,
   pendingInvite: '',
+  appWhy: '',
+  appWant: '',
+  appBring: '',
+  appLink: '',
+  appLinkWhy: '',
+  pendingApply: false,
 }
 
 function load(): Draft {
@@ -171,8 +195,19 @@ export function normX(v: string): Norm {
 
 export const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
+const short = (v: string, min: number) => v.trim().length < min
+
 export function validateKey(key: StepKey, d: Draft): string | null {
   if (key === 'email' && !isEmail(d.email)) return 'That email doesn’t look right.'
+  if (key === 'why' && short(d.appWhy, ANSWER_MIN)) return `Tell us a little more — at least ${ANSWER_MIN} characters.`
+  if (key === 'want' && short(d.appWant, ANSWER_MIN)) return `Tell us a little more — at least ${ANSWER_MIN} characters.`
+  if (key === 'bring' && short(d.appBring, ANSWER_MIN)) return `Tell us a little more — at least ${ANSWER_MIN} characters.`
+  if (key === 'show') {
+    const link = normPortfolio(d.appLink)
+    if (!link) return 'Add a link to the thing you made.'
+    if (link === INVALID) return 'That link doesn’t look like a URL.'
+    if (short(d.appLinkWhy, LINK_WHY_MIN)) return 'Add a line on why you’re proud of it.'
+  }
   return validateStep(key === 'who' ? 1 : key === 'links' ? 3 : -1, d)
 }
 
@@ -192,7 +227,7 @@ export function validateStep(step: number, d: Draft): string | null {
 const clean = (v: Norm) => (v === INVALID ? null : v)
 const opt = (v: string, max: number) => v.trim().slice(0, max) || null
 
-function payload(d: Draft) {
+export function payload(d: Draft) {
   return {
     name: d.name.trim().slice(0, 40),
     role: d.role.trim().slice(0, 60),
@@ -283,6 +318,43 @@ export async function redeemInvite(): Promise<{ ok: boolean; error?: string }> {
   }
   useOnboarding.getState().patch({ pendingSubmit: false, pendingInvite: '' })
   await refreshDirectory()
+  return { ok: true }
+}
+
+/**
+ * Pay path, after sign-in (the magic link confirmed the email): save the profile + four
+ * answers as an application. Nothing goes live and nothing is charged here (CLAUDE.md 5E-A).
+ */
+export async function submitApplication(): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'Sign-in isn’t configured yet.' }
+  const d = useOnboarding.getState().draft
+  useOnboarding.setState({ saving: true, error: null })
+  const answers = {
+    why: d.appWhy.trim().slice(0, ANSWER_MAX),
+    want: d.appWant.trim().slice(0, ANSWER_MAX),
+    bring: d.appBring.trim().slice(0, ANSWER_MAX),
+    show_link: clean(normPortfolio(d.appLink)),
+    show_why: d.appLinkWhy.trim().slice(0, LINK_WHY_MAX),
+  }
+  const { data, error } = await supabase.rpc('submit_application', { p_answers: answers, p_profile: payload(d) })
+  useOnboarding.setState({ saving: false })
+  const res = data as { ok: boolean; state?: string } | null
+  if (error || !res?.ok) {
+    const msg = error
+      ? error.code === 'PGRST202'
+        ? 'Applications aren’t set up on the server yet.'
+        : error.message
+      : res?.state === 'member'
+        ? 'You’re already in the city.'
+        : res?.state === 'in_review'
+          ? 'Your application is already being reviewed.'
+          : res?.state === 'signed_out'
+            ? 'Sign in first.'
+            : 'Some answers are too short or too long. Check them and try again.'
+    useOnboarding.setState({ error: msg })
+    return { ok: false, error: msg }
+  }
+  useOnboarding.getState().patch({ pendingSubmit: false, pendingApply: false })
   return { ok: true }
 }
 

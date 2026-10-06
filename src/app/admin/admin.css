@@ -1,0 +1,403 @@
+/* The review queue (CLAUDE.md 5E-B) — same game UI language as the HUD (design.md §10):
+   ink panels, slanted saffron actions, Barlow Condensed display type, hard shadows. */
+
+.adm {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  padding: 28px clamp(16px, 4vw, 48px) 80px;
+  background:
+    linear-gradient(180deg, rgba(255, 176, 32, 0.07), transparent 280px),
+    var(--ink);
+  user-select: text;
+  cursor: auto;
+}
+
+.adm-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 1180px;
+  margin: 0 auto 24px;
+}
+
+.adm-badge {
+  background: var(--ink-soft);
+  border-left: 6px solid var(--saffron);
+  padding: 10px 22px;
+  box-shadow: var(--hard);
+}
+
+.adm-badge span {
+  display: flex;
+  flex-direction: column;
+}
+
+.adm-badge small {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: rgba(255, 246, 229, 0.5);
+}
+
+.adm-badge b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+}
+
+.adm-actions,
+.adm-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.adm-ghost {
+  border: 0;
+  cursor: var(--cur-link);
+  background: var(--ink-soft);
+  color: var(--cream);
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-style: italic;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  padding: 10px 18px;
+  text-decoration: none;
+  box-shadow: var(--hard);
+  transform: skewX(var(--skew));
+}
+
+.adm-ghost:hover {
+  background: #353b50;
+}
+
+.adm-ghost:disabled,
+.adm-btn:disabled {
+  opacity: 0.5;
+  cursor: var(--cur-wait);
+}
+
+.adm-btn {
+  font-size: 19px;
+  padding: 10px 24px;
+  animation: none;
+}
+
+.adm-btn--reject {
+  border: 0;
+  cursor: var(--cur-link);
+  background: var(--action);
+  color: var(--cream);
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  box-shadow: 0 5px 0 #a8341c, 0 8px 0 rgba(12, 14, 22, 0.5);
+}
+
+.adm-err {
+  max-width: 1180px;
+  margin: 0 auto 18px;
+  padding: 12px 16px;
+  background: rgba(255, 90, 54, 0.16);
+  border-left: 5px solid var(--action);
+  font-weight: 600;
+  cursor: var(--cur-link);
+}
+
+.adm-empty {
+  max-width: 1180px;
+  margin: 60px auto;
+  text-align: center;
+  font-family: var(--font-display), sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: rgba(255, 246, 229, 0.4);
+}
+
+/* sign-in / not-admin */
+.adm-panel {
+  max-width: 520px;
+  margin: 10vh auto 0;
+  padding: 28px;
+  background: var(--ink-soft);
+  border-top: 6px solid var(--saffron);
+  box-shadow: var(--hard);
+}
+
+.adm-gate h1 {
+  font-family: var(--font-display), sans-serif;
+  font-size: 40px;
+  font-weight: 800;
+  font-style: italic;
+}
+
+.adm-gate p {
+  margin: 8px 0 18px;
+  color: rgba(255, 246, 229, 0.8);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.adm-gate input {
+  flex: 1;
+  min-width: 200px;
+  height: 48px;
+  border: 0;
+  outline: 0;
+  padding: 0 14px;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-display), sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  font-style: italic;
+}
+
+/* tabs */
+.adm-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 1180px;
+  margin: 0 auto 22px;
+}
+
+.adm-tab {
+  border: 0;
+  cursor: var(--cur-link);
+  background: var(--ink-soft);
+  color: rgba(255, 246, 229, 0.65);
+  font-family: var(--font-display), sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  padding: 9px 18px;
+  box-shadow: var(--hard);
+}
+
+.adm-tab em {
+  font-style: normal;
+  margin-left: 6px;
+  padding: 1px 7px;
+  background: rgba(255, 246, 229, 0.12);
+}
+
+.adm-tab--on {
+  background: var(--saffron);
+  color: var(--ink);
+}
+
+.adm-tab--on em {
+  background: rgba(28, 31, 43, 0.16);
+}
+
+.adm-tab--alert:not(.adm-tab--on) em {
+  background: var(--action);
+  color: var(--cream);
+}
+
+/* cards */
+.adm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.adm-card {
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) 1fr;
+  background: var(--ink-soft);
+  box-shadow: var(--hard);
+  border-left: 6px solid var(--saffron);
+}
+
+.adm-card--approved {
+  border-left-color: var(--open);
+}
+
+.adm-card--rejected,
+.adm-card--refunded,
+.adm-card--refund_failed {
+  border-left-color: var(--action);
+}
+
+.adm-card--submitted,
+.adm-card--draft {
+  border-left-color: rgba(255, 246, 229, 0.25);
+}
+
+.adm-who {
+  padding: 20px 22px;
+  background: rgba(12, 14, 22, 0.25);
+}
+
+.adm-status {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.adm-chip {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 3px 8px;
+  background: rgba(255, 176, 32, 0.18);
+  color: var(--saffron);
+}
+
+.adm-chip--approved,
+.adm-chip--invite {
+  background: rgba(61, 220, 132, 0.16);
+  color: var(--open);
+}
+
+.adm-chip--rejected,
+.adm-chip--refunded,
+.adm-chip--refund_failed {
+  background: rgba(255, 90, 54, 0.16);
+  color: var(--action);
+}
+
+.adm-chip--submitted,
+.adm-chip--draft {
+  background: rgba(255, 246, 229, 0.08);
+  color: rgba(255, 246, 229, 0.6);
+}
+
+.adm-who h2 {
+  margin-top: 10px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+}
+
+.adm-role {
+  margin-top: 4px;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.75);
+}
+
+.adm-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 12px;
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.adm-facts dt,
+.adm-k {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--saffron);
+  padding-top: 2px;
+}
+
+.adm-facts dd {
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.85);
+  overflow-wrap: anywhere;
+}
+
+.adm-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.adm-links a,
+.adm-thing {
+  color: var(--cream);
+  text-decoration: none;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.05em;
+}
+
+.adm-links a {
+  padding: 5px 10px;
+  background: rgba(255, 246, 229, 0.08);
+}
+
+.adm-links a:hover,
+.adm-thing:hover {
+  color: var(--saffron);
+}
+
+.adm-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.adm-k {
+  display: block;
+}
+
+.adm-q p {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--cream);
+  white-space: pre-wrap;
+}
+
+.adm-thing {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 20px;
+  color: var(--saffron);
+}
+
+.adm-decide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 2px solid rgba(255, 246, 229, 0.08);
+}
+
+.adm-decide textarea {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  resize: none;
+  padding: 10px 12px;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body), sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .adm-card {
+    grid-template-columns: 1fr;
+  }
+
+  .adm-decide {
+    align-items: stretch;
+  }
+}
