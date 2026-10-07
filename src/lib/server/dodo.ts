@@ -1,11 +1,13 @@
 import 'server-only'
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { isProduction } from './env'
 
 // Dodo Payments (CLAUDE.md 5E-B). Plain REST, no SDK.
-// DODO_ENV=live switches to live mode; anything else is test mode. Each mode has its own
-// API key, webhook secret, brand (BRAND below) and product (app_settings.dodo_product_id).
+// Live mode on the Vercel production deployment only; preview and local are test mode.
+// Each mode has its own API key + webhook secret (set per Vercel environment), brand
+// (BRAND below) and product (app_settings.dodo_product_id).
 
-export const DODO_MODE: 'live' | 'test' = process.env.DODO_ENV === 'live' ? 'live' : 'test'
+export const DODO_MODE: 'live' | 'test' = isProduction() ? 'live' : 'test'
 const BASE = DODO_MODE === 'live' ? 'https://live.dodopayments.com' : 'https://test.dodopayments.com'
 
 /** Our Dodo brand, "People of Bangalore", per mode. Not a secret. */

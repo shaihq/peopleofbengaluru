@@ -5,7 +5,7 @@
 --
 -- Run once in the Supabase SQL editor, after 0001–0003. Safe to re-run.
 
--- What the fee is and which Dodo product charges it, per mode (test / live — DODO_ENV).
+-- What the fee is and which Dodo product charges it, per mode (test / live — live on Vercel production only).
 -- Config-driven: change the price by creating a new Dodo product (brand "People of
 -- Bangalore") and updating these rows — no release needed.
 insert into public.app_settings (key, value) values

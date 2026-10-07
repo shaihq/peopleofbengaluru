@@ -929,7 +929,7 @@ Built:
 - The Dodo business is shared with other brands: the webhook ignores events tagged with another brand (BRAND in src/lib/server/dodo.ts) and payments without our application_id.
 - ACCEPT is approve_application() (checks is_admin() itself): the profile snapshot goes live, invite codes are issued.
 - Paid twice: the second payment is refunded automatically. Joined by invite while under review: the admin page flags it and offers REFUND.
-- Env: DODO_API_KEY, DODO_WEBHOOK_SECRET, DODO_ENV (test | live), CRON_SECRET. See .env.example.
+- Env: DODO_API_KEY, DODO_WEBHOOK_SECRET, CRON_SECRET. See .env.example. Live mode only on the Vercel production deployment (isProduction() in src/lib/server/env.ts reads VERCEL_ENV); preview and local use test mode.
 - Still to do: the emails (needs an email provider), and the cron schedule on the host.
 
 Still to decide: the fee, N days to auto-refund, who reviews and on what criteria, whether rejected applicants can reapply and after how long.
