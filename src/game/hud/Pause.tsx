@@ -6,6 +6,7 @@ import { signOut, useOnboarding } from '../onboarding'
 import { requestLook } from '../player/input'
 import { useGame } from '../store'
 import { useAudio } from '../audio/engine'
+import { useAccess } from '../access'
 
 const CONTROLS: [string[], string][] = [
   [['W', 'A', 'S', 'D'], 'MOVE'],
@@ -26,6 +27,7 @@ export function Pause() {
   const startCreate = useGame((s) => s.startCreate)
   const showToast = useGame((s) => s.showToast)
   const me = useDirectory((s) => s.me)
+  const signedIn = useDirectory((s) => !!s.userId)
   const [controls, setControls] = useState(false)
   const [sound, setSound] = useState(false)
   const [confirmOut, setConfirmOut] = useState(false)
@@ -99,9 +101,16 @@ export function Pause() {
     startCreate()
   }
 
+  const signIn = () => {
+    setPaused(false)
+    useAccess.setState({ signinNext: true })
+    startCreate()
+  }
+
   const leave = async () => {
     if (!confirmOut) return setConfirmOut(true)
     await signOut()
+    useAccess.setState({ status: 'ghost', reason: null, result: null })
     setPaused(false)
     showToast('SIGNED OUT · YOU’RE INVISIBLE AGAIN', 'info')
     requestLook()
@@ -138,6 +147,13 @@ export function Pause() {
             <span className="keycap">V</span>
           </button>
 
+          {!signedIn && (
+            <button className="pause-row" onClick={signIn}>
+              <span className="pause-label">SIGN IN</span>
+              <span className="pause-caret">MEMBERS + APPLICANTS</span>
+            </button>
+          )}
+
           <button className={`pause-row${sound ? ' pause-row--open' : ''}`} onClick={() => setSound((v) => !v)} aria-expanded={sound}>
             <span className="pause-label">SOUND</span>
             <span className="pause-caret">{sound ? '▴' : '▾'}</span>
@@ -165,7 +181,7 @@ export function Pause() {
             </div>
           )}
 
-          {me && (
+          {signedIn && (
             <button className={`pause-row pause-row--danger${confirmOut ? ' pause-row--confirm' : ''}`} onClick={leave}>
               <span className="pause-label">{confirmOut ? 'CLICK AGAIN TO CONFIRM' : 'SIGN OUT'}</span>
               {confirmOut && <span className="pause-caret">YOU’LL BE INVISIBLE AGAIN</span>}

@@ -2,10 +2,21 @@
 
 import { useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { refreshDirectory } from './people/directory'
+import { refreshDirectory, useDirectory } from './people/directory'
 import { redeemInvite, submitApplication, submitProfile, useOnboarding } from './onboarding'
-import { useAccess } from './access'
+import { SIGNIN_KEY, useAccess } from './access'
 import { useGame } from './store'
+
+/** True once, right after a sign-in link sent from the sign-in screen comes back. */
+function takeSignin() {
+  try {
+    if (!localStorage.getItem(SIGNIN_KEY)) return false
+    localStorage.removeItem(SIGNIN_KEY)
+    return true
+  } catch {
+    return false
+  }
+}
 
 /** Keeps auth + the people directory in sync; finishes a profile after the magic-link round trip. */
 export function Session() {
@@ -35,6 +46,22 @@ export function Session() {
         return
       }
       await useAccess.getState().loadApplication()
+      if (event === 'SIGNED_IN' && takeSignin()) {
+        // back from a plain sign-in: say where they stand
+        const { me } = useDirectory.getState()
+        const st = useAccess.getState().status
+        const msg = me
+          ? 'WELCOME BACK'
+          : st === 'applied'
+            ? 'WELCOME BACK · PAY TO SEND YOUR APPLICATION'
+            : st === 'review'
+              ? 'WELCOME BACK · YOUR APPLICATION IS UNDER REVIEW'
+              : st === 'rejected'
+                ? 'WELCOME BACK · SEE YOUR APPLICATION'
+                : 'SIGNED IN'
+        useGame.getState().showToast(msg, 'good')
+        return
+      }
       if (event === 'SIGNED_IN' && d.pendingSubmit) {
         // invite path: the code makes you live instantly; otherwise the old profile save
         const r = d.pendingInvite ? await redeemInvite() : await submitProfile()
