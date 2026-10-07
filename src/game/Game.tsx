@@ -21,6 +21,7 @@ import { Create } from './hud/Create'
 import { Pause } from './hud/Pause'
 import { YouCard, Toast } from './hud/YouCard'
 import { StatusEditor } from './hud/StatusEditor'
+import { Connections } from './hud/Connections'
 import { Session } from './Session'
 import { Interaction } from './hud/Interaction'
 import { Search } from './hud/Search'
@@ -97,6 +98,7 @@ export default function Game() {
       <Travel />
       <YouCard />
       <StatusEditor />
+      <Connections />
       <Create />
       <Pause />
       <Toast />

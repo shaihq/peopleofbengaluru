@@ -7,6 +7,7 @@ import { requestLook } from '../player/input'
 import { useGame } from '../store'
 import { useAudio } from '../audio/engine'
 import { useAccess } from '../access'
+import { useConnect } from '../connect'
 
 const CONTROLS: [string[], string][] = [
   [['W', 'A', 'S', 'D'], 'MOVE'],
@@ -14,6 +15,7 @@ const CONTROLS: [string[], string][] = [
   [['MOUSE'], 'LOOK AROUND'],
   [['E'], 'TALK TO SOMEONE'],
   [['F'], 'FIND SOMEONE'],
+  [['C'], 'CONNECTIONS'],
   [['V'], 'BECOME VISIBLE / EDIT PROFILE'],
   [['M'], 'MUTE SOUND'],
   [['ESC'], 'PAUSE'],
@@ -43,15 +45,15 @@ export function Pause() {
     // that just closed — they must not open Pause.
     let overlayClosedAt = -1e9
     const unsub = useGame.subscribe((s, p) => {
-      const was = p.portalOpen || p.searchOpen || p.statusOpen || !!p.openId
-      const now = s.portalOpen || s.searchOpen || s.statusOpen || !!s.openId
+      const was = p.portalOpen || p.searchOpen || p.statusOpen || p.connectOpen || !!p.openId
+      const now = s.portalOpen || s.searchOpen || s.statusOpen || s.connectOpen || !!s.openId
       if (was && !now) overlayClosedAt = performance.now()
     })
     const plain = () => {
       const g = useGame.getState()
       const cinematic = g.trackStage === 'fly' || g.trackStage === 'hold'
       return (
-        g.phase === 'play' && !g.openId && !g.searchOpen && !g.statusOpen && !g.paused && !cinematic && !g.portalOpen && !g.travel && performance.now() - overlayClosedAt > 700
+        g.phase === 'play' && !g.openId && !g.searchOpen && !g.statusOpen && !g.connectOpen && !g.paused && !cinematic && !g.portalOpen && !g.travel && performance.now() - overlayClosedAt > 700
       )
     }
 
@@ -111,6 +113,7 @@ export function Pause() {
     if (!confirmOut) return setConfirmOut(true)
     await signOut()
     useAccess.setState({ status: 'ghost', reason: null, result: null })
+    useConnect.getState().reset()
     setPaused(false)
     showToast('SIGNED OUT · YOU’RE INVISIBLE AGAIN', 'info')
     requestLook()

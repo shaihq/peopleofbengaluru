@@ -23,6 +23,8 @@ type GameState = {
   searchOpen: boolean
   /** Your status editor (Phase 5F). */
   statusOpen: boolean
+  /** Connections screen (Phase 5G). */
+  connectOpen: boolean
   /** Pause menu (Esc while exploring). */
   paused: boolean
   pausedAt: number
@@ -59,6 +61,7 @@ type GameState = {
   closeProfile: () => void
   setSearch: (open: boolean) => void
   setStatusOpen: (open: boolean) => void
+  setConnectOpen: (open: boolean) => void
   setPaused: (paused: boolean) => void
   track: (id: string) => void
   setTrackStage: (stage: TrackStage) => void
@@ -80,6 +83,7 @@ export const useGame = create<GameState>((set) => ({
   openId: null,
   searchOpen: false,
   statusOpen: false,
+  connectOpen: false,
   paused: false,
   pausedAt: 0,
   trackId: null,
@@ -125,6 +129,10 @@ export const useGame = create<GameState>((set) => ({
   setStatusOpen: (statusOpen) => {
     if (statusOpen) releaseMouse()
     set({ statusOpen })
+  },
+  setConnectOpen: (connectOpen) => {
+    if (connectOpen) releaseMouse()
+    set(connectOpen ? { connectOpen, openId: null, searchOpen: false, statusOpen: false } : { connectOpen })
   },
   setPaused: (paused) => {
     if (paused) releaseMouse()

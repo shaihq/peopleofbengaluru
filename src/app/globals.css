@@ -4196,3 +4196,395 @@ html.touch .find-chips {
 .gate-signin {
   margin-top: 18px;
 }
+
+/* --- CONNECT (Phase 5G) ---------------------------------------------------- */
+
+button.cn-btn {
+  border: 0;
+  cursor: var(--cur-link);
+  font-family: var(--font-display), sans-serif;
+  font-style: italic;
+  width: 100%;
+}
+
+button.cn-btn:not(:disabled):hover {
+  transform: skewX(var(--skew)) translateY(-3px);
+}
+
+button.cn-btn:disabled {
+  opacity: 0.5;
+  cursor: var(--cur-wait);
+}
+
+.cn-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cn-fine {
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: rgba(255, 246, 229, 0.6);
+}
+
+.cn-fine b {
+  color: var(--cream);
+}
+
+/* intent: five big chips, a mode select — not a form */
+.cn-intents {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.cn-intent {
+  justify-content: flex-start;
+  padding: 11px 14px;
+  font-size: 17px;
+  font-style: italic;
+}
+
+.cn-intent:last-child {
+  grid-column: 1 / -1;
+}
+
+.cn-intent .unslant {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cn-intent-e {
+  font-size: 20px;
+  font-style: normal;
+}
+
+/* states on the profile panel */
+.cn-state {
+  background: var(--ink-soft);
+  padding: 12px 16px;
+  font-size: 17px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: rgba(255, 246, 229, 0.75);
+  border-left: 5px solid var(--saffron);
+}
+
+.cn-state--match {
+  color: var(--open);
+  border-left-color: var(--open);
+}
+
+.cn-ask {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--ink-soft);
+  border-left: 6px solid var(--saffron);
+  padding: 12px 16px;
+}
+
+.cn-ask-e {
+  font-size: 34px;
+}
+
+.cn-ask b {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1.05;
+}
+
+.cn-ask em {
+  font-family: var(--font-body), sans-serif;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.6);
+}
+
+/* your contact */
+.cn-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cn-methods {
+  margin: 0;
+}
+
+.cn-field input {
+  width: 100%;
+}
+
+/* the HUD button: second to FIND, so ink, not saffron */
+.hud-connect {
+  background: var(--ink);
+  color: var(--cream);
+  box-shadow: var(--hard);
+}
+
+.hud-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--action);
+  color: var(--cream);
+  font-style: normal;
+  font-size: 13px;
+  animation: cn-pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes cn-pop {
+  from {
+    transform: scale(0.4);
+  }
+}
+
+/* the Connections screen */
+.cn-panel {
+  width: min(600px, calc(100vw - 80px));
+}
+
+.cn-tabs {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.cn-tabs .chip {
+  font-style: italic;
+}
+
+.cn-count {
+  margin-left: 8px;
+  padding: 0 6px;
+  font-style: normal;
+  background: rgba(255, 176, 32, 0.25);
+}
+
+.chip--on .cn-count {
+  background: rgba(28, 31, 43, 0.14);
+}
+
+.cn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.cn-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--ink-soft);
+  padding: 14px 16px;
+  border-left: 5px solid rgba(255, 246, 229, 0.15);
+}
+
+.cn-row--new {
+  border-left-color: var(--saffron);
+}
+
+.cn-row-who b {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1.05;
+}
+
+.cn-row-who em {
+  font-family: var(--font-body), sans-serif;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.62);
+}
+
+.cn-row-intent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--saffron);
+}
+
+.cn-row-intent span {
+  font-size: 18px;
+}
+
+.cn-row-intent small {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 246, 229, 0.4);
+}
+
+.cn-row-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.cn-row-actions .pp-btn {
+  min-height: 44px;
+  font-size: 17px;
+}
+
+.cn-empty {
+  padding: 18px 4px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: rgba(255, 246, 229, 0.5);
+}
+
+.cn-you {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 2px solid rgba(255, 246, 229, 0.08);
+}
+
+.cn-you-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-body), sans-serif;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cn-you-row b {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--saffron);
+  margin-right: 8px;
+}
+
+/* IT'S A MATCH */
+.cn-match {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cn-match .gate-chip {
+  align-self: flex-start;
+}
+
+.cn-pair {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 22px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: rgba(255, 246, 229, 0.75);
+}
+
+.cn-pair-e {
+  font-size: 40px;
+  font-style: normal;
+  animation: cn-pop 0.6s cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+
+.cn-match-title {
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 0.95;
+}
+
+.cn-reveal {
+  background: var(--cream);
+  color: var(--ink);
+  padding: 14px 18px;
+  box-shadow: 0 5px 0 var(--saffron), 0 8px 0 rgba(12, 14, 22, 0.5);
+  animation: prompt-in 0.45s 0.15s cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
+}
+
+.cn-reveal .unslant {
+  display: flex;
+  flex-direction: column;
+}
+
+.cn-reveal-k {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: rgba(28, 31, 43, 0.55);
+}
+
+.cn-reveal-v {
+  font-size: 28px;
+  font-weight: 800;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.cn-find {
+  border: 0;
+  cursor: var(--cur-link);
+  font-family: var(--font-display), sans-serif;
+  font-style: italic;
+  padding: 0 22px;
+}
+
+.cn-remove {
+  align-self: flex-start;
+  border: 0;
+  background: none;
+  cursor: var(--cur-link);
+  padding: 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 246, 229, 0.35);
+}
+
+.cn-remove--confirm {
+  color: var(--action);
+}
+
+@media (max-width: 820px), (max-height: 520px) {
+  .cn-panel {
+    width: auto;
+  }
+
+  .cn-intents {
+    grid-template-columns: 1fr;
+  }
+
+  .cn-intent {
+    font-size: 15px;
+    padding: 9px 12px;
+  }
+
+  .cn-match-title {
+    font-size: 30px;
+  }
+
+  .cn-reveal-v {
+    font-size: 22px;
+  }
+}

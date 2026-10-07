@@ -3,6 +3,7 @@
 import { useGame } from '../store'
 import { hasSamples, usePeople } from '../people/directory'
 import { districtInfo, homeDistrict } from '../districts/registry'
+import { ConnectHud } from './Connections'
 
 function Keycap({ k, wide }: { k: string; wide?: boolean }) {
   return <span className={`keycap${wide ? ' keycap--wide' : ''}`}>{k}</span>
@@ -51,6 +52,7 @@ export function HUD() {
             <span className="find-glass" /> FIND SOMEONE <span className="keycap">F</span>
           </span>
         </button>
+        <ConnectHud />
         <div className="slant hud-weather">
           <span className="unslant">☀ 27° · 10:40 AM</span>
         </div>

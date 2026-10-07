@@ -39,7 +39,7 @@ export function installInput() {
   }
   const move = (e: MouseEvent) => {
     const g = useGame.getState()
-    if (g.phase !== 'play' || g.searchOpen || g.statusOpen || g.openId || g.paused) return
+    if (g.phase !== 'play' || g.searchOpen || g.statusOpen || g.connectOpen || g.openId || g.paused) return
     if (!document.pointerLockElement && !look.dragging) return
     look.yaw -= e.movementX * 0.0024
     look.pitch = clamp(look.pitch + e.movementY * 0.0018, -0.2, 0.8)
@@ -70,7 +70,7 @@ export function installInput() {
 export function requestLook(drag = false) {
   if (isTouch) return // touch: the right thumb looks, there's no pointer to lock
   const g = useGame.getState()
-  if (g.openId || g.searchOpen || g.statusOpen || g.paused) return
+  if (g.openId || g.searchOpen || g.statusOpen || g.connectOpen || g.paused) return
   if (drag) look.dragging = true
   const canvas = document.querySelector<HTMLCanvasElement>('.game-root canvas')
   try {

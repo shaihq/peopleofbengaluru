@@ -13,6 +13,7 @@ import { rayDistance } from '../player/collision'
 import { bodies, player } from '../people/bodies'
 import { isTyping } from '../player/input'
 import { useGame } from '../store'
+import { useConnect } from '../connect'
 
 const CLICKABLE = 'button, a[href], [role="button"], .chip, .find-row, .cr-spot'
 
@@ -52,8 +53,8 @@ export function AudioDirector() {
     const unsub = useGame.subscribe((s, p) => {
       if (s.phase !== p.phase) syncMusic()
       if (s.phase === 'create' && p.phase !== 'create') sfx.step(0)
-      const busy = s.paused || s.searchOpen || !!s.openId || s.phase === 'create' || s.portalOpen
-      const wasBusy = p.paused || p.searchOpen || !!p.openId || p.phase === 'create' || p.portalOpen
+      const busy = s.paused || s.searchOpen || !!s.openId || s.phase === 'create' || s.portalOpen || s.connectOpen
+      const wasBusy = p.paused || p.searchOpen || !!p.openId || p.phase === 'create' || p.portalOpen || p.connectOpen
       if (busy !== wasBusy) setMuffle(busy ? (s.paused ? 0.85 : 0.55) : 0)
 
       if (s.focusId && s.focusId !== p.focusId && !s.openId) sfx.prompt()
@@ -64,6 +65,8 @@ export function AudioDirector() {
         prevFindCount = -1
       }
       if (!s.searchOpen && p.searchOpen && !s.trackId) sfx.scanClose()
+      if (s.connectOpen && !p.connectOpen) sfx.profileOpen()
+      if (!s.connectOpen && p.connectOpen) sfx.profileClose()
       if (s.paused && !p.paused) sfx.pauseOpen()
       if (!s.paused && p.paused) sfx.pauseClose()
       if (s.trackStage === 'fly' && p.trackStage !== 'fly') sfx.locate()
@@ -73,6 +76,10 @@ export function AudioDirector() {
       if (s.trackStage === 'found' && p.trackStage !== 'found') sfx.found()
       if (s.toast && s.toast !== p.toast) (s.toast.msg.includes('VISIBLE') && s.toast.tone === 'good' ? sfx.goLive() : sfx.toast(s.toast.tone))
       if (s.landmark !== p.landmark && s.phase === 'play' && s.landmark !== '5TH BLOCK') sfx.landmark()
+    })
+    // IT'S A MATCH — the motif, fully stated (same as finding someone)
+    const unsubMatch = useConnect.subscribe((s, p) => {
+      if (s.matchId && s.matchId !== p.matchId) sfx.found()
     })
     // results-count confirmation in the finder (debounced)
     let deb: ReturnType<typeof setTimeout> | null = null
@@ -88,6 +95,7 @@ export function AudioDirector() {
     document.addEventListener('input', onInput)
     return () => {
       unsub()
+      unsubMatch()
       document.removeEventListener('input', onInput)
     }
   }, [])

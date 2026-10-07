@@ -12,7 +12,7 @@ export function MyStatusBubble() {
   const saved = useMyStatus((s) => s.status)
   const draft = useMyStatus((s) => s.draft)
   // next to someone, their status is the one that matters — yours steps aside (unless you're editing it)
-  const busy = useGame((s) => !!s.openId || s.searchOpen || s.paused || !!s.travel || (!!s.focusId && !s.statusOpen))
+  const busy = useGame((s) => !!s.openId || s.searchOpen || s.connectOpen || s.paused || !!s.travel || (!!s.focusId && !s.statusOpen))
   // re-check expiry once a minute so a cleared status drops off on its own
   const [, tick] = useState(0)
   useEffect(() => {

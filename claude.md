@@ -971,6 +971,56 @@ How it shows without opening anyone's profile:
 - Moderation: admin_clear_status(user) for admins (public.admins), or a plain update in the SQL editor.
 - Without an account, ?statuspreview keeps the status in this browser only.
 
+
+---
+
+# PHASE 5G — CONNECT
+
+Goal:
+
+The product makes the introduction; it does not become another messaging app.
+
+Discovery → Intent → Mutual match → Introduction → Take it from here.
+
+The flow:
+
+```
+Find someone in the city → open their profile → CONNECT
+   → pick why:  ☕ Grab coffee · 🤝 Work together · 🧠 Exchange ideas · 🚀 Build something · 🎉 Hang out
+   → request sent (they get an in-game notification + an email)
+   → they ACCEPT  → IT'S A MATCH: "Both of you want to grab coffee. Take it from here →"
+                     → each sees the other's preferred contact (WhatsApp, Instagram, email…)
+                     → the conversation leaves the product
+   → they don't   → nothing. The request quietly expires after 14 days.
+```
+
+Rules:
+
+- Contact details are private. They are revealed only to the two people in an accepted connection, and only by the server. Never in the city, on a nameplate, in the profile panel, in an email, or to anyone else.
+- Members only: only visible members can send or receive. Ghosts see CONNECT as "become visible to connect". Sample people can't be connected with.
+- Everyone sets one preferred contact method (WhatsApp, Instagram, email, Telegram, LinkedIn, X) before they send or accept their first request. It's asked inline, not up front.
+- A decline is never shown to the sender. Declined and ignored requests look the same: "sent", then gone after 14 days.
+- If they already asked you, your CONNECT is an instant match.
+- No pestering: one open request per pair, a daily cap per sender (settings value), and after a request ends without a match you wait 30 days before asking that person again.
+- Either side can remove a connection later; the contacts are hidden again.
+- No chat, no messages, no notes. The intent is the whole message.
+- RULE (6B): works on touch and keyboard.
+
+## 5G-A — DATA, PRIVACY, EMAIL (built: supabase/migrations/0006_connections.sql)
+
+- supabase/migrations/0006_connections.sql: contacts (one per member, owner-only) and connections (no client access at all; everything goes through security-definer functions, so a decline can't be read).
+- Functions: send_connect, respond_connect, withdraw_connect, remove_connect, my_connections (the only place a contact is revealed, accepted pairs only), mark_connections_seen.
+- Emails by Resend from the server (/api/connect/send, /api/connect/respond): "X wants to grab coffee with you" to the recipient, "It's a match" to the sender. Emails link back into the city and never contain contact details. Members can turn emails off. Without RESEND_API_KEY, nothing is emailed and the rest still works.
+- Until a domain is verified in Resend, the sender is onboarding@resend.dev, which only delivers to the Resend account owner. The sender address is FROM in src/lib/server/email.ts.
+- Settings (app_settings): connect_daily_limit 10, connect_expiry_days 14, connect_cooldown_days 30.
+
+## 5G-B — CONNECT UX/UI (built: src/game/connect.ts, src/game/hud/Connections.tsx)
+
+- Profile panel: CONNECT is the primary action → intent picker → (contact, if not set) → sent. The panel shows the state for that person: sent, wants to connect with you (ACCEPT / NOT NOW), or connected.
+- CONNECTIONS screen (C, or the HUD button with a badge): REQUESTS, MATCHES, SENT, plus your contact and email setting.
+- The match moment: a game screen, "IT'S A MATCH", both names, "Both of you want to grab coffee.", the revealed contact and TAKE IT FROM HERE →.
+- Notifications in game: the badge, and a toast when a new request or match arrives (checked every minute and when the tab comes back).
+
 ---
 
 # PHASE 6 — THE CITY: DISTRICTS + PORTALS

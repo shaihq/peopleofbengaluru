@@ -7,6 +7,7 @@ import { getPeople } from '../people/directory'
 import { useGame } from '../store'
 import { activeStatus } from '../status'
 import { isTyping } from '../player/input'
+import { ConnectBlock } from './Connections'
 
 const byId = (id: string | null) => (id ? getPeople().find((p) => p.id === id) : undefined)
 
@@ -127,7 +128,8 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
         </section>
 
         <div className="pp-links">
-          <LinkButton label="PORTFOLIO" href={p.links.portfolio} primary />
+          <ConnectBlock p={p} />
+          <LinkButton label="PORTFOLIO" href={p.links.portfolio} />
           <div className="pp-links-row">
             <LinkButton label="LINKEDIN" href={p.links.linkedin} />
             <LinkButton label="X" href={p.links.x} />
@@ -145,13 +147,13 @@ export function Interaction() {
   const openProfile = useGame((s) => s.openProfile)
   const closeProfile = useGame((s) => s.closeProfile)
   const portalPrompt = useGame(
-    (s) => s.nearPortal && !s.focusId && !s.openId && !s.searchOpen && !s.statusOpen && !s.paused && !s.portalOpen && !s.travel && s.trackStage !== 'fly' && s.trackStage !== 'hold',
+    (s) => s.nearPortal && !s.focusId && !s.openId && !s.searchOpen && !s.statusOpen && !s.connectOpen && !s.paused && !s.portalOpen && !s.travel && s.trackStage !== 'fly' && s.trackStage !== 'hold',
   )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
-      if (g.phase !== 'play' || isTyping(e) || g.searchOpen || g.statusOpen || g.paused || g.portalOpen || g.travel) return
+      if (g.phase !== 'play' || isTyping(e) || g.searchOpen || g.statusOpen || g.connectOpen || g.paused || g.portalOpen || g.travel) return
       if (e.code === 'KeyE' && !e.repeat) {
         if (g.openId) g.closeProfile()
         else if (g.focusId) g.openProfile(g.focusId)
