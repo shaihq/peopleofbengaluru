@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { useDirectory } from '../people/directory'
 import { useOnboarding } from '../onboarding'
 import { useAccess } from '../access'
+import { activeStatus, untilLabel, useMyStatus } from '../status'
+import { useCanSetStatus } from './StatusEditor'
 import { useGame } from '../store'
 import { isTyping } from '../player/input'
 
@@ -19,11 +21,13 @@ const GHOST_COPY = {
 /** Bottom-right: the invisible guest's call to action, or your own status card. */
 export function YouCard() {
   const phase = useGame((s) => s.phase)
-  const busy = useGame((s) => !!s.openId || s.searchOpen || s.paused)
+  const busy = useGame((s) => !!s.openId || s.searchOpen || s.statusOpen || s.paused)
   const tracking = useGame((s) => !!s.trackId)
   const startCreate = useGame((s) => s.startCreate)
   const me = useDirectory((s) => s.me)
   const status = useAccess((s) => s.status)
+  const myStatus = activeStatus(useMyStatus((s) => s.status))
+  const canStatus = useCanSetStatus()
   const invited = useAccess((s) => !!s.linkCode)
 
   const become = () => {
@@ -39,7 +43,7 @@ export function YouCard() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
-      if (e.code !== 'KeyV' || isTyping(e) || g.phase !== 'play' || g.openId || g.searchOpen || g.paused) return
+      if (e.code !== 'KeyV' || isTyping(e) || g.phase !== 'play' || g.openId || g.searchOpen || g.statusOpen || g.paused) return
       become()
     }
     window.addEventListener('keydown', onKey)
@@ -81,7 +85,19 @@ export function YouCard() {
         <span className={`you-status${live ? ' you-status--live' : ''}`}>
           <span className="np-dot" /> {live ? 'LIVE ON THE MAP' : me.status === 'hidden' ? 'HIDDEN' : 'PENDING APPROVAL'}
         </span>
+        {canStatus && myStatus && (
+          <span className="you-note">
+            {myStatus.emoji && <span className="you-note-e">{myStatus.emoji}</span>}
+            <span className="you-note-t">{myStatus.text}</span>
+            {myStatus.expiresAt && <em>{untilLabel(myStatus.expiresAt)}</em>}
+          </span>
+        )}
         <span className="you-actions">
+          {canStatus && (
+            <button onClick={() => useGame.getState().setStatusOpen(true)}>
+              {myStatus ? 'EDIT STATUS' : 'SET STATUS'} <span className="keycap">N</span>
+            </button>
+          )}
           <button onClick={become}>
             EDIT PROFILE <span className="keycap">V</span>
           </button>

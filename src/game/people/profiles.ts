@@ -1,3 +1,4 @@
+import type { Status } from '../status'
 // SAMPLE PROFILES — fictional people and companies, for prototyping only.
 // Replace with real, consented designer profiles before sharing publicly.
 
@@ -21,6 +22,8 @@ export type Profile = {
   pause?: number
   /** Fictional sample person (not a real profile). */
   sample?: boolean
+  /** Their status above the nameplate (Phase 5F): a short line + emoji. */
+  status?: Status
 }
 
 const PI = Math.PI
@@ -28,6 +31,7 @@ const PI = Math.PI
 export const PEOPLE: Profile[] = [
   {
     id: 'ananya',
+    status: { emoji: '☕', text: 'Up for a coffee chat about design systems', expiresAt: null },
     name: 'ANANYA RAO',
     role: 'Product Designer',
     company: 'Kettle',
@@ -42,6 +46,7 @@ export const PEOPLE: Profile[] = [
   },
   {
     id: 'priya',
+    status: { emoji: '👀', text: 'Looking for a frontend co-founder', expiresAt: null },
     name: 'PRIYA NAIR',
     role: 'Founder',
     company: 'Thali Studio',
@@ -80,6 +85,7 @@ export const PEOPLE: Profile[] = [
   },
   {
     id: 'karthik',
+    status: { emoji: '🎧', text: 'Heads down till 6 — ping me after', expiresAt: null },
     name: 'KARTHIK SHETTY',
     role: 'Motion Designer',
     company: 'Freelance',
@@ -99,6 +105,7 @@ export const PEOPLE: Profile[] = [
   },
   {
     id: 'meera',
+    status: { emoji: '💼', text: 'Hiring two product designers this month!', expiresAt: null },
     name: 'MEERA IYER',
     role: 'Brand Designer',
     company: 'Peepal Labs',
@@ -113,6 +120,7 @@ export const PEOPLE: Profile[] = [
   },
   {
     id: 'rohan',
+    status: { emoji: '🧪', text: 'Shipping v2 this week — need beta testers', expiresAt: null },
     name: 'ROHAN GOWDA',
     role: 'Indie Hacker',
     company: 'Solo',
@@ -156,6 +164,7 @@ export const PEOPLE: Profile[] = [
   },
   {
     id: 'farah',
+    status: { emoji: '', text: 'New in Bengaluru, say hi!', expiresAt: null },
     name: 'FARAH KHAN',
     role: 'Interaction Designer',
     company: 'Orbit Forge',

@@ -935,6 +935,43 @@ Still to decide: the fee, N days to auto-refund, who reviews and on what criteri
 
 ---
 
+# PHASE 5F — STATUS
+
+Goal:
+
+A short note above your head, like Instagram Notes and Slack status: who is open to being approached, and something to say when you walk up.
+
+What it is:
+
+- An optional line of text (100 characters at most) plus an optional emoji. Nothing is filled in for you: typing never picks an emoji. The suggestions (☕ Up for a coffee chat, 👀 Looking for collaborators, 💼 Hiring…) carry their own emoji and only apply when tapped.
+- Clear after: don't clear (the default), 1 hour, 4 hours, today, this week, or a custom date and time. An expired status simply disappears.
+- Members only. Ghosts can't set one: nobody could see it.
+- Set and edited any time from inside the game: N, "SET STATUS" on your card, or a tap. A game panel over the street; your own bubble previews the edit live above your head.
+- Called "status" for players; "note" in the database (profiles.status is already approval).
+
+How it shows without opening anyone's profile:
+
+- On the nameplate, in the slot and style that used to say BUILDING: the saffron slanted tab under the role (design.md §10.5). "Currently building" now lives only in the profile panel.
+- Up close only, like the rest of the nameplate's detail: near = name, role, status; mid = name and role; far = name.
+- Also in the profile panel and the finder results. The talk prompt is only [E] VIEW PROFILE: the nameplate right above the person already says who they are. Your own status shows the same tab above your head (hidden while you're next to someone, so theirs is what you see).
+- Sample people carry statuses, so the city shows the feature from day one.
+
+## 5F-A — STATUS UX/UI (built)
+
+- The nameplate tab, the editor, the prompt / panel / finder lines, your card.
+- Your status is kept in this browser (localStorage). ?statuspreview lets anyone try the editor.
+- RULE (6B): works on touch, keyboard, and with the on-screen keyboard.
+
+## 5F-B — STATUS IN SUPABASE (built: supabase/migrations/0005_status.sql)
+
+- profiles: note_text (1–100), note_emoji (one emoji, ≤ 16 code units), note_expires_at (null = don't clear). Members update these columns on their own row without re-approval; nothing else opens up.
+- Your status loads from your profile on any device and saves straight back; the editor shows it at once and rolls back with a message if the save fails.
+- Real members' statuses show on their nameplates, in the profile panel and in the finder. Expired ones are filtered where they're shown. Others see a change on the next directory refresh (≤ 60 s; instant with multiplayer, Phase 8).
+- Moderation: admin_clear_status(user) for admins (public.admins), or a plain update in the SQL editor.
+- Without an account, ?statuspreview keeps the status in this browser only.
+
+---
+
 # PHASE 6 — THE CITY: DISTRICTS + PORTALS
 
 Goal:

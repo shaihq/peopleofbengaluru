@@ -12,6 +12,8 @@ import { plates, type Lod } from './plates'
 import { footstep } from '../audio/footsteps'
 import { revealed } from '../audio/cues'
 import type { Profile } from './profiles'
+import { activeStatus } from '../status'
+import { StatusBubble } from '../hud/StatusBubble'
 import { Wanderer } from './wander'
 import { rayDistance, resolveCircle } from '../player/collision'
 
@@ -30,6 +32,7 @@ function dampAngle(a: number, b: number, rate: number, dt: number) {
 }
 
 function Nameplate({ p, plate }: { p: Profile; plate: React.RefObject<HTMLDivElement | null> }) {
+  const status = activeStatus(p.status)
   return (
     <div ref={plate} className="np" data-lod="off">
       {p.openToWork && (
@@ -42,11 +45,7 @@ function Nameplate({ p, plate }: { p: Profile; plate: React.RefObject<HTMLDivEle
         {p.role}
         {p.company && p.company !== 'Freelance' && p.company !== 'Solo' ? ` · ${p.company}` : ''}
       </div>
-      {p.building && (
-        <div className="np-building">
-          <b>BUILDING</b> {p.building}
-        </div>
-      )}
+      {status && <StatusBubble s={status} />}
       <div className="np-caret" />
     </div>
   )
@@ -83,7 +82,7 @@ export function Person({ p }: { p: Profile }) {
     () => new THREE.MeshBasicMaterial({ color: '#FFB020', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }),
     [],
   )
-  const tmp = useMemo(() => ({ head: new THREE.Vector3(), dir: new THREE.Vector3(), scr: new THREE.Vector3() }), [])
+  const tmp = useMemo(() => ({ head: new THREE.Vector3(), dir: new THREE.Vector3(), scr: new THREE.Vector3(), side: new THREE.Vector3(), pt: new THREE.Vector3() }), [])
 
   useEffect(() => {
     bodies.set(p.id, st.current.pos)
@@ -151,8 +150,15 @@ export function Person({ p }: { p: Profile }) {
     s.occT -= dt
     if (s.occT <= 0) {
       s.occT = 0.2
-      tmp.dir.subVectors(tmp.head, camera.position).normalize()
-      s.occluded = rayDistance(camera.position, tmp.dir, d) < d - 0.6
+      // Hidden only when a real wall is in the way: three rays (head, and half a metre
+      // either side). A street pole, sign or tree trunk can block one — never all three.
+      tmp.side.set(tmp.head.z - camera.position.z, 0, camera.position.x - tmp.head.x).normalize().multiplyScalar(0.5)
+      s.occluded = [0, 1, -1].every((k) => {
+        tmp.pt.copy(tmp.head).addScaledVector(tmp.side, k)
+        const dk = camera.position.distanceTo(tmp.pt)
+        tmp.dir.subVectors(tmp.pt, camera.position).normalize()
+        return rayDistance(camera.position, tmp.dir, dk) < dk - 0.6
+      })
     }
     const want: Lod = !playing || g.openId || g.searchOpen || g.paused || s.occluded || d > FAR ? 'off' : d < NEAR ? 'near' : d < MID ? 'mid' : 'far'
     // they just came into view (≈22m) → the discovery cue, from where they stand
@@ -161,8 +167,9 @@ export function Person({ p }: { p: Profile }) {
     tmp.scr.set(s.pos.x, s.pos.y + PLATE_Y, s.pos.z).project(camera)
     // hand off to the declutter pass in <People/>
     const req = plates.get(p.id)
-    if (req) Object.assign(req, { el, d, want, x: tmp.scr.x, y: tmp.scr.y, behind: tmp.scr.z > 1 })
-    else plates.set(p.id, { el, d, want, x: tmp.scr.x, y: tmp.scr.y, behind: tmp.scr.z > 1, shown: 'off' })
+    const tall = !!activeStatus(p.status)
+    if (req) Object.assign(req, { el, d, want, x: tmp.scr.x, y: tmp.scr.y, behind: tmp.scr.z > 1, tall })
+    else plates.set(p.id, { el, d, want, x: tmp.scr.x, y: tmp.scr.y, behind: tmp.scr.z > 1, shown: 'off', tall })
   })
 
   return (

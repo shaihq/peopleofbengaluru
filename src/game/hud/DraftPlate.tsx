@@ -19,11 +19,6 @@ export function DraftPlate() {
         {d.role.trim() || 'Your role'}
         {d.company.trim() ? ` · ${d.company.trim()}` : ''}
       </div>
-      {d.building.trim() && (
-        <div className="np-building">
-          <b>BUILDING</b> {d.building.trim()}
-        </div>
-      )}
       <div className="np-caret" />
     </div>
   )

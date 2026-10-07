@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { supabase, type ProfileRow } from '@/lib/supabase'
 import { PEOPLE as SAMPLES, type Profile } from './profiles'
+import type { Status } from '../status'
 import { getDistrict } from '../districts/active'
 import { homeDistrict } from '../districts/registry'
 
@@ -36,7 +37,14 @@ export function rowToProfile(r: ProfileRow, slot: [number, number, number]): Pro
     links: { portfolio: r.portfolio ?? undefined, linkedin: r.linkedin ?? undefined, x: r.x ?? undefined },
     character: r.character,
     spot: { x: slot[0], z: slot[1], face: slot[2] },
+    status: rowStatus(r),
   }
+}
+
+/** A profile row's status (note_* columns), or nothing. Expiry is checked where it's shown. */
+export function rowStatus(r: ProfileRow): Status | undefined {
+  if (!r.note_text && !r.note_emoji) return undefined
+  return { text: r.note_text ?? '', emoji: r.note_emoji ?? '', expiresAt: r.note_expires_at ? Date.parse(r.note_expires_at) : null }
 }
 
 /** Deterministic placement: everyone at a spot gets the next free slot, oldest first; overflow fans out around it. */

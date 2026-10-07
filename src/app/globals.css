@@ -3817,3 +3817,377 @@ html.touch .find-chips {
     display: none;
   }
 }
+
+/* =========================================================================
+   PHASE 5F — STATUS (a note above your head)
+   ========================================================================= */
+
+/* the status tab: the old BUILDING slot and style, wrapping to two lines */
+.np-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  width: max-content;
+  max-width: 240px;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.25;
+}
+
+.np-note-e {
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.np-note-t {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.np--self {
+  transform: translateY(-50%);
+}
+
+/* profile panel: an ink slab with a saffron edge, like the panel's other blocks */
+.pp-note {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 12px 16px 13px 14px;
+  background: var(--ink-soft);
+  border-left: 6px solid var(--saffron);
+  box-shadow: var(--hard);
+}
+
+.pp-note-e {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  background: var(--saffron);
+  font-size: 22px;
+  line-height: 1;
+  transform: skewX(var(--skew));
+  box-shadow: 0 3px 0 #b36f00;
+}
+
+.pp-note-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pp-note-k {
+  font-family: var(--font-display), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--saffron);
+}
+
+.pp-note-t {
+  font-family: var(--font-body), sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--cream);
+}
+
+/* finder rows */
+.find-status {
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.62);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* your card */
+.you-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  margin-top: 6px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 246, 229, 0.85);
+}
+
+.you-note-t {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.you-note em {
+  flex: none;
+  font-style: normal;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.5);
+}
+
+/* the editor */
+.st-panel {
+  width: min(560px, calc(100vw - 80px));
+}
+
+.st-close {
+  margin-left: auto;
+}
+
+.st-lede {
+  margin-top: 8px;
+}
+
+.st-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.st-emoji {
+  flex: none;
+  width: 58px;
+  height: 58px;
+  border: 0;
+  cursor: var(--cur-link);
+  background: var(--ink-soft);
+  font-size: 28px;
+  line-height: 1;
+  box-shadow: var(--hard);
+  transition: transform 0.15s cubic-bezier(0.2, 1.5, 0.4, 1), background 0.15s;
+}
+
+.st-emoji:hover {
+  transform: translateY(-2px);
+}
+
+.st-emoji--set {
+  background: var(--cream);
+}
+
+.st-emoji-add {
+  color: rgba(255, 246, 229, 0.45);
+  font-size: 30px;
+}
+
+.st-text {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.st-text input {
+  flex: 1;
+  min-width: 0;
+  height: 58px;
+  border: 0;
+  outline: 0;
+  background: var(--cream);
+  color: var(--ink);
+  padding: 0 64px 0 14px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 rgba(28, 31, 43, 0.15);
+  user-select: text;
+}
+
+.st-text input:focus {
+  box-shadow: inset 0 -4px 0 var(--saffron);
+}
+
+.st-text input::placeholder {
+  color: rgba(28, 31, 43, 0.35);
+}
+
+.st-count {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  translate: 0 -50%;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(28, 31, 43, 0.4);
+  pointer-events: none;
+}
+
+.st-count--near {
+  color: var(--action);
+}
+
+.st-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--ink-soft);
+  box-shadow: var(--hard);
+  animation: prompt-in 0.2s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.st-grid > button {
+  height: 40px;
+  border: 0;
+  cursor: var(--cur-link);
+  background: transparent;
+  font-size: 22px;
+  transition: background 0.12s, transform 0.12s;
+}
+
+.st-grid > button:hover,
+.st-grid > button.on {
+  background: rgba(255, 246, 229, 0.12);
+  transform: translateY(-1px);
+}
+
+.st-grid-any {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 246, 229, 0.55);
+}
+
+.st-grid-any input {
+  width: 64px;
+  height: 36px;
+  border: 0;
+  outline: 0;
+  background: var(--cream);
+  font-size: 20px;
+  text-align: center;
+}
+
+.st-grid > .st-grid-none {
+  grid-column: 1 / -1;
+  height: 34px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 246, 229, 0.6);
+}
+
+.st-label {
+  display: block;
+  margin-top: 18px;
+}
+
+.st-sugs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.st-sug {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  cursor: var(--cur-link);
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--ink-soft);
+  color: rgba(255, 246, 229, 0.85);
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  box-shadow: inset 3px 0 0 transparent;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+
+.st-sug:hover {
+  background: #343a4f;
+}
+
+.st-sug--on {
+  box-shadow: inset 3px 0 0 var(--saffron);
+  background: #343a4f;
+  color: var(--cream);
+}
+
+.st-sug-e {
+  font-size: 18px;
+}
+
+.st-after {
+  margin-top: 8px;
+}
+
+.st-custom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.st-custom input {
+  height: 42px;
+  border: 0;
+  outline: 0;
+  background: var(--cream);
+  color: var(--ink);
+  padding: 0 10px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.st-until {
+  margin-top: 10px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.6);
+}
+
+@media (max-width: 820px), (max-height: 520px) {
+  .st-panel {
+    width: auto;
+  }
+
+  .st-sugs {
+    grid-template-columns: 1fr;
+  }
+
+  .st-grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .st-grid > button {
+    height: 36px;
+    font-size: 20px;
+  }
+
+  .np-note {
+    max-width: 200px;
+  }
+}
+
+/* the person prompt is just the action: the nameplate above them says who they are */
+.prompt--person {
+  padding: 10px 22px 11px 18px;
+}
+
+.prompt--person .prompt-action {
+  margin-top: 0;
+}

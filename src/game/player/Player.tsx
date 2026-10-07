@@ -17,6 +17,7 @@ import { useDirectory } from '../people/directory'
 import { stepsFor, useOnboarding } from '../onboarding'
 import { useAccess } from '../access'
 import { DraftPlate } from '../hud/DraftPlate'
+import { MyStatusBubble } from '../hud/MyStatusBubble'
 import { footstep } from '../audio/footsteps'
 
 const WALK = 3.0
@@ -372,6 +373,11 @@ export function Player() {
       {phase === 'create' && (
         <Html position={[0, 2.2, 0]} center zIndexRange={[20, 0]} wrapperClass="np-wrap">
           <DraftPlate />
+        </Html>
+      )}
+      {phase === 'play' && (
+        <Html position={[0, 2.25, 0]} center zIndexRange={[20, 0]} wrapperClass="np-wrap">
+          <MyStatusBubble />
         </Html>
       )}
     </group>

@@ -7,6 +7,7 @@ import { usePeople } from '../people/directory'
 import { look, isTyping } from '../player/input'
 import { CATEGORIES, searchPeople, whereIs, type Category } from '../search'
 import { useGame } from '../store'
+import { activeStatus } from '../status'
 import { isTouch } from '../device'
 import { districtInfo, homeDistrict } from '../districts/registry'
 
@@ -64,7 +65,7 @@ export function Search() {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
       if (g.phase !== 'play') return
-      if (!g.searchOpen && !g.openId && !g.paused && e.code === 'KeyF' && !isTyping(e)) {
+      if (!g.searchOpen && !g.statusOpen && !g.openId && !g.paused && e.code === 'KeyF' && !isTyping(e)) {
         e.preventDefault()
         setSearch(true)
       } else if (g.searchOpen && e.code === 'Escape') setSearch(false)
@@ -214,6 +215,11 @@ export function Search() {
                       {p.role}
                       {p.company ? ` · ${p.company}` : ''}
                     </span>
+                    {activeStatus(p.status) && (
+                      <span className="find-status">
+                        {p.status!.emoji} {p.status!.text}
+                      </span>
+                    )}
                   </span>
                   <span className="find-where">
                     <span className="find-place">

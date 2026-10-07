@@ -41,15 +41,15 @@ export function Pause() {
     // that just closed — they must not open Pause.
     let overlayClosedAt = -1e9
     const unsub = useGame.subscribe((s, p) => {
-      const was = p.portalOpen || p.searchOpen || !!p.openId
-      const now = s.portalOpen || s.searchOpen || !!s.openId
+      const was = p.portalOpen || p.searchOpen || p.statusOpen || !!p.openId
+      const now = s.portalOpen || s.searchOpen || s.statusOpen || !!s.openId
       if (was && !now) overlayClosedAt = performance.now()
     })
     const plain = () => {
       const g = useGame.getState()
       const cinematic = g.trackStage === 'fly' || g.trackStage === 'hold'
       return (
-        g.phase === 'play' && !g.openId && !g.searchOpen && !g.paused && !cinematic && !g.portalOpen && !g.travel && performance.now() - overlayClosedAt > 700
+        g.phase === 'play' && !g.openId && !g.searchOpen && !g.statusOpen && !g.paused && !cinematic && !g.portalOpen && !g.travel && performance.now() - overlayClosedAt > 700
       )
     }
 
