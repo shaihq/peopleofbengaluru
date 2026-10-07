@@ -4191,3 +4191,8 @@ html.touch .find-chips {
 .prompt--person .prompt-action {
   margin-top: 0;
 }
+
+/* gate: the way back in for members and applicants */
+.gate-signin {
+  margin-top: 18px;
+}

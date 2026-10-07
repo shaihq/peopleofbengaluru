@@ -378,6 +378,70 @@ function GateScreen({ sel, setSel }: { sel: number; setSel: (n: number) => void 
           </button>
         ))}
       </div>
+      <p className="cr-copy gate-aside gate-signin">
+        Already in the city, or already applied?{" "}
+        <button className="gate-switch" onClick={() => useAccess.getState().setStage("signin")}>
+          SIGN IN ▸
+        </button>
+      </p>
+    </>
+  );
+}
+
+const SIGNIN_ERRORS: Partial<Record<string, string>> = {
+  bad: "That email doesn’t look right.",
+  unknown: "No account with that email yet. Use an invite code or apply to join.",
+  error: "Couldn’t send the link right now. Check your connection and try again.",
+};
+
+/** Returning members and applicants: email in, one-tap link out. Never creates an account. */
+function SigninScreen({ email, setEmail }: { email: string; setEmail: (e: string) => void }) {
+  const state = useAccess((s) => s.signin);
+  const err = SIGNIN_ERRORS[state];
+  return (
+    <>
+      <h2 className="cr-title">WELCOME BACK</h2>
+      <p className="cr-copy gate-lede">
+        Members and applicants: we’ll email you a one-tap sign-in link. No passwords.
+      </p>
+      {state === "sent" ? (
+        <div className="cr-sent gate-ok">
+          <b>✓ CHECK YOUR INBOX</b>
+          <p>
+            We sent a link to <b>{email.trim()}</b>. Open it on this device and you’re back — profile, application
+            and all.
+          </p>
+        </div>
+      ) : (
+        <div className="cr-fields">
+          <label className="cr-field">
+            <span className="cr-label">EMAIL</span>
+            <input
+              type="email"
+              inputMode="email"
+              value={email}
+              placeholder="you@studio.com"
+              autoComplete="email"
+              spellCheck={false}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (state !== "idle" && state !== "sending") useAccess.setState({ signin: "idle" });
+              }}
+            />
+          </label>
+        </div>
+      )}
+      {err && (
+        <div className="cr-error gate-err">
+          {err}
+          {state === "unknown" && (
+            <button className="gate-switch" onClick={() => useAccess.getState().setStage("gate")}>
+              WAYS IN ▸
+            </button>
+          )}
+        </div>
+      )}
+      {GATE_MOCK && <p className="gate-preview">PREVIEW · nothing is sent</p>}
     </>
   );
 }
@@ -610,6 +674,8 @@ export function Create() {
   const member = useDirectory((s) => !!s.me);
   const panel = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState(0);
+  const [signinEmail, setSigninEmail] = useState("");
+  const signin = useAccess((s) => s.signin);
   const saving = useOnboarding((s) => s.mail === "sending" || s.saving);
   const paying = useAccess((s) => s.paying);
   const busy = saving || paying;
@@ -640,6 +706,7 @@ export function Create() {
     if (phase !== "create") return;
     useAccess.getState().open(useDirectory.getState().me != null);
     setSel(0);
+    setSigninEmail(useOnboarding.getState().draft.email);
   }, [phase]);
 
   useEffect(() => {
@@ -668,6 +735,13 @@ export function Create() {
           e.preventDefault();
           if (a.codeState === "ok") a.setStage("steps");
           else void a.checkCode();
+        }
+        return;
+      }
+      if (a.stage === "signin") {
+        if (e.code === "Enter" && !e.repeat && a.signin !== "sent" && a.signin !== "sending") {
+          e.preventDefault();
+          void a.signIn(signinEmail);
         }
         return;
       }
@@ -710,7 +784,17 @@ export function Create() {
 
   if (phase !== "create") return null;
   const setStage = useAccess.getState().setStage;
-  const tag = member ? "EDIT PROFILE" : path === "invite" ? "BECOME VISIBLE · INVITED" : path === "pay" ? "BECOME VISIBLE · APPLICATION" : "BECOME VISIBLE";
+  const tag = member
+    ? "EDIT PROFILE"
+    : stage === "signin"
+      ? "SIGN IN"
+      : stage === "gate"
+        ? "BECOME VISIBLE"
+        : path === "invite"
+          ? "BECOME VISIBLE · INVITED"
+          : path === "pay"
+            ? "BECOME VISIBLE · APPLICATION"
+            : "BECOME VISIBLE";
   const gated = !member && stage !== "steps";
 
   return (
@@ -738,6 +822,7 @@ export function Create() {
         {gated && stage === "gate" && <GateScreen sel={sel} setSel={setSel} />}
         {gated && stage === "code" && <CodeScreen />}
         {gated && stage === "result" && <ResultScreen onDone={exit} />}
+        {gated && stage === "signin" && <SigninScreen email={signinEmail} setEmail={setSigninEmail} />}
 
         {!gated && <h2 className="cr-title">{STEP_TITLE[key]}</h2>}
 
@@ -932,6 +1017,27 @@ export function Create() {
             <button className="btn-primary slant cr-next" disabled={codeState !== "ok"} onClick={() => setStage("steps")}>
               <span className="unslant">CONTINUE ▸</span>
             </button>
+          </div>
+        )}
+
+        {stage === "signin" && gated && (
+          <div className="cr-nav">
+            <button className="pp-btn slant cr-back" onClick={() => setStage("gate")}>
+              <span className="unslant">◀ BACK</span>
+            </button>
+            {signin === "sent" ? (
+              <button className="btn-primary slant cr-next" autoFocus onClick={exit}>
+                <span className="unslant">BACK TO THE CITY ▸</span>
+              </button>
+            ) : (
+              <button
+                className="btn-primary slant cr-next"
+                disabled={signin === "sending"}
+                onClick={() => useAccess.getState().signIn(signinEmail)}
+              >
+                <span className="unslant">{signin === "sending" ? "SENDING…" : "SEND MY LINK ▸"}</span>
+              </button>
+            )}
           </div>
         )}
 

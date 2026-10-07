@@ -24,8 +24,13 @@ const formatFee = (f: { amount: number; currency: string }) =>
 /** Where this person stands. Only `visible` can be seen by others. `applied` = saved, not paid yet. */
 export type AccessStatus = 'ghost' | 'applied' | 'review' | 'visible' | 'rejected'
 export type Path = 'invite' | 'pay'
-/** gate → (code) → numbered steps → result */
-export type Stage = 'gate' | 'code' | 'steps' | 'result'
+/** gate → (code) → numbered steps → result · signin: returning members and applicants */
+export type Stage = 'gate' | 'code' | 'steps' | 'result' | 'signin'
+/** unknown: no account with that email (sign-in never creates one) */
+export type SigninState = 'idle' | 'sending' | 'sent' | 'unknown' | 'bad' | 'error'
+
+/** Set while a sign-in link is out, so the return trip can say welcome back (Session.tsx). */
+export const SIGNIN_KEY = 'pob.signin'
 /** inbox: invite link sent · confirm: applicant confirms email · saved: application in, unpaid */
 export type Result = 'inbox' | 'confirm' | 'saved' | 'review' | 'rejected' | 'approved'
 
@@ -77,6 +82,9 @@ type Access = {
   payError: string | null
   /** The reviewer's note on a decided application. */
   reason: string | null
+  signin: SigninState
+  /** Open the flow straight on the sign-in screen (from the pause menu). */
+  signinNext: boolean
   /** Called when "Become visible" opens. Members skip the gate entirely. */
   open: (member: boolean) => void
   choose: (path: Path) => void
@@ -92,6 +100,8 @@ type Access = {
   pay: () => Promise<void>
   /** Back from the checkout (?payment_id=…): ask the server what Dodo says. */
   confirmPayment: (paymentId: string) => Promise<void>
+  /** Existing account only: email a sign-in link. */
+  signIn: (email: string) => Promise<void>
 }
 
 const previewInviter = (): Inviter => {
@@ -112,10 +122,13 @@ export const useAccess = create<Access>((set, get) => ({
   paying: false,
   payError: null,
   reason: null,
+  signin: 'idle',
+  signinNext: false,
 
   open: (member) => {
-    const { status, linkCode } = get()
-    if (member) return set({ stage: 'steps', path: null, result: null })
+    const { status, linkCode, signinNext } = get()
+    if (member) return set({ stage: 'steps', path: null, result: null, signinNext: false })
+    if (signinNext) return set({ stage: 'signin', path: null, result: null, signin: 'idle', signinNext: false })
     // an application in flight shows its status instead of the gate
     if (status === 'applied') return set({ stage: 'result', result: 'saved' })
     if (status === 'review') return set({ stage: 'result', result: 'review' })
@@ -130,7 +143,7 @@ export const useAccess = create<Access>((set, get) => ({
   },
 
   choose: (path) => set(path === 'invite' ? { path, stage: 'code', codeState: 'idle' } : { path, stage: 'steps' }),
-  setStage: (stage) => set({ stage }),
+  setStage: (stage) => set(stage === 'signin' ? { stage, signin: 'idle' } : { stage }),
   setCode: (c) => set({ code: normCode(c), codeState: 'idle' }),
 
   // exists / unused / not expired / not yours — checked on the server, nothing is used up
@@ -259,6 +272,32 @@ export const useAccess = create<Access>((set, get) => ({
       toast('PAYMENT DIDN’T GO THROUGH · NOTHING WAS CHARGED · TRY AGAIN', 'bad')
     }
     await get().loadApplication()
+  },
+
+  // Sign-in never creates an account: new people come in through the gate.
+  signIn: async (email) => {
+    const e = email.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return set({ signin: 'bad' })
+    set({ signin: 'sending' })
+    if (GATE_MOCK) {
+      await new Promise((r) => setTimeout(r, 650))
+      return set({ signin: 'sent' })
+    }
+    if (!supabase) return set({ signin: 'error' })
+    // a plain sign-in must not finish some half-done flow from an earlier visit
+    useOnboarding.getState().patch({ pendingSubmit: false, pendingApply: false, pendingInvite: '' })
+    const { error } = await supabase.auth.signInWithOtp({
+      email: e,
+      options: { emailRedirectTo: window.location.origin, shouldCreateUser: false },
+    })
+    if (error) {
+      const unknown = error.code === 'otp_disabled' || /signups not allowed/i.test(error.message)
+      return set({ signin: unknown ? 'unknown' : 'error' })
+    }
+    try {
+      localStorage.setItem(SIGNIN_KEY, '1')
+    } catch {}
+    set({ signin: 'sent' })
   },
 }))
 

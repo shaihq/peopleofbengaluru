@@ -835,13 +835,14 @@ Edge cases to design:
 
 Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both paths were designed, so new people can really get in; the rest of 5D-A (Your invites, invite landing, sign-in) is built on top of the real data.
 
-## 5D-A — GATE UX/UI (no integration) — gate + both paths built; Your invites, invite landing and sign-in still to do
+## 5D-A — GATE UX/UI (no integration) — gate, both paths and sign-in built; Your invites and invite landing still to do
 
 - The gate screen with the ghost preview behind it; the new step order; the progress bar.
 - Every state exists as a designed screen, driven by local mock data with a dev-only switch to jump between them: invalid / used / expired code, payment placeholder, under review, rejected, approved.
 - The payment step is a visible placeholder only. No payment code, no provider.
 - HUD: ghost / under review status; "Your invites" screen (2 slots: create link, copy, sent / used).
 - Touch and portrait versions of all of it.
+- Sign-in for returning members and applicants: "SIGN IN" on the gate and in the pause menu. Magic link with shouldCreateUser off, so it never creates an account (unknown email → points to the ways in). After the return trip the person lands back on their profile or application status.
 - Quality bar: it must feel like a game screen, not a form (design.md).
 
 ## 5D-B — ACCESS DATA (Supabase, no payments) — built: supabase/migrations/0002_access.sql
@@ -928,7 +929,7 @@ Built:
 - The Dodo business is shared with other brands: the webhook ignores events tagged with another brand (BRAND in src/lib/server/dodo.ts) and payments without our application_id.
 - ACCEPT is approve_application() (checks is_admin() itself): the profile snapshot goes live, invite codes are issued.
 - Paid twice: the second payment is refunded automatically. Joined by invite while under review: the admin page flags it and offers REFUND.
-- Env: DODO_API_KEY, DODO_WEBHOOK_SECRET, DODO_ENV (test | live), CRON_SECRET. See .env.example.
+- Env: DODO_API_KEY, DODO_WEBHOOK_SECRET, CRON_SECRET. See .env.example. Live mode only on the Vercel production deployment (isProduction() in src/lib/server/env.ts reads VERCEL_ENV); preview and local use test mode.
 - Still to do: the emails (needs an email provider), and the cron schedule on the host.
 
 Still to decide: the fee, N days to auto-refund, who reviews and on what criteria, whether rejected applicants can reapply and after how long.
