@@ -1011,7 +1011,7 @@ Rules:
 - supabase/migrations/0006_connections.sql: contacts (one per member, owner-only) and connections (no client access at all; everything goes through security-definer functions, so a decline can't be read).
 - Functions: send_connect, respond_connect, withdraw_connect, remove_connect, my_connections (the only place a contact is revealed, accepted pairs only), mark_connections_seen.
 - Emails by Resend from the server (/api/connect/send, /api/connect/respond): "X wants to grab coffee with you" to the recipient, "It's a match" to the sender. Emails link back into the city and never contain contact details. Members can turn emails off. Without RESEND_API_KEY, nothing is emailed and the rest still works.
-- Until a domain is verified in Resend, the sender is onboarding@resend.dev, which only delivers to the Resend account owner. The sender address is FROM in src/lib/server/email.ts.
+- Until a domain is verified in Resend, the sender is onboarding@resend.dev, which only delivers to the Resend account owner. The sender address (From) is set on each template in Resend, not in code.
 - Settings (app_settings): connect_daily_limit 10, connect_expiry_days 14, connect_cooldown_days 30.
 
 ## 5G-B — CONNECT UX/UI (built: src/game/connect.ts, src/game/hud/Connections.tsx)
@@ -1027,10 +1027,10 @@ Rules:
 
 Every email the product sends, in one place. All go through Resend.
 
-- App emails are Resend templates. The copy and design live only in Resend (resend.com/templates), created and edited there, no deploy needed. The server sends a template by its alias with variables: sendTemplate() in src/lib/server/email.ts.
+- App emails are Resend templates. The copy and design live only in Resend (resend.com/templates), created and edited there, no deploy needed. The server sends a template by its alias with variables: sendTemplate() in src/lib/server/email/send.ts. Every template's alias and variables are listed once in src/lib/server/email/templates.ts; add an entry there for each new template.
 - New templates are made in the Resend dashboard (duplicate connect-request for the card design), given an alias, and published before the code that sends them ships.
-- Every variable a template uses must be sent, or Resend refuses the email. Renaming a variable in Resend means changing the code too. Variable values are HTML-escaped by the server (they include member names).
-- Subjects are set in code (they carry the name and emoji).
+- Every variable a template uses must be sent, or Resend refuses the email. Renaming a variable in Resend means changing the code too. Resend inserts variables as-is (no escaping), in the subject and the body, so the server strips < and > from every value (they include member names). Never put a member-supplied variable inside an HTML attribute.
+- From and Subject are set on each template in Resend, not in code. The subject can use the template's variables. A template without a From can't be sent.
 - Auth emails (magic links) are sent by Supabase Auth, routed through Resend via custom SMTP, with the template pasted into Supabase (Auth → Email Templates) in the same visual style.
 
 Rules for every template:
@@ -1040,7 +1040,7 @@ Rules for every template:
 - Links only point at our own origins.
 - Never include contact details, application answers or anything private to someone else.
 - Plain text: Resend generates it from the HTML.
-- Before launch: verify our domain in Resend and change FROM (until then onboarding@resend.dev only delivers to the Resend account owner).
+- Before launch: verify our domain in Resend and change the From on every template (until then onboarding@resend.dev only delivers to the Resend account owner).
 
 ## Auth (Supabase → Resend SMTP)
 

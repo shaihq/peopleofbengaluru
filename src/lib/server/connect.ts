@@ -2,7 +2,7 @@ import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import { intentOf } from '@/lib/intents'
 import { admin } from './supabaseAdmin'
-import { sendTemplate } from './email'
+import { sendTemplate } from './email/send'
 
 // CONNECT (CLAUDE.md Phase 5G): the actions run as the caller (their token, so auth.uid() and the
 // rules in 0006_connections.sql apply); the emails go out from the server afterwards.
@@ -45,8 +45,7 @@ export async function emailRequest(fromId: string, toId: string, intent: string,
   const w = await who(fromId, toId)
   if (!w) return
   const i = intentOf(intent)
-  const subject = `${i.emoji} ${w.name} wants to ${i.verb} with you`
-  await sendTemplate(w.email, 'connect-request', subject, { SENDER: w.name, SENDER_FIRST: firstName(w.name), VERB: i.verb, LINK: `${origin}/?connections` })
+  await sendTemplate(w.email, 'connectRequest', { EMOJI: i.emoji, SENDER: w.name, SENDER_FIRST: firstName(w.name), VERB: i.verb, LINK: `${origin}/?connections` })
 }
 
 /** "It's a match" → the person who asked first. */
@@ -54,6 +53,5 @@ export async function emailMatch(accepterId: string, askerId: string, intent: st
   const w = await who(accepterId, askerId)
   if (!w) return
   const i = intentOf(intent)
-  const subject = `${i.emoji} It's a match — you and ${w.name} both want to ${i.verb}`
-  await sendTemplate(w.email, 'connect-match', subject, { SENDER: w.name, VERB: i.verb, LINK: `${origin}/?connections` })
+  await sendTemplate(w.email, 'connectMatch', { EMOJI: i.emoji, SENDER: w.name, VERB: i.verb, LINK: `${origin}/?connections` })
 }
