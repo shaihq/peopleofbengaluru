@@ -494,7 +494,7 @@ export function Connections() {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
       if (e.code !== 'KeyC' || e.repeat || isTyping(e) || g.phase !== 'play' || !isMemberNow()) return
-      if (g.openId || g.searchOpen || g.paused || g.portalOpen || g.travel || g.statusOpen) return
+      if (g.openId || g.searchOpen || g.paused || g.portalOpen || g.travel || g.statusOpen || g.invitesOpen) return
       e.preventDefault()
       g.setConnectOpen(!g.connectOpen)
     }

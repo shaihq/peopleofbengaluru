@@ -9,6 +9,10 @@ export const TEMPLATES = {
   connectRequest: { alias: 'connect-request', variables: ['EMOJI', 'SENDER', 'SENDER_FIRST', 'VERB', 'LINK'] },
   /** "It's a match" → the person who asked first. */
   connectMatch: { alias: 'connect-match', variables: ['EMOJI', 'SENDER', 'VERB', 'LINK'] },
+  /** "You're in the city" → someone who just joined with an invite. */
+  inviteWelcome: { alias: 'invite-welcome', variables: ['NAME', 'INVITER', 'INVITES', 'LINK'] },
+  /** "Priya used your invite" → the member who vouched. */
+  inviteJoined: { alias: 'invite-joined', variables: ['NAME', 'INVITEE', 'ROLE', 'LINK'] },
 } as const
 
 export type TemplateName = keyof typeof TEMPLATES

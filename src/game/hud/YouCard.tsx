@@ -21,7 +21,7 @@ const GHOST_COPY = {
 /** Bottom-right: the invisible guest's call to action, or your own status card. */
 export function YouCard() {
   const phase = useGame((s) => s.phase)
-  const busy = useGame((s) => !!s.openId || s.searchOpen || s.statusOpen || s.connectOpen || s.paused)
+  const busy = useGame((s) => !!s.openId || s.searchOpen || s.statusOpen || s.connectOpen || s.invitesOpen || s.paused)
   const tracking = useGame((s) => !!s.trackId)
   const startCreate = useGame((s) => s.startCreate)
   const me = useDirectory((s) => s.me)
@@ -29,6 +29,7 @@ export function YouCard() {
   const myStatus = activeStatus(useMyStatus((s) => s.status))
   const canStatus = useCanSetStatus()
   const invited = useAccess((s) => !!s.linkCode)
+  const signedIn = useDirectory((s) => !!s.userId)
 
   const become = () => {
     const ob = useOnboarding.getState()
@@ -39,12 +40,19 @@ export function YouCard() {
     startCreate()
   }
 
-  // V = become visible / edit profile (the mouse is captured while playing)
+  // returning members and applicants: straight to the sign-in screen (same as the pause menu)
+  const signIn = () => {
+    useAccess.setState({ signinNext: true })
+    startCreate()
+  }
+
+  // V = become visible / edit profile · L = sign in (not signed in only) — the mouse is captured while playing
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
-      if (e.code !== 'KeyV' || isTyping(e) || g.phase !== 'play' || g.openId || g.searchOpen || g.statusOpen || g.connectOpen || g.paused) return
-      become()
+      if ((e.code !== 'KeyV' && e.code !== 'KeyL') || isTyping(e) || g.phase !== 'play' || g.openId || g.searchOpen || g.statusOpen || g.connectOpen || g.invitesOpen || g.paused) return
+      if (e.code === 'KeyV') return become()
+      if (!useDirectory.getState().userId && useAccess.getState().status === 'ghost') signIn()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -71,6 +79,13 @@ export function YouCard() {
               {status === 'ghost' && invited ? 'USE YOUR INVITE' : GHOST_COPY[status].cta} <span className="keycap">V</span>
             </span>
           </button>
+          {!signedIn && status === 'ghost' && (
+            <button className="btn-primary slant ghostbar-cta ghostbar-signin" onClick={signIn}>
+              <span className="unslant">
+                SIGN IN <span className="keycap">L</span>
+              </span>
+            </button>
+          )}
         </span>
       </div>
     )
@@ -96,6 +111,11 @@ export function YouCard() {
           {canStatus && (
             <button onClick={() => useGame.getState().setStatusOpen(true)}>
               {myStatus ? 'EDIT STATUS' : 'SET STATUS'} <span className="keycap">N</span>
+            </button>
+          )}
+          {live && (
+            <button onClick={() => useGame.getState().setInvitesOpen(true)}>
+              INVITES <span className="keycap">I</span>
             </button>
           )}
           <button onClick={become}>

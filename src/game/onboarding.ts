@@ -298,21 +298,35 @@ export async function redeemInvite(): Promise<{ ok: boolean; error?: string }> {
   const d = useOnboarding.getState().draft
   if (!d.pendingInvite) return { ok: false, error: 'No invite code to use.' }
   useOnboarding.setState({ saving: true, error: null })
-  const { data, error } = await supabase.rpc('redeem_invite', { p_code: d.pendingInvite, p_profile: payload(d) })
+  // through the server, so the welcome + "they joined" emails go out (src/app/api/invite/redeem)
+  const { data: session } = await supabase.auth.getSession()
+  const token = session.session?.access_token
+  const res = token
+    ? ((await fetch('/api/invite/redeem', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: d.pendingInvite, profile: payload(d) }),
+      })
+        .then((r) => r.json())
+        .catch(() => null)) as { ok: boolean; state?: string; message?: string; code?: string } | null)
+    : { ok: false, state: 'signed_out' }
   useOnboarding.setState({ saving: false })
-  const res = data as { ok: boolean; state?: string } | null
-  if (error || !res?.ok) {
-    const msg = error
-      ? error.code === 'PGRST202'
-        ? 'Invites aren’t set up on the server yet.'
-        : error.message
-      : res?.state === 'used'
-        ? 'That invite was used by someone else in the meantime.'
-        : res?.state === 'expired'
-          ? 'That invite expired before you finished.'
-          : res?.state === 'own'
-            ? 'You can’t use your own invite.'
-            : 'That invite isn’t valid any more.'
+  if (!res?.ok) {
+    const msg = !res
+      ? 'Couldn’t reach the server. Check your connection and try again.'
+      : res.state === 'error'
+        ? res.code === 'PGRST202'
+          ? 'Invites aren’t set up on the server yet.'
+          : (res.message ?? 'Something went wrong.')
+        : res.state === 'signed_out'
+          ? 'Your sign-in expired. Open the link in your email again.'
+          : res.state === 'used'
+            ? 'That invite was used by someone else in the meantime.'
+            : res.state === 'expired'
+              ? 'That invite expired before you finished.'
+              : res.state === 'own'
+                ? 'You can’t use your own invite.'
+                : 'That invite isn’t valid any more.'
     useOnboarding.setState({ error: msg })
     return { ok: false, error: msg }
   }

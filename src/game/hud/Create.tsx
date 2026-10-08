@@ -709,6 +709,17 @@ export function Create() {
     setSigninEmail(useOnboarding.getState().draft.email);
   }, [phase]);
 
+  // the sign-in link was opened (here or in another tab) while this panel waits on "check your email":
+  // a member is done — back to the street, no profile steps; an applicant sees where their application stands
+  const userId = useDirectory((s) => s.userId);
+  const loaded = useDirectory((s) => s.loaded);
+  useEffect(() => {
+    if (phase !== "create" || !userId || !loaded || useAccess.getState().stage !== "signin") return;
+    if (useDirectory.getState().me) return exit();
+    void useAccess.getState().loadApplication().then(() => useAccess.getState().open(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, userId, loaded]);
+
   useEffect(() => {
     if (phase !== "create") return;
     const onKey = (e: KeyboardEvent) => {
@@ -784,7 +795,7 @@ export function Create() {
 
   if (phase !== "create") return null;
   const setStage = useAccess.getState().setStage;
-  const tag = member
+  const tag = member && stage !== "signin"
     ? "EDIT PROFILE"
     : stage === "signin"
       ? "SIGN IN"
@@ -795,7 +806,8 @@ export function Create() {
           : path === "pay"
             ? "BECOME VISIBLE · APPLICATION"
             : "BECOME VISIBLE";
-  const gated = !member && stage !== "steps";
+  // a member who just signed in stays on the sign-in screen until the panel closes (never the profile steps)
+  const gated = (!member || stage === "signin") && stage !== "steps";
 
   return (
     <div className="cr">

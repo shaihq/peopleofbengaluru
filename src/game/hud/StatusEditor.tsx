@@ -49,7 +49,7 @@ export function StatusEditor() {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
       if (e.code !== 'KeyN' || e.repeat || isTyping(e) || g.phase !== 'play') return
-      if (g.openId || g.searchOpen || g.paused || g.portalOpen || g.travel || g.statusOpen || g.connectOpen || !can) return
+      if (g.openId || g.searchOpen || g.paused || g.portalOpen || g.travel || g.statusOpen || g.connectOpen || g.invitesOpen || !can) return
       e.preventDefault()
       g.setStatusOpen(true)
     }

@@ -14,7 +14,7 @@ export function HUD() {
   const phase = useGame((s) => s.phase)
   const landmark = useGame((s) => s.landmark)
   const locked = useGame((s) => s.pointerLocked)
-  const talking = useGame((s) => !!s.openId || s.searchOpen || s.paused)
+  const talking = useGame((s) => !!s.openId || s.searchOpen || s.paused || s.connectOpen || s.invitesOpen)
   const district = useGame((s) => s.district)
   const info = districtInfo(district)
   const people = usePeople().filter((p) => homeDistrict(p.location) === district)

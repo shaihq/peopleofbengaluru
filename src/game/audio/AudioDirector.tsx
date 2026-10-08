@@ -53,8 +53,8 @@ export function AudioDirector() {
     const unsub = useGame.subscribe((s, p) => {
       if (s.phase !== p.phase) syncMusic()
       if (s.phase === 'create' && p.phase !== 'create') sfx.step(0)
-      const busy = s.paused || s.searchOpen || !!s.openId || s.phase === 'create' || s.portalOpen || s.connectOpen
-      const wasBusy = p.paused || p.searchOpen || !!p.openId || p.phase === 'create' || p.portalOpen || p.connectOpen
+      const busy = s.paused || s.searchOpen || !!s.openId || s.phase === 'create' || s.portalOpen || s.connectOpen || s.invitesOpen
+      const wasBusy = p.paused || p.searchOpen || !!p.openId || p.phase === 'create' || p.portalOpen || p.connectOpen || p.invitesOpen
       if (busy !== wasBusy) setMuffle(busy ? (s.paused ? 0.85 : 0.55) : 0)
 
       if (s.focusId && s.focusId !== p.focusId && !s.openId) sfx.prompt()
@@ -66,7 +66,7 @@ export function AudioDirector() {
       }
       if (!s.searchOpen && p.searchOpen && !s.trackId) sfx.scanClose()
       if (s.connectOpen && !p.connectOpen) sfx.profileOpen()
-      if (!s.connectOpen && p.connectOpen) sfx.profileClose()
+      if (!s.connectOpen && !s.invitesOpen && p.connectOpen) sfx.profileClose()
       if (s.paused && !p.paused) sfx.pauseOpen()
       if (!s.paused && p.paused) sfx.pauseClose()
       if (s.trackStage === 'fly' && p.trackStage !== 'fly') sfx.locate()

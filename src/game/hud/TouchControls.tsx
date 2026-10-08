@@ -19,7 +19,7 @@ const LOOK_Y = 0.0045
  */
 export function TouchControls() {
   const phase = useGame((s) => s.phase)
-  const blocked = useGame((s) => !!s.openId || s.searchOpen || s.statusOpen || s.connectOpen || s.paused || s.portalOpen || !!s.travel)
+  const blocked = useGame((s) => !!s.openId || s.searchOpen || s.statusOpen || s.connectOpen || s.invitesOpen || s.paused || s.portalOpen || !!s.travel)
   const [joy, setJoy] = useState<{ x: number; y: number; kx: number; ky: number; run: boolean } | null>(null)
   const joyId = useRef<number | null>(null)
   const lookTouch = useRef<{ id: number; x: number; y: number; sx: number; sy: number; t: number } | null>(null)
