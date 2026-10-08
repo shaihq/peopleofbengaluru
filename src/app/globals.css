@@ -2,12 +2,30 @@
 
 :root {
   /* game cursors — see below */
-  --cur-default: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M9.8%2010.4%20L9.8%2030.4%20L15.3%2025.6%20L19.1%2034.4%20L23.2%2032.6%20L19.4%2024.0%20L26.8%2023.6%20Z%22%20fill%3D%22rgba%2812%2C14%2C22%2C0.5%29%22%2F%3E%3Cpath%20d%3D%22M8.0%208.0%20L8.0%2028.0%20L13.5%2023.2%20L17.3%2032.0%20L21.4%2030.2%20L17.6%2021.6%20L25.0%2021.2%20Z%22%20fill%3D%22%23FFF6E5%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") 10 10, default;
-  --cur-link: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M8%205%20L8%201%20M5%208%20L1%208%20M5.8%205.8%20L2.9%202.9%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%224.6%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M8%205%20L8%201%20M5%208%20L1%208%20M5.8%205.8%20L2.9%202.9%22%20stroke%3D%22%23FFB020%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M9.8%2010.4%20L9.8%2030.4%20L15.3%2025.6%20L19.1%2034.4%20L23.2%2032.6%20L19.4%2024.0%20L26.8%2023.6%20Z%22%20fill%3D%22rgba%2812%2C14%2C22%2C0.5%29%22%2F%3E%3Cpath%20d%3D%22M8.0%208.0%20L8.0%2028.0%20L13.5%2023.2%20L17.3%2032.0%20L21.4%2030.2%20L17.6%2021.6%20L25.0%2021.2%20Z%22%20fill%3D%22%23FFB020%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") 10 10, pointer;
-  --cur-press: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M8%205%20L8%202.8%20M5%208%20L2.8%208%20M5.8%205.8%20L4.205%204.205%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%224.6%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M8%205%20L8%202.8%20M5%208%20L2.8%208%20M5.8%205.8%20L4.205%204.205%22%20stroke%3D%22%23FFB020%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M8.9%209.1%20L8.9%2029.1%20L14.4%2024.3%20L18.2%2033.1%20L22.3%2031.3%20L18.5%2022.7%20L25.9%2022.3%20Z%22%20fill%3D%22%23E08A00%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") 10 10, pointer;
-  --cur-text: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M12%206%20H24%20M18%206%20V30%20M12%2030%20H24%22%20stroke%3D%22%23FFF6E5%22%20stroke-width%3D%225.6%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M12%206%20H24%20M18%206%20V30%20M12%2030%20H24%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222.4%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") 20 20, text;
-  --cur-no: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%2218%22%20r%3D%2210%22%20fill%3D%22%231C1F2B%22%20fill-opacity%3D%220.92%22%20stroke%3D%22%23FF5A36%22%20stroke-width%3D%223.2%22%2F%3E%3Cpath%20d%3D%22M11.4%2024.6%20L24.6%2011.4%22%20stroke%3D%22%23FF5A36%22%20stroke-width%3D%223.2%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") 20 20, not-allowed;
-  --cur-wait: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M9.8%2010.4%20L9.8%2030.4%20L15.3%2025.6%20L19.1%2034.4%20L23.2%2032.6%20L19.4%2024.0%20L26.8%2023.6%20Z%22%20fill%3D%22rgba%2812%2C14%2C22%2C0.5%29%22%2F%3E%3Cpath%20d%3D%22M8.0%208.0%20L8.0%2028.0%20L13.5%2023.2%20L17.3%2032.0%20L21.4%2030.2%20L17.6%2021.6%20L25.0%2021.2%20Z%22%20fill%3D%22%23FFF6E5%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2221%22%20cy%3D%2230%22%20r%3D%222.1%22%20fill%3D%22%23FFF6E5%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%221.2%22%2F%3E%3Ccircle%20cx%3D%2226%22%20cy%3D%2230%22%20r%3D%222.1%22%20fill%3D%22%23FFB020%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%221.2%22%2F%3E%3Ccircle%20cx%3D%2231%22%20cy%3D%2230%22%20r%3D%222.1%22%20fill%3D%22%23FFF6E5%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%221.2%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E") 10 10, progress;
+  --cur-default:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M9.8%2010.4%20L9.8%2030.4%20L15.3%2025.6%20L19.1%2034.4%20L23.2%2032.6%20L19.4%2024.0%20L26.8%2023.6%20Z%22%20fill%3D%22rgba%2812%2C14%2C22%2C0.5%29%22%2F%3E%3Cpath%20d%3D%22M8.0%208.0%20L8.0%2028.0%20L13.5%2023.2%20L17.3%2032.0%20L21.4%2030.2%20L17.6%2021.6%20L25.0%2021.2%20Z%22%20fill%3D%22%23FFF6E5%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")
+      10 10,
+    default;
+  --cur-link:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M8%205%20L8%201%20M5%208%20L1%208%20M5.8%205.8%20L2.9%202.9%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%224.6%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M8%205%20L8%201%20M5%208%20L1%208%20M5.8%205.8%20L2.9%202.9%22%20stroke%3D%22%23FFB020%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M9.8%2010.4%20L9.8%2030.4%20L15.3%2025.6%20L19.1%2034.4%20L23.2%2032.6%20L19.4%2024.0%20L26.8%2023.6%20Z%22%20fill%3D%22rgba%2812%2C14%2C22%2C0.5%29%22%2F%3E%3Cpath%20d%3D%22M8.0%208.0%20L8.0%2028.0%20L13.5%2023.2%20L17.3%2032.0%20L21.4%2030.2%20L17.6%2021.6%20L25.0%2021.2%20Z%22%20fill%3D%22%23FFB020%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")
+      10 10,
+    pointer;
+  --cur-press:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M8%205%20L8%202.8%20M5%208%20L2.8%208%20M5.8%205.8%20L4.205%204.205%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%224.6%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M8%205%20L8%202.8%20M5%208%20L2.8%208%20M5.8%205.8%20L4.205%204.205%22%20stroke%3D%22%23FFB020%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M8.9%209.1%20L8.9%2029.1%20L14.4%2024.3%20L18.2%2033.1%20L22.3%2031.3%20L18.5%2022.7%20L25.9%2022.3%20Z%22%20fill%3D%22%23E08A00%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")
+      10 10,
+    pointer;
+  --cur-text:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M12%206%20H24%20M18%206%20V30%20M12%2030%20H24%22%20stroke%3D%22%23FFF6E5%22%20stroke-width%3D%225.6%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M12%206%20H24%20M18%206%20V30%20M12%2030%20H24%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222.4%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")
+      20 20,
+    text;
+  --cur-no:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%2218%22%20r%3D%2210%22%20fill%3D%22%231C1F2B%22%20fill-opacity%3D%220.92%22%20stroke%3D%22%23FF5A36%22%20stroke-width%3D%223.2%22%2F%3E%3Cpath%20d%3D%22M11.4%2024.6%20L24.6%2011.4%22%20stroke%3D%22%23FF5A36%22%20stroke-width%3D%223.2%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")
+      20 20,
+    not-allowed;
+  --cur-wait:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Cg%20transform%3D%22translate%282%202%29%22%3E%3Cpath%20d%3D%22M9.8%2010.4%20L9.8%2030.4%20L15.3%2025.6%20L19.1%2034.4%20L23.2%2032.6%20L19.4%2024.0%20L26.8%2023.6%20Z%22%20fill%3D%22rgba%2812%2C14%2C22%2C0.5%29%22%2F%3E%3Cpath%20d%3D%22M8.0%208.0%20L8.0%2028.0%20L13.5%2023.2%20L17.3%2032.0%20L21.4%2030.2%20L17.6%2021.6%20L25.0%2021.2%20Z%22%20fill%3D%22%23FFF6E5%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2221%22%20cy%3D%2230%22%20r%3D%222.1%22%20fill%3D%22%23FFF6E5%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%221.2%22%2F%3E%3Ccircle%20cx%3D%2226%22%20cy%3D%2230%22%20r%3D%222.1%22%20fill%3D%22%23FFB020%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%221.2%22%2F%3E%3Ccircle%20cx%3D%2231%22%20cy%3D%2230%22%20r%3D%222.1%22%20fill%3D%22%23FFF6E5%22%20stroke%3D%22%231C1F2B%22%20stroke-width%3D%221.2%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")
+      10 10,
+    progress;
   --ink: #1c1f2b;
   --ink-soft: #2a2f40;
   --cream: #fff6e5;
@@ -210,7 +228,9 @@ body {
   font-size: 14px;
   font-weight: 800;
   border-radius: 6px;
-  box-shadow: 0 4px 0 #b9ab92, 0 6px 0 rgba(12, 14, 22, 0.45);
+  box-shadow:
+    0 4px 0 #b9ab92,
+    0 6px 0 rgba(12, 14, 22, 0.45);
   text-shadow: none;
 }
 
@@ -244,7 +264,9 @@ body {
   position: fixed;
   inset: 0;
   font-family: var(--font-display), sans-serif;
-  transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.5, 0, 0.2, 1);
+  transition:
+    opacity 0.7s ease,
+    transform 0.9s cubic-bezier(0.5, 0, 0.2, 1);
 }
 
 .intro--gone {
@@ -256,7 +278,12 @@ body {
 .intro-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(28, 31, 43, 0.92) 0%, rgba(28, 31, 43, 0.55) 30%, rgba(28, 31, 43, 0) 58%);
+  background: linear-gradient(
+    to top,
+    rgba(28, 31, 43, 0.92) 0%,
+    rgba(28, 31, 43, 0.55) 30%,
+    rgba(28, 31, 43, 0) 58%
+  );
   pointer-events: none;
 }
 
@@ -297,7 +324,9 @@ body {
   line-height: 0.9;
   letter-spacing: 0.005em;
   color: var(--cream);
-  text-shadow: 0 7px 0 var(--ink), 0 14px 30px rgba(12, 14, 22, 0.35);
+  text-shadow:
+    0 7px 0 var(--ink),
+    0 14px 30px rgba(12, 14, 22, 0.35);
 }
 
 .intro-title p {
@@ -326,19 +355,27 @@ body {
   font-size: 26px;
   letter-spacing: 0.04em;
   padding: 14px 34px;
-  box-shadow: 0 6px 0 #b36f00, 0 9px 0 rgba(12, 14, 22, 0.5);
-  transition: transform 0.15s cubic-bezier(0.2, 1.5, 0.4, 1), box-shadow 0.15s;
+  box-shadow:
+    0 6px 0 #b36f00,
+    0 9px 0 rgba(12, 14, 22, 0.5);
+  transition:
+    transform 0.15s cubic-bezier(0.2, 1.5, 0.4, 1),
+    box-shadow 0.15s;
   animation: pop 0.45s cubic-bezier(0.2, 1.5, 0.4, 1);
 }
 
 .btn-primary:hover {
   transform: skewX(var(--skew)) translateY(-3px);
-  box-shadow: 0 9px 0 #b36f00, 0 12px 0 rgba(12, 14, 22, 0.5);
+  box-shadow:
+    0 9px 0 #b36f00,
+    0 12px 0 rgba(12, 14, 22, 0.5);
 }
 
 .btn-primary:active {
   transform: skewX(var(--skew)) translateY(4px);
-  box-shadow: 0 2px 0 #b36f00, 0 4px 0 rgba(12, 14, 22, 0.5);
+  box-shadow:
+    0 2px 0 #b36f00,
+    0 4px 0 rgba(12, 14, 22, 0.5);
 }
 
 .loader {
@@ -381,7 +418,13 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(28, 31, 43, 0.82) 0%, rgba(28, 31, 43, 0.35) 34%, rgba(28, 31, 43, 0) 55%),
+  background:
+    linear-gradient(
+      90deg,
+      rgba(28, 31, 43, 0.82) 0%,
+      rgba(28, 31, 43, 0.35) 34%,
+      rgba(28, 31, 43, 0) 55%
+    ),
     linear-gradient(to top, rgba(28, 31, 43, 0.7) 0%, rgba(28, 31, 43, 0) 26%);
 }
 
@@ -483,7 +526,9 @@ body {
   letter-spacing: 0.06em;
   padding: 8px 14px 8px 10px;
   box-shadow: var(--hard);
-  transition: transform 0.12s cubic-bezier(0.2, 1.5, 0.4, 1), background 0.12s;
+  transition:
+    transform 0.12s cubic-bezier(0.2, 1.5, 0.4, 1),
+    background 0.12s;
 }
 
 .chip:hover {
@@ -496,7 +541,9 @@ body {
   background: var(--cream);
   color: var(--ink);
   transform: skewX(var(--skew)) translateY(-4px);
-  box-shadow: 0 4px 0 var(--saffron), 0 7px 0 rgba(12, 14, 22, 0.5);
+  box-shadow:
+    0 4px 0 var(--saffron),
+    0 7px 0 rgba(12, 14, 22, 0.5);
 }
 
 .chip-swatch {
@@ -539,10 +586,12 @@ body {
   color: var(--cream);
   text-align: center;
   white-space: nowrap;
-  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.2, 1.4, 0.4, 1);
+  transition:
+    opacity 0.25s ease,
+    transform 0.3s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 
-.np[data-lod='off'] {
+.np[data-lod="off"] {
   opacity: 0;
   transform: translateY(-40%) scale(0.85);
 }
@@ -553,7 +602,12 @@ body {
   font-style: italic;
   letter-spacing: 0.03em;
   line-height: 1;
-  text-shadow: 0 2px 0 var(--ink), 0 -1px 0 var(--ink), 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 4px 0 rgba(12, 14, 22, 0.45);
+  text-shadow:
+    0 2px 0 var(--ink),
+    0 -1px 0 var(--ink),
+    2px 0 0 var(--ink),
+    -2px 0 0 var(--ink),
+    0 4px 0 rgba(12, 14, 22, 0.45);
 }
 
 .np-role {
@@ -562,7 +616,12 @@ body {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 0 var(--ink), 0 -1px 0 var(--ink), 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 2px 4px rgba(12, 14, 22, 0.5);
+  text-shadow:
+    0 1px 0 var(--ink),
+    0 -1px 0 var(--ink),
+    1px 0 0 var(--ink),
+    -1px 0 0 var(--ink),
+    0 2px 4px rgba(12, 14, 22, 0.5);
 }
 
 .np-open {
@@ -616,18 +675,18 @@ body {
 }
 
 /* distance detail: near = everything · mid = name + role · far = name only */
-.np[data-lod='mid'] .np-building,
-.np[data-lod='far'] .np-building,
-.np[data-lod='far'] .np-role,
-.np[data-lod='far'] .np-open {
+.np[data-lod="mid"] .np-building,
+.np[data-lod="far"] .np-building,
+.np[data-lod="far"] .np-role,
+.np[data-lod="far"] .np-open {
   display: none;
 }
 
-.np[data-lod='far'] .np-name {
+.np[data-lod="far"] .np-name {
   font-size: 16px;
 }
 
-.np[data-lod='far'] {
+.np[data-lod="far"] {
   opacity: 0.85;
 }
 
@@ -710,7 +769,9 @@ body {
   }
   80% {
     transform: translateY(3px);
-    box-shadow: 0 1px 0 #b9ab92, 0 3px 0 rgba(12, 14, 22, 0.45);
+    box-shadow:
+      0 1px 0 #b9ab92,
+      0 3px 0 rgba(12, 14, 22, 0.45);
   }
 }
 
@@ -909,7 +970,9 @@ body {
   color: var(--ink);
   min-height: 62px;
   font-size: 24px;
-  box-shadow: 0 6px 0 #b36f00, 0 9px 0 rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 6px 0 #b36f00,
+    0 9px 0 rgba(0, 0, 0, 0.45);
   border-bottom: 0;
 }
 
@@ -962,7 +1025,9 @@ a.pp-btn:active {
   font-size: 16px;
   letter-spacing: 0.06em;
   padding: 7px 12px 7px 14px;
-  box-shadow: 0 4px 0 #b36f00, 0 6px 0 rgba(12, 14, 22, 0.45);
+  box-shadow:
+    0 4px 0 #b36f00,
+    0 6px 0 rgba(12, 14, 22, 0.45);
   transition: transform 0.12s cubic-bezier(0.2, 1.5, 0.4, 1);
 }
 
@@ -994,7 +1059,7 @@ a.pp-btn:active {
 }
 
 .find-glass::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 3px;
   height: 7px;
@@ -1173,7 +1238,9 @@ a.pp-btn:active {
   color: var(--cream);
   padding: 10px 14px 10px 10px;
   border-left: 5px solid var(--accent);
-  transition: background 0.12s, transform 0.14s cubic-bezier(0.2, 1.5, 0.4, 1);
+  transition:
+    background 0.12s,
+    transform 0.14s cubic-bezier(0.2, 1.5, 0.4, 1);
   font-family: var(--font-display), sans-serif;
 }
 
@@ -1663,7 +1730,7 @@ a.pp-btn:active {
 }
 
 .cr-switch::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 3px;
   left: 3px;
@@ -2071,7 +2138,7 @@ a.pp-btn:active {
 
 /* a pane of glass catching the light — one soft glint, then rest */
 .ghostbar::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -2165,10 +2232,15 @@ a.pp-btn:active {
 @keyframes cta-pulse {
   0%,
   100% {
-    box-shadow: 0 5px 0 #b36f00, 0 8px 0 rgba(12, 14, 22, 0.5);
+    box-shadow:
+      0 5px 0 #b36f00,
+      0 8px 0 rgba(12, 14, 22, 0.5);
   }
   50% {
-    box-shadow: 0 5px 0 #b36f00, 0 8px 0 rgba(12, 14, 22, 0.5), 0 0 0 5px rgba(255, 176, 32, 0.28);
+    box-shadow:
+      0 5px 0 #b36f00,
+      0 8px 0 rgba(12, 14, 22, 0.5),
+      0 0 0 5px rgba(255, 176, 32, 0.28);
   }
 }
 
@@ -2190,7 +2262,7 @@ textarea {
 }
 
 /* pressed-down state for anything clickable */
-:is(button, a[href], [role='button']):active:not(:disabled):not(.pp-btn--off) {
+:is(button, a[href], [role="button"]):active:not(:disabled):not(.pp-btn--off) {
   cursor: var(--cur-press);
 }
 
@@ -2207,7 +2279,11 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at center, rgba(20, 22, 32, 0.55), rgba(20, 22, 32, 0.82));
+  background: radial-gradient(
+    ellipse at center,
+    rgba(20, 22, 32, 0.55),
+    rgba(20, 22, 32, 0.82)
+  );
   font-family: var(--font-display), sans-serif;
   animation: fade-in 0.18s ease;
 }
@@ -2271,7 +2347,9 @@ textarea {
   text-align: left;
   font-family: var(--font-display), sans-serif;
   border-left: 5px solid transparent;
-  transition: background 0.12s, transform 0.14s cubic-bezier(0.2, 1.5, 0.4, 1);
+  transition:
+    background 0.12s,
+    transform 0.14s cubic-bezier(0.2, 1.5, 0.4, 1);
 }
 
 .pause-row:hover,
@@ -2414,17 +2492,21 @@ textarea {
   color: var(--saffron);
 }
 
-.snd-row input[type='range'] {
+.snd-row input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   height: 8px;
-  background: linear-gradient(90deg, var(--saffron) var(--fill), #4a5068 var(--fill));
+  background: linear-gradient(
+    90deg,
+    var(--saffron) var(--fill),
+    #4a5068 var(--fill)
+  );
   transform: skewX(var(--skew));
   cursor: var(--cur-link);
   outline: 0;
 }
 
-.snd-row input[type='range']::-webkit-slider-thumb {
+.snd-row input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 14px;
   height: 22px;
@@ -2433,7 +2515,7 @@ textarea {
   border: 2px solid var(--ink);
 }
 
-.snd-row input[type='range']::-moz-range-thumb {
+.snd-row input[type="range"]::-moz-range-thumb {
   width: 12px;
   height: 20px;
   border-radius: 0;
@@ -2547,7 +2629,8 @@ textarea {
   background: var(--ink);
   transform: skewX(var(--skew)) translateY(-120%);
   border-right: 6px solid var(--accent);
-  animation: warp-in 0.6s calc(var(--i) * 0.05s) cubic-bezier(0.7, 0, 0.2, 1) forwards;
+  animation: warp-in 0.6s calc(var(--i) * 0.05s) cubic-bezier(0.7, 0, 0.2, 1)
+    forwards;
 }
 
 .warp-panel:nth-child(odd) {
@@ -2566,7 +2649,8 @@ textarea {
 }
 
 .warp-overlay--reveal .warp-panel {
-  animation: warp-out 0.6s calc(var(--i) * 0.05s) cubic-bezier(0.7, 0, 0.2, 1) forwards;
+  animation: warp-out 0.6s calc(var(--i) * 0.05s) cubic-bezier(0.7, 0, 0.2, 1)
+    forwards;
 }
 
 @keyframes warp-in {
@@ -2687,7 +2771,7 @@ textarea {
 }
 
 .warp-card-load::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   width: 40%;
@@ -2818,7 +2902,9 @@ html.touch .find-chips {
   padding: 8px 14px;
   box-shadow: var(--hard);
   pointer-events: none;
-  animation: fade-in 0.3s ease, fade-in 0.6s 4.4s ease reverse forwards;
+  animation:
+    fade-in 0.3s ease,
+    fade-in 0.6s 4.4s ease reverse forwards;
 }
 
 .touch-tip {
@@ -2832,7 +2918,9 @@ html.touch .find-chips {
   color: rgba(255, 246, 229, 0.75);
   text-shadow: 0 2px 0 rgba(12, 14, 22, 0.6);
   pointer-events: none;
-  animation: fade-in 0.4s ease, fade-in 0.8s 6s ease reverse forwards;
+  animation:
+    fade-in 0.4s ease,
+    fade-in 0.8s 6s ease reverse forwards;
 }
 
 .touch-tip--l {
@@ -2870,7 +2958,7 @@ html.touch .find-chips {
 
 .touch .find-esc .keycap::after,
 .touch .pp-close .keycap::after {
-  content: '✕';
+  content: "✕";
   font-size: 17px;
 }
 
@@ -3406,20 +3494,57 @@ html.touch .find-chips {
 }
 
 .quality-debug {
-  position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 6px); transform: translateX(-50%);
-  z-index: 999; padding: 4px 10px; background: rgba(28, 31, 43, 0.85); color: #fff;
-  font: 600 12px/1.2 var(--font-body), sans-serif; letter-spacing: 0.04em; pointer-events: none;
-  text-align: center; max-width: 92vw;
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top) + 6px);
+  transform: translateX(-50%);
+  z-index: 999;
+  padding: 4px 10px;
+  background: rgba(28, 31, 43, 0.85);
+  color: #fff;
+  font:
+    600 12px/1.2 var(--font-body),
+    sans-serif;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  text-align: center;
+  max-width: 92vw;
 }
-.qd-toggles { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-bottom: 4px; pointer-events: auto; }
+.qd-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  pointer-events: auto;
+}
 .qd-toggles button {
-  font: 700 11px/1 var(--font-body), sans-serif; padding: 6px 8px; border: 0; cursor: pointer;
-  background: #3A3F52; color: #9AA0B4; text-decoration: line-through;
+  font:
+    700 11px/1 var(--font-body),
+    sans-serif;
+  padding: 6px 8px;
+  border: 0;
+  cursor: pointer;
+  background: #3a3f52;
+  color: #9aa0b4;
+  text-decoration: line-through;
 }
-.qd-toggles button.on { background: #FFB020; color: #1C1F2B; text-decoration: none; }
+.qd-toggles button.on {
+  background: #ffb020;
+  color: #1c1f2b;
+  text-decoration: none;
+}
 
-.frame-graph { margin-top: 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.frame-graph canvas { background: rgba(0, 0, 0, 0.35); }
+.frame-graph {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.frame-graph canvas {
+  background: rgba(0, 0, 0, 0.35);
+}
 
 /* =========================================================================
    PHASE 5D — THE GATE (invite or apply)
@@ -3461,7 +3586,10 @@ html.touch .find-chips {
   padding: 14px 20px 14px 16px;
   box-shadow: var(--hard);
   border-left: 6px solid transparent;
-  transition: transform 0.15s cubic-bezier(0.2, 1.5, 0.4, 1), background 0.15s, border-color 0.15s;
+  transition:
+    transform 0.15s cubic-bezier(0.2, 1.5, 0.4, 1),
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .gate-opt--on {
@@ -3518,7 +3646,9 @@ html.touch .find-chips {
 .gate-opt-go {
   font-size: 22px;
   color: rgba(255, 246, 229, 0.3);
-  transition: color 0.15s, transform 0.15s;
+  transition:
+    color 0.15s,
+    transform 0.15s;
 }
 
 .gate-opt--on .gate-opt-go {
@@ -3789,7 +3919,9 @@ html.touch .find-chips {
 
 .ghostbar-cta--quiet {
   background: var(--cream);
-  box-shadow: 0 6px 0 #c9bfa9, 0 9px 0 rgba(12, 14, 22, 0.5);
+  box-shadow:
+    0 6px 0 #c9bfa9,
+    0 9px 0 rgba(12, 14, 22, 0.5);
 }
 
 @media (max-width: 820px), (max-height: 520px) {
@@ -3964,7 +4096,9 @@ html.touch .find-chips {
   font-size: 28px;
   line-height: 1;
   box-shadow: var(--hard);
-  transition: transform 0.15s cubic-bezier(0.2, 1.5, 0.4, 1), background 0.15s;
+  transition:
+    transform 0.15s cubic-bezier(0.2, 1.5, 0.4, 1),
+    background 0.15s;
 }
 
 .st-emoji:hover {
@@ -4044,7 +4178,9 @@ html.touch .find-chips {
   cursor: var(--cur-link);
   background: transparent;
   font-size: 22px;
-  transition: background 0.12s, transform 0.12s;
+  transition:
+    background 0.12s,
+    transform 0.12s;
 }
 
 .st-grid > button:hover,
@@ -4112,7 +4248,9 @@ html.touch .find-chips {
   font-weight: 600;
   line-height: 1.25;
   box-shadow: inset 3px 0 0 transparent;
-  transition: background 0.12s, box-shadow 0.12s;
+  transition:
+    background 0.12s,
+    box-shadow 0.12s;
 }
 
 .st-sug:hover {
@@ -4518,7 +4656,9 @@ button.cn-btn:disabled {
   background: var(--cream);
   color: var(--ink);
   padding: 14px 18px;
-  box-shadow: 0 5px 0 var(--saffron), 0 8px 0 rgba(12, 14, 22, 0.5);
+  box-shadow:
+    0 5px 0 var(--saffron),
+    0 8px 0 rgba(12, 14, 22, 0.5);
   animation: prompt-in 0.45s 0.15s cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
 }
 

@@ -2,7 +2,7 @@ import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import { intentOf } from '@/lib/intents'
 import { admin } from './supabaseAdmin'
-import { emailCard, sendEmail } from './email'
+import { sendTemplate } from './email'
 
 // CONNECT (CLAUDE.md Phase 5G): the actions run as the caller (their token, so auth.uid() and the
 // rules in 0006_connections.sql apply); the emails go out from the server afterwards.
@@ -46,9 +46,7 @@ export async function emailRequest(fromId: string, toId: string, intent: string,
   if (!w) return
   const i = intentOf(intent)
   const subject = `${i.emoji} ${w.name} wants to ${i.verb} with you`
-  const body = `${w.name} found you in the city and wants to ${i.verb}. Say yes and you'll both see how to reach each other. Not feeling it? Do nothing — they're never told.`
-  const href = `${origin}/?connections`
-  await sendEmail(w.email, subject, emailCard({ kicker: 'PEOPLE OF BENGALURU · CONNECT', title: `${firstName(w.name)} wants to ${i.verb}`, body, cta: 'SEE THE REQUEST', href }), `${body}\n\n${href}`)
+  await sendTemplate(w.email, 'connect-request', subject, { SENDER: w.name, SENDER_FIRST: firstName(w.name), VERB: i.verb, LINK: `${origin}/?connections` })
 }
 
 /** "It's a match" → the person who asked first. */
@@ -57,7 +55,5 @@ export async function emailMatch(accepterId: string, askerId: string, intent: st
   if (!w) return
   const i = intentOf(intent)
   const subject = `${i.emoji} It's a match — you and ${w.name} both want to ${i.verb}`
-  const body = `${w.name} said yes. Both of you want to ${i.verb}. Open the city to see how to reach them, and take it from here.`
-  const href = `${origin}/?connections`
-  await sendEmail(w.email, subject, emailCard({ kicker: "PEOPLE OF BENGALURU · IT'S A MATCH", title: `Both of you want to ${i.verb}`, body, cta: 'TAKE IT FROM HERE', href }), `${body}\n\n${href}`)
+  await sendTemplate(w.email, 'connect-match', subject, { SENDER: w.name, VERB: i.verb, LINK: `${origin}/?connections` })
 }

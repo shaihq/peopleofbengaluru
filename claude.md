@@ -1023,6 +1023,70 @@ Rules:
 
 ---
 
+# EMAILS — ALL TEMPLATES (RESEND)
+
+Every email the product sends, in one place. All go through Resend.
+
+- App emails are Resend templates. The copy and design live only in Resend (resend.com/templates), created and edited there, no deploy needed. The server sends a template by its alias with variables: sendTemplate() in src/lib/server/email.ts.
+- New templates are made in the Resend dashboard (duplicate connect-request for the card design), given an alias, and published before the code that sends them ships.
+- Every variable a template uses must be sent, or Resend refuses the email. Renaming a variable in Resend means changing the code too. Variable values are HTML-escaped by the server (they include member names).
+- Subjects are set in code (they carry the name and emoji).
+- Auth emails (magic links) are sent by Supabase Auth, routed through Resend via custom SMTP, with the template pasted into Supabase (Auth → Email Templates) in the same visual style.
+
+Rules for every template:
+
+- The game card: ink panel, saffron top bar, one kicker, one italic uppercase title, a short body, one saffron CTA. Feels like the game, not a SaaS newsletter (design.md).
+- A footer only where it's true (the "turn these emails off" line is for connect emails only).
+- Links only point at our own origins.
+- Never include contact details, application answers or anything private to someone else.
+- Plain text: Resend generates it from the HTML.
+- Before launch: verify our domain in Resend and change FROM (until then onboarding@resend.dev only delivers to the Resend account owner).
+
+## Auth (Supabase → Resend SMTP)
+
+| # | Email | When | Status |
+|---|---|---|---|
+| 1 | Magic link: invite path | Code accepted, profile done; sign-in that redeems the code and puts you live | to do |
+| 2 | Magic link: pay path | Email confirmed before payment | to do |
+| 3 | Magic link: sign in | Returning member or applicant (SIGN IN on the gate / pause menu, shouldCreateUser off) | to do |
+| 4 | Magic link: Become Visible (5B) | Original onboarding sign-up flow | to do |
+| 5 | Magic link: admin sign-in | /admin login | to do |
+
+Supabase only has one magic-link template, so 1–5 share it; the wording must work for all of them (or pass context through the redirect and keep the copy neutral).
+
+## Invites (Phase 5D)
+
+| # | Email | When | Status |
+|---|---|---|---|
+| 6 | Welcome: you're in the city | Invite redeemed, avatar live; mentions your 2 invite codes | to do |
+| 7 | Your invitee joined | Someone used your code | to do |
+| 8 | Invite returned to you | A sent link went 30 days unredeemed; the slot is back | to do |
+| 9 | Invite codes revoked | Your invitee was removed; you lost your remaining codes, with the appeal path | to do |
+
+## Apply to join (Phase 5E)
+
+| # | Email | When | Status |
+|---|---|---|---|
+No payment or refund emails from us. Dodo Payments sends the receipts, failed-payment and refund emails. Ours are only about the application and the decision.
+
+| # | Email | When | Status |
+|---|---|---|---|
+| 10 | Application received | Payment confirmed, status under review | to do |
+| 11 | Approved: you're live | ACCEPT on /admin; mentions your invite codes | to do |
+| 12 | Not this time | REJECT on /admin, with the optional reason (the refund email comes from Dodo) | to do |
+| 13 | Admin: new application to review | Optional, to the reviewers | later |
+
+## Connect (Phase 5G)
+
+| # | Email | When | Status |
+|---|---|---|---|
+| 14 | "X wants to grab coffee with you" | Connect request received (/api/connect/send) | built; template connect-request |
+| 15 | "It's a match" | Request accepted, to the sender (/api/connect/respond) | built; template connect-match |
+
+Members can turn connect emails off (built). Auth and application emails are always sent.
+
+---
+
 # PHASE 6 — THE CITY: DISTRICTS + PORTALS
 
 Goal:
