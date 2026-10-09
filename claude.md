@@ -1012,7 +1012,7 @@ Rules:
 - supabase/migrations/0006_connections.sql: contacts (one per member, owner-only) and connections (no client access at all; everything goes through security-definer functions, so a decline can't be read).
 - Functions: send_connect, respond_connect, withdraw_connect, remove_connect, my_connections (the only place a contact is revealed, accepted pairs only), mark_connections_seen.
 - Emails by Resend from the server (/api/connect/send, /api/connect/respond): "X wants to grab coffee with you" to the recipient, "It's a match" to the sender. Emails link back into the city and never contain contact details. Members can turn emails off. Without RESEND_API_KEY, nothing is emailed and the rest still works.
-- Until a domain is verified in Resend, the sender is onboarding@resend.dev, which only delivers to the Resend account owner. The sender address (From) is set on each template in Resend, not in code.
+- Sender: People of Bengaluru <noreply@updates.peopleofbengaluru.com> (domain verified in Resend). The sender address (From) is set on each template in Resend, not in code.
 - Settings (app_settings): connect_daily_limit 10, connect_expiry_days 14, connect_cooldown_days 30.
 
 ## 5G-B — CONNECT UX/UI (built: src/game/connect.ts, src/game/hud/Connections.tsx)
@@ -1041,7 +1041,7 @@ Rules for every template:
 - Links only point at our own origins.
 - Never include contact details, application answers or anything private to someone else.
 - Plain text: Resend generates it from the HTML.
-- Before launch: verify our domain in Resend and change the From on every template (until then onboarding@resend.dev only delivers to the Resend account owner).
+- From on every template: People of Bengaluru <noreply@updates.peopleofbengaluru.com> (verified domain). New templates use the same.
 
 ## Auth (Supabase → Resend SMTP)
 
@@ -1059,8 +1059,8 @@ Supabase only has one magic-link template, so 1–5 share it; the wording must w
 
 | # | Email | When | Status |
 |---|---|---|---|
-| 6 | Welcome: you're in the city | Invite redeemed, avatar live; mentions your invite codes (/api/invite/redeem) | built; template invite-welcome (NAME, INVITER, INVITES, LINK) — create it in Resend |
-| 7 | Your invitee joined | Someone used your code, to the inviter (not for founder codes) | built; template invite-joined (NAME, INVITEE, ROLE, LINK) — create it in Resend |
+| 6 | Welcome: you're in the city | Invite redeemed, avatar live; mentions your invite codes (/api/invite/redeem) | built; template invite-welcome (NAME, INVITER, INVITES, LINK) |
+| 7 | Your invitee joined | Someone used your code, to the inviter (not for founder codes) | built; template invite-joined (NAME, INVITEE, ROLE, LINK) |
 
 ## Apply to join (Phase 5E)
 
