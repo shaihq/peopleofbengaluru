@@ -5259,3 +5259,52 @@ button.cn-btn:disabled {
     animation: none;
   }
 }
+
+/* paused: you're live in another tab or on another device (same bar as the ghost bar) */
+.elsewhere-icon {
+  position: relative;
+  width: 30px;
+  height: 24px;
+  flex: none;
+}
+
+.elsewhere-icon i {
+  position: absolute;
+  width: 20px;
+  height: 15px;
+  border: 2px solid var(--cream);
+  transform: skewX(var(--skew));
+}
+
+.elsewhere-icon i:first-child {
+  left: 0;
+  top: 0;
+  opacity: 0.45;
+}
+
+.elsewhere-icon i:last-child {
+  right: 0;
+  bottom: 0;
+  background: var(--saffron);
+  border-color: var(--saffron);
+}
+
+.ghostbar.elsewhere {
+  border-left-color: var(--saffron);
+  animation-delay: 0s;
+}
+
+/* phones: members have their card at the bottom, so the paused bar sits just above it */
+@media (max-width: 820px), (max-height: 520px) {
+  .ghostbar.elsewhere {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 116px);
+  }
+}
+
+/* phones on their side: the top centre is free, like desktop */
+@media (max-height: 520px) {
+  .ghostbar.elsewhere {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    bottom: auto;
+  }
+}

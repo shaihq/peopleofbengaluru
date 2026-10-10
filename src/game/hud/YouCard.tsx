@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useNet } from '../net/useNet'
 import { useDirectory } from '../people/directory'
 import { useOnboarding } from '../onboarding'
 import { useAccess } from '../access'
@@ -23,6 +24,7 @@ export function YouCard() {
   const phase = useGame((s) => s.phase)
   const busy = useGame((s) => !!s.openId || s.searchOpen || s.statusOpen || s.connectOpen || s.invitesOpen || s.paused)
   const tracking = useGame((s) => !!s.trackId)
+  const netStatus = useNet((s) => s.status)
   const startCreate = useGame((s) => s.startCreate)
   const me = useDirectory((s) => s.me)
   const status = useAccess((s) => s.status)
@@ -92,13 +94,14 @@ export function YouCard() {
   }
 
   const live = me.status === 'approved'
+  const elsewhere = live && netStatus === 'replaced'
   return (
     <div className="you slant">
       <span className="unslant you-body">
         <span className="you-k">YOU</span>
         <span className="you-name">{me.name.toUpperCase()}</span>
-        <span className={`you-status${live ? ' you-status--live' : ''}`}>
-          <span className="np-dot" /> {live ? 'LIVE ON THE MAP' : me.status === 'hidden' ? 'HIDDEN' : 'PENDING APPROVAL'}
+        <span className={`you-status${live && !elsewhere ? ' you-status--live' : ''}`}>
+          <span className="np-dot" /> {elsewhere ? 'LIVE IN ANOTHER TAB' : live ? 'LIVE ON THE MAP' : me.status === 'hidden' ? 'HIDDEN' : 'PENDING APPROVAL'}
         </span>
         {canStatus && myStatus && (
           <span className="you-note">

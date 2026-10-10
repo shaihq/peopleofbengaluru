@@ -23,7 +23,7 @@ export type Pose = { x: number; z: number; yaw: number; anim: Anim }
 export type Entry = Pose & { slot: number; gone: boolean }
 
 export type ServerMsg =
-  | { op: typeof Op.Welcome; slot: number; member: boolean; tick: number }
+  | { op: typeof Op.Welcome; slot: number; member: boolean; tick: number; tookOver: boolean }
   | { op: typeof Op.Join; people: { slot: number; uid: string }[] }
   | { op: typeof Op.Leave; slots: number[] }
   | { op: typeof Op.Snap; tick: number; entries: Entry[] }
@@ -100,11 +100,12 @@ export function decodeClient(buf: ArrayBuffer): ClientMsg | null {
 
 // ---- room → game ----
 
-export function encodeWelcome(slot: number, member: boolean, tick: number): ArrayBuffer {
+/** tookOver: this connection replaced the same person's other tab or device. */
+export function encodeWelcome(slot: number, member: boolean, tick: number, tookOver = false): ArrayBuffer {
   const v = new DataView(new ArrayBuffer(6))
   v.setUint8(0, Op.Welcome)
   v.setUint16(1, slot, true)
-  v.setUint8(3, member ? 1 : 0)
+  v.setUint8(3, (member ? 1 : 0) | (tookOver ? 2 : 0))
   v.setUint16(4, tick & 0xffff, true)
   return v.buffer
 }
@@ -170,7 +171,13 @@ export function decodeServer(buf: ArrayBuffer): ServerMsg | null {
   switch (v.getUint8(0)) {
     case Op.Welcome:
       if (len !== 6) return null
-      return { op: Op.Welcome, slot: v.getUint16(1, true), member: v.getUint8(3) === 1, tick: v.getUint16(4, true) }
+      return {
+        op: Op.Welcome,
+        slot: v.getUint16(1, true),
+        member: (v.getUint8(3) & 1) === 1,
+        tick: v.getUint16(4, true),
+        tookOver: (v.getUint8(3) & 2) === 2,
+      }
     case Op.Join: {
       if (len < 3) return null
       const n = v.getUint16(1, true)

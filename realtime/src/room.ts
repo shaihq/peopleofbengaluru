@@ -199,8 +199,13 @@ export class Room extends DurableObject<Env> {
     if (!this.seats.has(ws)) return // left while we checked
     if (!who) return this.kick(ws, CLOSE.NOT_MEMBER, 'members only')
 
-    // one socket per person: the newest wins (a second tab, a reconnect racing the old socket)
-    for (const [other, s] of this.seats) if (other !== ws && s.uid === who.uid) this.kick(other, CLOSE.REPLACED, 'replaced')
+    // one socket per person: the newest wins (a second tab or device, a reconnect racing the old socket)
+    let tookOver = false
+    for (const [other, s] of this.seats) {
+      if (other === ws || s.uid !== who.uid) continue
+      if (s.hello) tookOver = true // it was live, not just a socket still connecting
+      this.kick(other, CLOSE.REPLACED, 'replaced')
+    }
     if (this.memberCount() >= ROOM_HARD_CAP) return this.kick(ws, CLOSE.FULL, 'room full')
 
     const used = new Set([...this.seats.values()].map((s) => s.slot))
@@ -209,7 +214,7 @@ export class Room extends DurableObject<Env> {
     Object.assign(seat, { slot, uid: who.uid, member: true, hello: true, exp: who.exp })
     ws.serializeAttachment(seat)
 
-    send(ws, encodeWelcome(slot, true, this.tickN))
+    send(ws, encodeWelcome(slot, true, this.tickN, tookOver))
     const here = [...this.seats.entries()].filter(([o, s]) => o !== ws && s.hello && s.member && s.uid)
     if (here.length) send(ws, encodeJoin(here.map(([, s]) => ({ slot: s.slot, uid: s.uid! }))))
     const join = encodeJoin([{ slot, uid: who.uid }])

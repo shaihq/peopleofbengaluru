@@ -39,7 +39,8 @@ describe('game → room', () => {
 
 describe('room → game', () => {
   it('round-trips welcome, join, leave, count, correct', () => {
-    expect(decodeServer(encodeWelcome(7, true, 70001))).toEqual({ op: Op.Welcome, slot: 7, member: true, tick: 70001 & 0xffff })
+    expect(decodeServer(encodeWelcome(7, true, 70001))).toEqual({ op: Op.Welcome, slot: 7, member: true, tick: 70001 & 0xffff, tookOver: false })
+    expect(decodeServer(encodeWelcome(2, true, 5, true))).toMatchObject({ member: true, tookOver: true })
     expect(decodeServer(encodeJoin([{ slot: 3, uid }]))).toEqual({ op: Op.Join, people: [{ slot: 3, uid }] })
     expect(decodeServer(encodeLeave([3, 9]))).toEqual({ op: Op.Leave, slots: [3, 9] })
     expect(decodeServer(encodeCount(42))).toEqual({ op: Op.Count, members: 42 })

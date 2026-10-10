@@ -1197,6 +1197,7 @@ In the game:
 
 - Offline members (and samples) keep wandering, as before; guests and ghosts only ever see wandering. A member who comes online is driven by the network (src/game/people/Person.tsx: wander ↔ live) and gets the saffron ● HERE NOW tag; going offline, they wander again from where they stood. Members live in another district leave this one; members live here from another district appear.
 - HUD: "N HERE NOW" (your room live + the district's other shards); the portal picker shows live counts.
+- One live tab or device per member: the newest takes over (toast "LIVE HERE · YOUR OTHER TAB OR DEVICE IS PAUSED"); the other shows "LIVE IN ANOTHER TAB" with PLAY HERE (H) and never takes over by itself (switching tabs, travelling or reconnecting don't count).
 - Unset NEXT_PUBLIC_REALTIME_URL, or the room server down: everyone wanders and the game works exactly as before; it reconnects with backoff.
 - Known limits: people in different shards of one district can't see each other (finding someone joins their shard); a profile change applies on the next join.
 
