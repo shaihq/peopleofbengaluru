@@ -1204,6 +1204,7 @@ In the game:
 Run and ship:
 
 - Local: `npm run rt:dev` (wrangler on :8787) + `NEXT_PUBLIC_REALTIME_URL=http://localhost:8787` in .env.local. Tests: `npm test`. Load test: `npm --prefix realtime run bots -- --n 150 --secret <s>`. Security checks (forged/unsigned/foreign tokens, floods, teleports, origins, who's-online leaks): `npm --prefix realtime run abuse -- --secret <s> [--env staging]` — run before every deploy.
+- Every pull request into dev or main runs .github/workflows/checks.yml (tests + type-checks of the game and the room server, no deploy); make "checks" a required status check on both branches.
 - Deploys are automatic (.github/workflows/realtime.yml): a push to dev that touches realtime/ or shared/net/ tests and deploys staging, then runs the security checks against it; a push to main deploys production. Manual fallback: `npm run rt:deploy:staging` / `rt:deploy:production`. Change the message format compatibly (the website and the room server deploy separately).
 - Environments: workers pob-realtime-staging and pob-realtime. Vercel Production → prod worker; Preview/Development → staging. LOADTEST_SECRET only on staging (`wrangler secret put LOADTEST_SECRET --env staging`); production refuses to start with it set.
 - Before launch: the staging load test passes (150 members in one room: snapshot gap p95 < 150 ms, no flood closes).
