@@ -5,8 +5,8 @@ import type * as THREE from 'three'
 
 export const bodies = new Map<string, THREE.Vector3>()
 
-/** The player's live position, so people can turn to face you. */
-export const player = { pos: null as THREE.Vector3 | null }
+/** The player's live position (so people can turn to face you) and pose (sent to the live city). */
+export const player = { pos: null as THREE.Vector3 | null, facing: 0, anim: 'idle' as 'idle' | 'walk' | 'run' }
 
 const BODY_R = 0.35
 

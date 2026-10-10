@@ -5202,3 +5202,60 @@ button.cn-btn:disabled {
 .cn-row-note {
   margin: 0;
 }
+
+/* --- LIVE CITY (Phase 8A): who is really here right now ---------------------- */
+
+/* nameplate tag on a member who is online — saffron, so live people read at a glance */
+.np-here {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  padding: 2px 8px;
+  background: var(--saffron);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  transform: skewX(var(--skew));
+  box-shadow: 0 2px 0 rgba(12, 14, 22, 0.45);
+}
+
+.np-here-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+  animation: here-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes here-pulse {
+  50% {
+    transform: scale(0.6);
+  }
+}
+
+.hud-here {
+  background: var(--saffron);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  padding: 4px 12px;
+  box-shadow: var(--hard);
+}
+
+.hud-here .np-here-dot {
+  margin-right: 4px;
+}
+
+.warp-live {
+  color: var(--saffron);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .np-here-dot {
+    animation: none;
+  }
+}

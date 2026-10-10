@@ -24,6 +24,7 @@ import { StatusEditor } from './hud/StatusEditor'
 import { Connections } from './hud/Connections'
 import { Invites } from './hud/Invites'
 import { Session } from './Session'
+import { Net } from './net/Net'
 import { Interaction } from './hud/Interaction'
 import { Search } from './hud/Search'
 import { Tracker } from './hud/Tracker'
@@ -105,6 +106,7 @@ export default function Game() {
       <Pause />
       <Toast />
       <Session />
+      <Net />
       <Intro />
     </div>
   )

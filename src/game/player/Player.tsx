@@ -5,6 +5,7 @@ import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { BOUNDS } from '../layout'
+import { RUN, WALK } from '@shared/net/config'
 import { active } from '../districts/active'
 import { useGame } from '../store'
 import { Avatar, type AvatarState } from '../characters/Avatar'
@@ -20,8 +21,6 @@ import { DraftPlate } from '../hud/DraftPlate'
 import { MyStatusBubble } from '../hud/MyStatusBubble'
 import { footstep } from '../audio/footsteps'
 
-const WALK = 3.0
-const RUN = 6.8
 const RADIUS = 0.38
 const spawnOf = () => new THREE.Vector3(active.def.spawn.x, 0, active.def.spawn.z)
 const TALK_RANGE = 2.7
@@ -234,6 +233,8 @@ export function Player() {
     // --- animation -------------------------------------------------------
     avatar.current.speed = speed
     avatar.current.mode = speed < 0.35 ? 'idle' : speed < 4.6 ? 'walk' : 'run'
+    player.facing = s.facing
+    player.anim = avatar.current.mode
 
     // --- camera ----------------------------------------------------------
     const t = state.clock.elapsedTime

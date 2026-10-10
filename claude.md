@@ -1176,6 +1176,38 @@ WHAT THEY ARE BUILDING
 WHERE THEY WORK
 WHAT IS HAPPENING
 
+## 8A — LIVE CITY: MULTIPLAYER PRESENCE (built: shared/net/, realtime/, src/game/net/)
+
+Goal: two members online in the same district see each other where they really are, walk up, press E → profile → CONNECT. Nothing else about the flow changes.
+
+Architecture (decided; don't swap it for Supabase Realtime):
+
+- Supabase keeps all saved data and login. Live positions go through Cloudflare Workers + Durable Objects (realtime/). Vercel can't host WebSocket servers. Supabase Realtime was ruled out: Pro caps the project at 500 messages/s and bills every delivery (N+1 per broadcast), which breaks at ~10–14 people moving.
+- One Room Durable Object per district shard ("koramangala#1"), up to 150 members (160 hard), then the next shard opens. One City object hands out shards (GET /assign) and knows who is here per district (GET /city).
+- A room keeps only what's happening now, in memory: who, x, z, facing, idle/walk/run. Nothing positional is saved.
+- **Approved members only.** Guests, ghosts and applicants never connect (no cost); for them everyone wanders, as before. The room server refuses anything else too (close 4006), so a modified client can't get in.
+- Login: the token goes in the first WebSocket message (never the URL). The room checks it against the project's public ES256 keys (algorithm, issuer, audience, expiry pinned), then reads the person's own profile with their own token (same RLS) and requires status approved. /assign and /city need the same login (Authorization header). No secret keys in the worker; tokens are never logged or stored, and per-request logs are off.
+- A connection ends when its login token expires; the game rejoins with a fresh one, so signing out or losing approval takes effect within the hour.
+- Wire format: binary, shared/net/protocol.ts. The game sends its position 10× a second only while it changes; the room ticks 10× a second only while someone moves, and sends each player one message with the members within 40 m whose pose changed. An idle room sleeps (no cost) with everyone still connected.
+- Checks on the room: speed budget (RUN × 1.5, shared/net/validate.ts), district bounds, one socket per person (newest wins), message size and flood limits, hello within 5 s, connect limit per IP (120/min: an office shares one IP), /assign + /city limit per member, allowed origins. A rejected move → the game rejoins.
+- Load-test bots: dev/staging only, secret in a header (never a URL). Only local dev lets a bot stand in for a real member id. Production refuses to run if LOADTEST_SECRET is set.
+- All numbers in one place: shared/net/config.ts (used by the game and the room server; keep it free of `@/` and DOM imports).
+
+In the game:
+
+- Offline members (and samples) keep wandering, as before; guests and ghosts only ever see wandering. A member who comes online is driven by the network (src/game/people/Person.tsx: wander ↔ live) and gets the saffron ● HERE NOW tag; going offline, they wander again from where they stood. Members live in another district leave this one; members live here from another district appear.
+- HUD: "N HERE NOW" (your room live + the district's other shards); the portal picker shows live counts.
+- Unset NEXT_PUBLIC_REALTIME_URL, or the room server down: everyone wanders and the game works exactly as before; it reconnects with backoff.
+- Known limits: people in different shards of one district can't see each other (finding someone joins their shard); a profile change applies on the next join.
+
+Run and ship:
+
+- Local: `npm run rt:dev` (wrangler on :8787) + `NEXT_PUBLIC_REALTIME_URL=http://localhost:8787` in .env.local. Tests: `npm test`. Load test: `npm --prefix realtime run bots -- --n 150 --secret <s>`. Security checks (forged/unsigned/foreign tokens, floods, teleports, origins, who's-online leaks): `npm --prefix realtime run abuse -- --secret <s> [--env staging]` — run before every deploy.
+- Deploys are automatic (.github/workflows/realtime.yml): a push to dev that touches realtime/ or shared/net/ tests and deploys staging, then runs the security checks against it; a push to main deploys production. Manual fallback: `npm run rt:deploy:staging` / `rt:deploy:production`. Change the message format compatibly (the website and the room server deploy separately).
+- Environments: workers pob-realtime-staging and pob-realtime. Vercel Production → prod worker; Preview/Development → staging. LOADTEST_SECRET only on staging (`wrangler secret put LOADTEST_SECRET --env staging`); production refuses to start with it set.
+- Before launch: the staging load test passes (150 members in one room: snapshot gap p95 < 150 ms, no flood closes).
+- Cost (Workers Paid $5/mo; 24/7 worst case incl. Supabase Pro): ~$43 / $94 / $155 a month at 100 / 500 / 1,000 online.
+
 ---
 
 # PHASE 9 — THE WORLD
