@@ -948,14 +948,14 @@ What it is:
 - An optional line of text (100 characters at most) plus an optional emoji. Nothing is filled in for you: typing never picks an emoji. The suggestions (☕ Up for a coffee chat, 👀 Looking for collaborators, 💼 Hiring…) carry their own emoji and only apply when tapped.
 - Clear after: don't clear (the default), 1 hour, 4 hours, today, this week, or a custom date and time. An expired status simply disappears.
 - Members only. Ghosts can't set one: nobody could see it.
-- Set and edited any time from inside the game: N, "SET STATUS" on your card, or a tap. A game panel over the street; your own bubble previews the edit live above your head.
+- Set and edited any time from inside the game: N, "SET STATUS" on your card or in the pause menu, or a tap. A game panel over the street; your own bubble previews the edit live above your head.
 - Called "status" for players; "note" in the database (profiles.status is already approval).
 
 How it shows without opening anyone's profile:
 
 - On the nameplate, in the slot and style that used to say BUILDING: the saffron slanted tab under the role (design.md §10.5). "Currently building" now lives only in the profile panel.
 - Up close only, like the rest of the nameplate's detail: near = name, role, status; mid = name and role; far = name.
-- Also in the profile panel and the finder results. The talk prompt is only [E] VIEW PROFILE: the nameplate right above the person already says who they are. Your own status shows the same tab above your head (hidden while you're next to someone, so theirs is what you see).
+- Also in the profile panel and the finder results. The talk prompt is only [E] VIEW PROFILE: the nameplate right above the person already says who they are. Your own status is not shown above your head while you play; it appears there only while you edit it, as a live preview.
 - Sample people carry statuses, so the city shows the feature from day one.
 
 ## 5F-A — STATUS UX/UI (built)
@@ -987,7 +987,10 @@ The flow:
 
 ```
 Find someone in the city → open their profile → CONNECT
-   → pick why:  ☕ Grab coffee · 🤝 Work together · 🧠 Exchange ideas · 🚀 Build something · 🎉 Hang out
+   → the profile panel becomes a short stepper:
+        1 WHY:  ☕ Grab coffee · 🤝 Work together · 🧠 Exchange ideas · 🚀 Build something · 🎉 Hang out
+        2 NOTE (optional, ≤ 200): "people say yes far more often when they know why"
+        3 HOW THEY REACH YOU (only the first time)
    → request sent (they get an in-game notification + an email)
    → they ACCEPT  → IT'S A MATCH: "Both of you want to grab coffee. Take it from here →"
                      → each sees the other's preferred contact (WhatsApp, Instagram, email…)
@@ -1004,7 +1007,7 @@ Rules:
 - If they already asked you, your CONNECT is an instant match.
 - No pestering: one open request per pair, a daily cap per sender (settings value), and after a request ends without a match you wait 30 days before asking that person again.
 - Either side can remove a connection later; the contacts are hidden again.
-- No chat, no messages, no notes. The intent is the whole message.
+- No chat, no messages. A request carries the intent plus one optional note (≤ 200 characters), sent once and never replied to. The recipient sees it in the city and in the request email. The note box warns not to put contact details in it.
 - RULE (6B): works on touch and keyboard.
 
 ## 5G-A — DATA, PRIVACY, EMAIL (built: supabase/migrations/0006_connections.sql)
@@ -1015,9 +1018,9 @@ Rules:
 - Sender: People of Bengaluru <noreply@updates.peopleofbengaluru.com> (domain verified in Resend). The sender address (From) is set on each template in Resend, not in code.
 - Settings (app_settings): connect_daily_limit 10, connect_expiry_days 14, connect_cooldown_days 30.
 
-## 5G-B — CONNECT UX/UI (built: src/game/connect.ts, src/game/hud/Connections.tsx)
+## 5G-B — CONNECT UX/UI (built: src/game/connect.ts, src/game/hud/Connections.tsx; the note: supabase/migrations/0008_connect_note.sql)
 
-- Profile panel: CONNECT is the primary action → intent picker → (contact, if not set) → sent. The panel shows the state for that person: sent, wants to connect with you (ACCEPT / NOT NOW), or connected.
+- Profile panel: CONNECT is the primary action and turns the whole panel into a stepper (ConnectFlow): WHY (1–5 keys) → NOTE with a live "what they see" card → (contact, if not set) → REQUEST SENT. Esc steps back; from the first step it returns to the profile. The panel shows the state for that person: sent, wants to connect with you (ACCEPT / NOT NOW), or connected.
 - CONNECTIONS screen (C, or the HUD button with a badge): REQUESTS, MATCHES, SENT, plus your contact and email setting.
 - The match moment: a game screen, "IT'S A MATCH", both names, "Both of you want to grab coffee.", the revealed contact and TAKE IT FROM HERE →.
 - Notifications in game: the badge, and a toast when a new request or match arrives (checked every minute and when the tab comes back).
@@ -1079,7 +1082,7 @@ No payment or refund emails from us. Dodo Payments sends the receipts, failed-pa
 
 | # | Email | When | Status |
 |---|---|---|---|
-| 12 | "X wants to grab coffee with you" | Connect request received (/api/connect/send) | built; template connect-request |
+| 12 | "X wants to grab coffee with you" | Connect request received (/api/connect/send), with the sender's note if any | built; template connect-request (EMOJI, SENDER, SENDER_FIRST, VERB, NOTE, LINK; NOTE is "" without a note) |
 | 13 | "It's a match" | Request accepted, to the sender (/api/connect/respond) | built; template connect-match |
 
 Members can turn connect emails off (built). Auth and application emails are always sent.

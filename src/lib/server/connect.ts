@@ -23,7 +23,7 @@ export function asUser(token: string) {
   })
 }
 
-export type ConnectResult = { ok: boolean; state: string; id?: string; intent?: string; other?: string }
+export type ConnectResult = { ok: boolean; state: string; id?: string; intent?: string; other?: string; note?: string | null }
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0]
 
@@ -40,12 +40,19 @@ async function who(fromId: string, toId: string) {
   return email && from ? { name: from.name as string, email } : null
 }
 
-/** "Ananya wants to grab coffee with you" → the person being asked. */
-export async function emailRequest(fromId: string, toId: string, intent: string, origin: string) {
+/** "Ananya wants to grab coffee with you" → the person being asked, with their note if they wrote one. */
+export async function emailRequest(fromId: string, toId: string, intent: string, note: string | null, origin: string) {
   const w = await who(fromId, toId)
   if (!w) return
   const i = intentOf(intent)
-  await sendTemplate(w.email, 'connectRequest', { EMOJI: i.emoji, SENDER: w.name, SENDER_FIRST: firstName(w.name), VERB: i.verb, LINK: `${origin}/?connections` })
+  await sendTemplate(w.email, 'connectRequest', {
+    EMOJI: i.emoji,
+    SENDER: w.name,
+    SENDER_FIRST: firstName(w.name),
+    VERB: i.verb,
+    NOTE: note ? `“${note}”` : '',
+    LINK: `${origin}/?connections`,
+  })
 }
 
 /** "It's a match" → the person who asked first. */

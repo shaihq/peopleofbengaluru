@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { getCharacter } from '../characters/roster'
 import type { Profile } from '../people/profiles'
 import { getPeople } from '../people/directory'
 import { useGame } from '../store'
 import { activeStatus } from '../status'
 import { isTyping } from '../player/input'
-import { ConnectBlock } from './Connections'
+import { ConnectBlock, ConnectFlow } from './Connections'
 
 const byId = (id: string | null) => (id ? getPeople().find((p) => p.id === id) : undefined)
 
@@ -65,8 +65,16 @@ function LinkButton({ label, href, primary }: { label: string; href?: string; pr
 /** Profile panel (CLAUDE.md §13) — slides in from the right; the world stays visible. */
 function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
   const style = getCharacter(p.character)
+  // CONNECT takes over the whole panel as a stepper; the profile comes back after
+  const [connecting, setConnecting] = useState(false)
+  if (connecting)
+    return (
+      <aside className="pp" style={{ ['--accent' as string]: style.accent }}>
+        <ConnectFlow p={p} onExit={() => setConnecting(false)} />
+      </aside>
+    )
   return (
-    <aside className="pp" key={p.id} style={{ ['--accent' as string]: style.accent }}>
+    <aside className="pp" style={{ ['--accent' as string]: style.accent }}>
       <div className="pp-inner">
         <div className="pp-top">
           <span className="pp-tag">PROFILE</span>
@@ -128,7 +136,7 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
         </section>
 
         <div className="pp-links">
-          <ConnectBlock p={p} />
+          <ConnectBlock p={p} onConnect={() => setConnecting(true)} />
           <LinkButton label="PORTFOLIO" href={p.links.portfolio} />
           <div className="pp-links-row">
             <LinkButton label="LINKEDIN" href={p.links.linkedin} />
@@ -172,7 +180,7 @@ export function Interaction() {
     <>
       {focus && !open && <Prompt p={focus} onOpen={() => openProfile(focus.id)} />}
       {portalPrompt && <PortalPrompt onOpen={() => useGame.getState().setPortalOpen(true)} />}
-      {open && <Panel p={open} onClose={closeProfile} />}
+      {open && <Panel key={open.id} p={open} onClose={closeProfile} />}
     </>
   )
 }

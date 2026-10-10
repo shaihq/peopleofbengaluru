@@ -6,7 +6,7 @@ import 'server-only'
 // the dashboard: rename a variable there, rename it here.
 export const TEMPLATES = {
   /** "Ananya wants to grab coffee with you" → the person being asked. */
-  connectRequest: { alias: 'connect-request', variables: ['EMOJI', 'SENDER', 'SENDER_FIRST', 'VERB', 'LINK'] },
+  connectRequest: { alias: 'connect-request', variables: ['EMOJI', 'SENDER', 'SENDER_FIRST', 'VERB', 'NOTE', 'LINK'] },
   /** "It's a match" → the person who asked first. */
   connectMatch: { alias: 'connect-match', variables: ['EMOJI', 'SENDER', 'VERB', 'LINK'] },
   /** "You're in the city" → someone who just joined with an invite. */

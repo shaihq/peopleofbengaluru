@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { INTENTS, intentOf, type Intent } from '@/lib/intents'
 import {
   METHODS,
+  NOTE_MAX,
   SEND_ERRORS,
   connWith,
   contactHref,
@@ -17,6 +18,7 @@ import {
 } from '../connect'
 import type { Profile } from '../people/profiles'
 import { getPeople, useDirectory } from '../people/directory'
+import { getCharacter } from '../characters/roster'
 import { useOnboarding } from '../onboarding'
 import { isTyping, requestLook } from '../player/input'
 import { useGame } from '../store'
@@ -36,7 +38,18 @@ function ago(iso: string) {
 }
 
 /** "How should they reach you?" — asked inline the first time it's needed. */
-export function ContactForm({ onSaved, cta = 'SAVE ▸', focus = true }: { onSaved?: () => void; cta?: string; focus?: boolean }) {
+export function ContactForm({
+  onSaved,
+  cta = 'SAVE ▸',
+  focus = true,
+  label = true,
+}: {
+  onSaved?: () => void
+  cta?: string
+  focus?: boolean
+  /** off when a screen title already asks the question */
+  label?: boolean
+}) {
   const current = useConnect((s) => s.contact)
   const save = useConnect((s) => s.saveContact)
   const [method, setMethod] = useState<ContactMethod>(current?.method ?? 'whatsapp')
@@ -56,7 +69,7 @@ export function ContactForm({ onSaved, cta = 'SAVE ▸', focus = true }: { onSav
 
   return (
     <div className="cn-contact-form">
-      <span className="cr-label">HOW SHOULD THEY REACH YOU?</span>
+      {label && <span className="cr-label">HOW SHOULD THEY REACH YOU?</span>}
       <div className="cr-chips cr-chips--tight cn-methods">
         {METHODS.map((x) => (
           <button
@@ -108,10 +121,11 @@ export function ContactForm({ onSaved, cta = 'SAVE ▸', focus = true }: { onSav
 function IntentPicker({ value, onPick }: { value: Intent | null; onPick: (i: Intent) => void }) {
   return (
     <div className="cn-intents">
-      {INTENTS.map((i) => (
+      {INTENTS.map((i, n) => (
         <button key={i.id} className={`chip slant cn-intent${value === i.id ? ' chip--on' : ''}`} onClick={() => onPick(i.id)}>
           <span className="unslant">
             <span className="cn-intent-e">{i.emoji}</span> {i.label}
+            {!isTouch && <span className="keycap cn-intent-k">{n + 1}</span>}
           </span>
         </button>
       ))}
@@ -119,22 +133,243 @@ function IntentPicker({ value, onPick }: { value: Intent | null; onPick: (i: Int
   )
 }
 
-/** Profile panel: CONNECT and everything that follows it, for this one person. */
-export function ConnectBlock({ p }: { p: Profile }) {
+/** The request as they'll see it: who, why, and your note. */
+function RequestCard({ intent, note, from }: { intent: Intent; note: string; from: string }) {
+  const i = intentOf(intent)
+  return (
+    <div className="cn-ask cn-ask--preview">
+      <span className="cn-ask-e">{i.emoji}</span>
+      <span>
+        <b>
+          {from.split(' ')[0].toUpperCase()} WANTS TO {i.label}
+        </b>
+        {note.trim() ? <q className="cn-note">{note.trim()}</q> : <em>No note</em>}
+      </span>
+    </div>
+  )
+}
+
+type FlowStep = 'why' | 'note' | 'reach' | 'sent'
+
+/**
+ * CONNECT — takes over the whole profile panel as a short stepper:
+ * WHY → NOTE (optional) → HOW THEY REACH YOU (only the first time) → sent.
+ * Esc steps back; from the first step it returns to the profile.
+ */
+export function ConnectFlow({ p, onExit }: { p: Profile; onExit: () => void }) {
+  const me = useDirectory((s) => s.me)
+  const contact = useConnect((s) => s.contact)
+  const busy = useConnect((s) => s.busy)
+  const [intent, setIntent] = useState<Intent | null>(null)
+  const [note, setNote] = useState('')
+  const [step, setStep] = useState<FlowStep>('why')
+  const [err, setErr] = useState<string | null>(null)
+  // the contact step is decided once, when the flow opens, so the step count doesn't jump after saving
+  const [needContact] = useState(() => !useConnect.getState().contact)
+  const steps: FlowStep[] = needContact ? ['why', 'note', 'reach'] : ['why', 'note']
+  const at = steps.indexOf(step)
+  const accent = getCharacter(p.character).accent
+  const first = p.name.split(' ')[0]
+  const left = NOTE_MAX - note.length
+
+  const send = async () => {
+    if (!intent) return setStep('why')
+    setErr(null)
+    const r = await useConnect.getState().send(p.id, intent, note)
+    if (r.ok && r.state === 'matched') return onExit() // they'd already asked you: the match screen takes over
+    if (r.ok) return setStep('sent')
+    if (r.state === 'no_contact') return setStep('reach')
+    if (r.state === 'connected' || r.state === 'already_sent') return onExit()
+    setErr(SEND_ERRORS[r.state] ?? SEND_ERRORS.error)
+  }
+
+  const next = () => {
+    if (step === 'why' && intent) return setStep('note')
+    if (step === 'note') return contact ? void send() : setStep('reach')
+  }
+  const back = () => {
+    setErr(null)
+    if (step === 'why' || step === 'sent') return onExit()
+    setStep(steps[at - 1])
+  }
+
+  // Esc = back · 1–5 pick a reason · Enter = next (a note is one line, so Enter in it is next too)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const typing = isTyping(e)
+      if (e.code === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        back()
+        return
+      }
+      if (typing) return
+      // E would close the profile underneath: inside the flow it does nothing
+      if (e.code === 'KeyE') {
+        e.stopPropagation()
+        return
+      }
+      if (step === 'why' && /^Digit[1-5]$/.test(e.code)) {
+        e.preventDefault()
+        setIntent(INTENTS[Number(e.code.slice(5)) - 1].id)
+        setErr(null)
+        return
+      }
+      if (e.key === 'Enter' && step !== 'reach') {
+        e.preventDefault()
+        if (step === 'sent') onExit()
+        else next()
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  })
+
+  const title: Record<FlowStep, string> = {
+    why: `WHY MEET ${first.toUpperCase()}?`,
+    note: 'ADD A NOTE',
+    reach: 'HOW SHOULD THEY REACH YOU?',
+    sent: 'REQUEST SENT',
+  }
+
+  return (
+    <div className="pp-inner cf" key={step}>
+      <div className="pp-top">
+        <span className="pp-tag">CONNECT</span>
+        {step !== 'sent' && (
+          <>
+            <span className="cr-step cf-step">
+              STEP {at + 1} / {steps.length}
+            </span>
+            <span className="cr-pips cf-pips">
+              {steps.map((x, i) => (
+                <span key={x} className={i <= at ? 'on' : ''} />
+              ))}
+            </span>
+          </>
+        )}
+        <button className="pp-close" onClick={back} aria-label={step === 'why' || step === 'sent' ? 'Back to profile' : 'Back'}>
+          <span className="keycap">ESC</span>
+        </button>
+      </div>
+
+      <div className="cf-to">
+        <span className="cf-to-k">TO</span>
+        <span className="cf-swatch" style={{ background: accent }} />
+        <b>{p.name.toUpperCase()}</b>
+        <em>{p.role}</em>
+      </div>
+
+      <h2 className="cr-title cf-title">{title[step]}</h2>
+
+      {step === 'why' && (
+        <>
+          <p className="cr-copy cf-lede">Pick one. It’s the first thing they see.</p>
+          <IntentPicker
+            value={intent}
+            onPick={(i) => {
+              setIntent(i)
+              setErr(null)
+            }}
+          />
+        </>
+      )}
+
+      {step === 'note' && intent && (
+        <>
+          <p className="cr-copy cf-lede">
+            Optional — but people say yes far more often when they know why you’re reaching out. One line is plenty.
+          </p>
+          <label className="cr-field cf-note">
+            <span className="cr-label">
+              YOUR NOTE <em className={left < 30 ? 'cr-count cr-count--low' : 'cr-count'}>{left}</em>
+            </span>
+            <textarea
+              className="cr-answer"
+              rows={3}
+              value={note}
+              maxLength={NOTE_MAX}
+              autoFocus={!isTouch}
+              placeholder={`Loved your work on ${p.building || 'your last project'} — free for a chai this week?`}
+              onChange={(e) => setNote(e.target.value.replace(/\n/g, ' '))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  next()
+                }
+              }}
+              aria-label={`A note to ${first} (optional)`}
+            />
+          </label>
+          <span className="cr-label cf-preview-k">WHAT {first.toUpperCase()} SEES</span>
+          <RequestCard intent={intent} note={note} from={me?.name ?? 'You'} />
+          <p className="cn-fine">Your contact stays hidden until they say yes. Don’t put it in the note.</p>
+        </>
+      )}
+
+      {step === 'reach' && (
+        <>
+          <p className="cr-copy cf-lede">
+            Asked once. If {first} says yes, this is how they’ll reach you — nobody else ever sees it.
+          </p>
+          <ContactForm label={false} cta={busy ? 'SENDING…' : 'SAVE + SEND ▸'} onSaved={send} />
+        </>
+      )}
+
+      {step === 'sent' && intent && (
+        <>
+          <p className="cr-copy cf-lede">
+            If {first} says yes, you’ll both see how to reach each other. If not, nothing happens and nobody is told.
+          </p>
+          <RequestCard intent={intent} note={note} from={me?.name ?? 'You'} />
+          <p className="cn-fine">Requests nobody answers quietly disappear after 14 days. Track it under CONNECTIONS (C) → SENT.</p>
+        </>
+      )}
+
+      {err && <div className="cr-error">{err}</div>}
+
+      <div className="cr-nav cf-nav">
+        {step !== 'sent' ? (
+          <button className="pp-btn slant cr-back" onClick={back}>
+            <span className="unslant">{step === 'why' ? '◀ PROFILE' : '◀ BACK'}</span>
+          </button>
+        ) : (
+          <span />
+        )}
+        {step === 'why' && (
+          <button className="btn-primary slant cr-next" disabled={!intent} onClick={next}>
+            <span className="unslant">NEXT ▸</span>
+          </button>
+        )}
+        {step === 'note' && (
+          <button className="btn-primary slant cr-next" disabled={busy} onClick={next}>
+            <span className="unslant">{!contact ? 'NEXT ▸' : busy ? 'SENDING…' : note.trim() ? 'SEND REQUEST ▸' : 'SEND WITHOUT A NOTE ▸'}</span>
+          </button>
+        )}
+        {step === 'sent' && (
+          <button className="btn-primary slant cr-next" onClick={onExit}>
+            <span className="unslant">BACK TO PROFILE ▸</span>
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Profile panel: CONNECT and its state with this one person. Sending a request opens ConnectFlow. */
+export function ConnectBlock({ p, onConnect }: { p: Profile; onConnect: () => void }) {
   const member = useDirectory((s) => s.me?.status === 'approved')
   const signedIn = useDirectory((s) => !!s.me)
   const items = useConnect((s) => s.items)
-  const contact = useConnect((s) => s.contact)
   const busy = useConnect((s) => s.busy)
   const c = connWith(items, p.id)
-  // idle → intent → (contact) → send · or, for a request to you: accept → (contact)
-  const [step, setStep] = useState<'idle' | 'intent' | 'contact' | 'accept-contact'>('idle')
-  const [intent, setIntent] = useState<Intent | null>(null)
+  // a request to you: accept → (contact)
+  const [needContact, setNeedContact] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
-    setStep('idle')
-    setIntent(null)
+    setNeedContact(false)
     setErr(null)
   }, [p.id])
 
@@ -167,22 +402,10 @@ export function ConnectBlock({ p }: { p: Profile }) {
     )
   }
 
-  const send = async (i: Intent) => {
-    const r = await useConnect.getState().send(p.id, i)
-    if (r.ok) {
-      setStep('idle')
-      if (r.state === 'sent') useGame.getState().showToast(`REQUEST SENT · ${intentOf(i).emoji} ${intentOf(i).label}`, 'good')
-      return
-    }
-    if (r.state === 'no_contact') return setStep('contact')
-    if (r.state === 'connected' || r.state === 'already_sent') return setStep('idle')
-    setErr(SEND_ERRORS[r.state] ?? SEND_ERRORS.error)
-  }
-
   const respond = async (accept: boolean) => {
     if (!c) return
     const r = await useConnect.getState().respond(c.id, accept)
-    if (r.state === 'no_contact') return setStep('accept-contact')
+    if (r.state === 'no_contact') return setNeedContact(true)
     if (!r.ok) return setErr('That request isn’t open any more.')
     if (!accept) useGame.getState().showToast('NOT NOW · THEY WON’T BE TOLD', 'info')
   }
@@ -205,7 +428,7 @@ export function ConnectBlock({ p }: { p: Profile }) {
 
   if (c && c.dir === 'in') {
     const i = intentOf(c.intent)
-    if (step === 'accept-contact')
+    if (needContact)
       return (
         <div className="cn-block">
           <ContactForm cta="SAVE + ACCEPT ▸" onSaved={() => respond(true)} />
@@ -217,6 +440,7 @@ export function ConnectBlock({ p }: { p: Profile }) {
           <span className="cn-ask-e">{i.emoji}</span>
           <span>
             <b>WANTS TO {i.label}</b>
+            {c.note && <q className="cn-note">{c.note}</q>}
             <em>with you · {ago(c.created_at)}</em>
           </span>
         </div>
@@ -252,37 +476,8 @@ export function ConnectBlock({ p }: { p: Profile }) {
     )
   }
 
-  if (step === 'contact')
-    return (
-      <div className="cn-block">
-        <ContactForm cta="SAVE + SEND ▸" onSaved={() => intent && send(intent)} />
-      </div>
-    )
-
-  if (step === 'intent')
-    return (
-      <div className="cn-block">
-        <span className="cr-label">WHY DO YOU WANT TO CONNECT?</span>
-        <IntentPicker value={intent} onPick={(i) => (setIntent(i), setErr(null))} />
-        {err && <div className="cr-error">{err}</div>}
-        <div className="pp-links-row">
-          <button className="pp-btn slant cn-btn" onClick={() => setStep('idle')}>
-            <span className="unslant">CANCEL</span>
-          </button>
-          <button
-            className="pp-btn slant pp-btn--primary cn-btn"
-            disabled={!intent || busy}
-            onClick={() => (contact ? intent && send(intent) : setStep('contact'))}
-          >
-            <span className="unslant">{busy ? 'SENDING…' : 'SEND ▸'}</span>
-          </button>
-        </div>
-        <p className="cn-fine">They see who you are and why. Nothing else, until they say yes.</p>
-      </div>
-    )
-
   return (
-    <button className="pp-btn slant pp-btn--primary cn-btn" onClick={() => setStep('intent')}>
+    <button className="pp-btn slant pp-btn--primary cn-btn" onClick={onConnect}>
       <span className="unslant">CONNECT ▸</span>
     </button>
   )
@@ -383,6 +578,7 @@ function Row({ c }: { c: Conn }) {
         {c.state === 'matched' ? `BOTH WANT TO ${i.label}` : c.dir === 'in' ? `WANTS TO ${i.label}` : `YOU ASKED TO ${i.label}`}
         <small>{ago(c.decided_at ?? c.created_at)}</small>
       </div>
+      {c.note && c.state === 'pending' && <q className="cn-note cn-row-note">{c.note}</q>}
       {needContact ? (
         <ContactForm cta="SAVE + ACCEPT ▸" onSaved={() => useConnect.getState().respond(c.id, true)} />
       ) : (

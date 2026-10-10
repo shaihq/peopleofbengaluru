@@ -5061,3 +5061,144 @@ button.cn-btn:disabled {
     display: none;
   }
 }
+
+/* --- CONNECT stepper (takes over the profile panel) ------------------------ */
+
+.cf .cf-step {
+  margin-left: 10px;
+}
+
+.cf .cf-pips {
+  margin-left: 6px;
+}
+
+.cf-to {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 26px;
+  min-width: 0;
+}
+
+.cf-to-k {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgba(255, 246, 229, 0.5);
+}
+
+.cf-swatch {
+  align-self: center;
+  width: 10px;
+  height: 14px;
+  transform: skewX(var(--skew));
+}
+
+.cf-to b {
+  font-size: 19px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.cf-to em {
+  font-family: var(--font-body), sans-serif;
+  font-style: normal;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cf-title {
+  margin-top: 8px;
+  animation: cf-in 0.32s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+
+@keyframes cf-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+
+.cf-lede {
+  margin: 10px 0 18px;
+}
+
+.cf-note .cr-answer {
+  min-height: 92px;
+}
+
+.cf-preview-k {
+  margin: 18px 0 8px;
+  color: rgba(255, 246, 229, 0.5);
+}
+
+.cf .cn-fine {
+  margin-top: 12px;
+}
+
+.cf-nav {
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.cf-nav .cr-next:disabled {
+  opacity: 0.45;
+  cursor: var(--cur-no);
+}
+
+/* in the stepper the reasons are a menu: one per row, the number key on the right */
+.cf .cn-intents {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.cf .cn-intent {
+  padding: 12px 18px;
+  font-size: 20px;
+}
+
+.cf .cn-intent .unslant {
+  width: 100%;
+}
+
+/* the number key on each reason */
+.cn-intent .cn-intent-k {
+  margin-left: auto;
+  font-style: normal;
+  opacity: 0.55;
+}
+
+.cn-intent.chip--on .cn-intent-k {
+  opacity: 1;
+}
+
+/* the sender's note: their words, in saffron italic */
+.cn-note {
+  display: block;
+  margin: 4px 0 2px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--saffron);
+  overflow-wrap: anywhere;
+}
+
+.cn-ask--preview {
+  align-items: flex-start;
+}
+
+.cn-ask--preview .cn-ask-e {
+  line-height: 1;
+}
+
+.cn-row-note {
+  margin: 0;
+}

@@ -9,6 +9,8 @@ import { useAudio } from '../audio/engine'
 import { useAccess } from '../access'
 import { useConnect } from '../connect'
 import { useInvites } from '../invites'
+import { activeStatus, useMyStatus } from '../status'
+import { useCanSetStatus } from './StatusEditor'
 
 const CONTROLS: [string[], string][] = [
   [['W', 'A', 'S', 'D'], 'MOVE'],
@@ -17,6 +19,7 @@ const CONTROLS: [string[], string][] = [
   [['E'], 'TALK TO SOMEONE'],
   [['F'], 'FIND SOMEONE'],
   [['C'], 'CONNECTIONS'],
+  [['N'], 'SET STATUS'],
   [['I'], 'YOUR INVITES'],
   [['V'], 'BECOME VISIBLE / EDIT PROFILE'],
   [['L'], 'SIGN IN'],
@@ -33,6 +36,8 @@ export function Pause() {
   const showToast = useGame((s) => s.showToast)
   const me = useDirectory((s) => s.me)
   const signedIn = useDirectory((s) => !!s.userId)
+  const canStatus = useCanSetStatus()
+  const hasStatus = useMyStatus((s) => !!activeStatus(s.status))
   const [controls, setControls] = useState(false)
   const [sound, setSound] = useState(false)
   const [confirmOut, setConfirmOut] = useState(false)
@@ -153,6 +158,19 @@ export function Pause() {
             <span className="pause-label">{me ? 'EDIT PROFILE' : 'BECOME VISIBLE'}</span>
             <span className="keycap">V</span>
           </button>
+
+          {canStatus && (
+            <button
+              className="pause-row"
+              onClick={() => {
+                setPaused(false)
+                useGame.getState().setStatusOpen(true)
+              }}
+            >
+              <span className="pause-label">{hasStatus ? 'EDIT STATUS' : 'SET STATUS'}</span>
+              <span className="keycap">N</span>
+            </button>
+          )}
 
           {me?.status === 'approved' && (
             <button

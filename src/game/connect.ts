@@ -86,6 +86,8 @@ export type Conn = {
   /** in: they asked you · out: you asked them */
   dir: 'in' | 'out'
   intent: Intent
+  /** The sender's one line with the request (≤ NOTE_MAX), if they wrote one. */
+  note: string | null
   /** A decline looks exactly like 'pending' to the sender. */
   state: 'pending' | 'matched'
   created_at: string
@@ -97,6 +99,9 @@ export type Conn = {
 }
 
 export type Tab = 'requests' | 'matches' | 'sent'
+
+/** Longest note on a connect request (same as the database). */
+export const NOTE_MAX = 200
 
 export const SEND_ERRORS: Record<string, string> = {
   not_member: 'Only people in the city can connect. Become visible first.',
@@ -121,7 +126,7 @@ type ConnectState = {
   loadContact: () => Promise<void>
   saveContact: (method: ContactMethod, raw: string) => Promise<{ ok: boolean; error?: string }>
   setEmails: (on: boolean) => Promise<void>
-  send: (to: string, intent: Intent) => Promise<{ ok: boolean; state: string; id?: string }>
+  send: (to: string, intent: Intent, note?: string) => Promise<{ ok: boolean; state: string; id?: string }>
   respond: (id: string, accept: boolean) => Promise<{ ok: boolean; state: string }>
   withdraw: (id: string) => Promise<void>
   remove: (id: string) => Promise<void>
@@ -216,9 +221,9 @@ export const useConnect = create<ConnectState>((set, get) => ({
     if (error) set({ contact: c })
   },
 
-  send: async (to, intent) => {
+  send: async (to, intent, note = '') => {
     set({ busy: true })
-    const r = await post('/api/connect/send', { to, intent })
+    const r = await post('/api/connect/send', { to, intent, note: note.trim().slice(0, NOTE_MAX) })
     await get().load()
     set({ busy: false })
     if (r.ok && r.state === 'matched' && r.id) get().showMatch(r.id)

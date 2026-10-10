@@ -7,11 +7,12 @@ import { siteOrigin } from '@/lib/server/env'
 export async function POST(req: Request) {
   const token = bearer(req)
   if (!token) return json({ ok: false, state: 'signed_out' }, 401)
-  const body = (await req.json().catch(() => ({}))) as { to?: string; intent?: string }
+  const body = (await req.json().catch(() => ({}))) as { to?: string; intent?: string; note?: string }
   if (!body.to || !body.intent) return json({ ok: false, state: 'invalid' }, 400)
 
   const sb = asUser(token)
-  const { data, error } = await sb.rpc('send_connect', { p_to: body.to, p_intent: body.intent })
+  const note = typeof body.note === 'string' ? body.note : null
+  const { data, error } = await sb.rpc('send_connect', { p_to: body.to, p_intent: body.intent, p_note: note })
   if (error) return json({ ok: false, state: 'error' }, 500)
   const r = data as ConnectResult
 
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   if (me && r.ok && r.other && r.intent) {
     const { other, intent, state } = r
     after(() =>
-      (state === 'sent' ? emailRequest(me, other, intent, origin) : emailMatch(me, other, intent, origin)).catch((e) =>
+      (state === 'sent' ? emailRequest(me, other, intent, r.note ?? null, origin) : emailMatch(me, other, intent, origin)).catch((e) =>
         console.error('[connect] email', e),
       ),
     )
