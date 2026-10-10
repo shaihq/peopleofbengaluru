@@ -5,6 +5,7 @@ import { DISTRICTS, districtOfLocation } from '../districts/registry'
 import { getPeople } from '../people/directory'
 import { requestLook } from '../player/input'
 import { useGame } from '../store'
+import { useNet } from '../net/useNet'
 
 /** Living here vs. waiting for their district to be built. */
 function residents(id: string) {
@@ -18,6 +19,7 @@ export function PortalPicker() {
   const setOpen = useGame((s) => s.setPortalOpen)
   const startTravel = useGame((s) => s.startTravel)
   const choices = DISTRICTS.filter((d) => d.built && d.id !== here)
+  const liveCounts = useNet((s) => (s.status === 'live' ? s.cityCounts : null))
   const [sel, setSel] = useState(0)
 
   const close = () => {
@@ -83,7 +85,9 @@ export function PortalPicker() {
                     ) : d.built ? (
                       <>
                         <span className="find-place">{n} DESIGNER{n === 1 ? '' : 'S'}</span>
-                        <span className="find-dir">LIVE HERE</span>
+                        <span className="find-dir">
+                          LIVE HERE{liveCounts?.[d.id] ? <b className="warp-live"> · {liveCounts[d.id]} HERE NOW</b> : null}
+                        </span>
                       </>
                     ) : (
                       <>

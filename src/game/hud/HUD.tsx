@@ -4,6 +4,7 @@ import { useGame } from '../store'
 import { hasSamples, usePeople } from '../people/directory'
 import { districtInfo, homeDistrict } from '../districts/registry'
 import { ConnectHud } from './Connections'
+import { hereInDistrict, useNet } from '../net/useNet'
 
 function Keycap({ k, wide }: { k: string; wide?: boolean }) {
   return <span className={`keycap${wide ? ' keycap--wide' : ''}`}>{k}</span>
@@ -18,6 +19,8 @@ export function HUD() {
   const district = useGame((s) => s.district)
   const info = districtInfo(district)
   const people = usePeople().filter((p) => homeDistrict(p.location) === district)
+  // members really here right now (all shards of this district), once the live city is connected
+  const hereNow = useNet((s) => hereInDistrict(s, district))
 
   if (phase !== 'play') return null
 
@@ -42,6 +45,13 @@ export function HUD() {
             <span className="hud-online-short">HERE</span>
           </span>
         </div>
+        {hereNow !== null && hereNow > 0 && (
+          <div className="slant hud-here">
+            <span className="unslant">
+              <span className="np-here-dot" /> {hereNow} HERE NOW
+            </span>
+          </div>
+        )}
         {hasSamples() && (
           <div className="slant hud-sample">
             <span className="unslant">INCLUDES SAMPLE PROFILES</span>
