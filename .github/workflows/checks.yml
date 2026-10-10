@@ -1,0 +1,44 @@
+# PR checks — run on every pull request into dev or main, before anything deploys.
+# Make "checks" a required status check (Settings → Branches → dev and main) so a red PR can't be merged:
+# then broken code never reaches Vercel or Cloudflare. Uses no secrets, so it's safe for any PR.
+
+name: checks
+
+on:
+  pull_request:
+    branches: [dev, main]
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            realtime/package-lock.json
+
+      - name: Install
+        run: |
+          npm ci --ignore-scripts
+          npm ci --prefix realtime
+
+      - name: Tests (message format, movement checks)
+        run: npm test
+
+      - name: Type-check the game and website
+        run: npx tsc --noEmit -p .
+
+      - name: Type-check the room server
+        run: npm --prefix realtime run typecheck
