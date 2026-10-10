@@ -137,6 +137,8 @@ if (secret) {
   const again = await open(`loadtest:${secret}:900`, { bot: true })
   await wait(800)
   check('the same person joining again replaces the first socket', m.closed() === CLOSE.REPLACED)
+  check('the new socket is told it took over', again.msgs.some((x) => x?.op === Op.Welcome && x.tookOver))
+  check('a first join is not a take-over', m.msgs.some((x) => x?.op === Op.Welcome && !x.tookOver))
 
   for (let s = 0; s < 4; s++) {
     for (let i = 0; i < 80; i++) again.ws.send(encodePos({ x: 0, z: 0, yaw: 0, anim: 0 }))

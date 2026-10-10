@@ -65,7 +65,7 @@ function scheduleRetry() {
   tries++
   retry = setTimeout(() => {
     retry = null
-    void connect()
+    if (useNet.getState().status !== 'replaced') void connect() // a paused tab waits for PLAY HERE
   }, wait)
 }
 
@@ -117,6 +117,7 @@ async function connect() {
       switch (m.op) {
         case Op.Welcome:
           tries = 0
+          if (m.tookOver) useGame.getState().showToast('LIVE HERE · YOUR OTHER TAB OR DEVICE IS PAUSED', 'info')
           sent = { qx: NaN, qz: NaN, qyaw: NaN, anim: -1 }
           useNet.setState({ status: 'live' })
           sendPos()
@@ -172,7 +173,7 @@ async function connect() {
         return
       }
       if (e.code === CLOSE.REPLACED) {
-        // you're live in another tab; this one watches the city without you
+        // you went live in another tab or device: this one pauses until you choose PLAY HERE
         useNet.setState({ status: 'replaced' })
         return
       }
@@ -221,9 +222,21 @@ function want(district: string | null) {
   tries = 0
   if (!d) {
     teardown()
-    useNet.setState({ status: 'off' })
+    // travelling keeps "paused" (another tab or device is live); anything else is just off
+    if (useNet.getState().status !== 'replaced') useNet.setState({ status: 'off' })
     return
   }
+  // paused because another tab or device is live: PLAY HERE decides, not travelling
+  if (useNet.getState().status === 'replaced') return
+  void connect()
+}
+
+/** PLAY HERE: make this tab the live one again (the other tab or device pauses). */
+export function takeOver() {
+  if (!wantDistrict || useNet.getState().status !== 'replaced') return
+  if (retry) clearTimeout(retry)
+  retry = null
+  tries = 0
   void connect()
 }
 
@@ -243,6 +256,8 @@ export function startNet() {
   // signing in or out, or being approved, changes who you are in the room: rejoin
   const unDir = useDirectory.subscribe((s, p) => {
     if (s.userId === p.userId && s.me?.status === p.me?.status) return
+    // a different account (or signed out): the "live in another tab" pause no longer applies
+    if (s.userId !== p.userId && useNet.getState().status === 'replaced') useNet.setState({ status: 'off' })
     const before = wantDistrict
     sync()
     if (before && wantDistrict === before) void connect()
@@ -252,8 +267,8 @@ export function startNet() {
   const onVisible = () => {
     if (document.visibilityState !== 'visible') return
     void readCity()
-    // back on this tab: rejoin if the connection dropped, or if another tab took over
-    if (wantDistrict && (useNet.getState().status === 'down' || useNet.getState().status === 'replaced')) {
+    // back on this tab: rejoin if the connection dropped (never silently take over from another tab)
+    if (wantDistrict && useNet.getState().status === 'down') {
       if (retry) clearTimeout(retry)
       retry = null
       tries = 0

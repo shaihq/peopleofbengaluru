@@ -25,6 +25,7 @@ import { Connections } from './hud/Connections'
 import { Invites } from './hud/Invites'
 import { Session } from './Session'
 import { Net } from './net/Net'
+import { LiveElsewhere } from './hud/LiveElsewhere'
 import { Interaction } from './hud/Interaction'
 import { Search } from './hud/Search'
 import { Tracker } from './hud/Tracker'
@@ -99,6 +100,7 @@ export default function Game() {
       <PortalPicker />
       <Travel />
       <YouCard />
+      <LiveElsewhere />
       <StatusEditor />
       <Connections />
       <Invites />
