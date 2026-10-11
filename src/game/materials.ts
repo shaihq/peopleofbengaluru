@@ -155,11 +155,42 @@ export function leafMat() {
 }
 
 const texCache = new Map<string, THREE.Material>()
-export function texMat(key: string, make: () => THREE.Texture, o: { rough?: number; grade?: boolean; metal?: number } = {}) {
+/**
+ * A slow, faint variation across the ground in world space (two octaves of smooth noise, ±5%), on
+ * top of a tiling texture, so its repeat never lines up into a visible pattern.
+ */
+function applyMacroVariation(m: THREE.Material) {
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vMacroPos;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvMacroPos = (modelMatrix * vec4(transformed, 1.0)).xz;')
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+        varying vec2 vMacroPos;
+        float macroHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float macroNoise(vec2 p) {
+          vec2 i = floor(p), f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(macroHash(i), macroHash(i + vec2(1.0, 0.0)), f.x), mix(macroHash(i + vec2(0.0, 1.0)), macroHash(i + vec2(1.0)), f.x), f.y);
+        }`,
+      )
+      .replace(
+        '#include <map_fragment>',
+        `#include <map_fragment>
+        diffuseColor.rgb *= 1.0 + (macroNoise(vMacroPos / 17.0) - 0.5) * 0.08 + (macroNoise(vMacroPos / 6.3 + 11.0) - 0.5) * 0.04;`,
+      )
+  }
+  m.customProgramCacheKey = () => 'macro-variation'
+}
+
+export function texMat(key: string, make: () => THREE.Texture, o: { rough?: number; grade?: boolean; metal?: number; vary?: boolean } = {}) {
   let m = texCache.get(key) as THREE.MeshStandardMaterial | undefined
   if (m) return m
   m = new THREE.MeshStandardMaterial({ map: make(), roughness: o.rough ?? 0.85, metalness: o.metal ?? 0 })
   if (o.grade) applyGroundGrade(m)
+  else if (o.vary) applyMacroVariation(m)
   texCache.set(key, m)
   return m
 }

@@ -43,7 +43,7 @@ function slab(x0: number, x1: number, z0: number, z1: number, m: THREE.Material,
 }
 
 function HSRGround() {
-  const road = texMat('asphalt', () => repeated(asphaltTex(), (EXT * 2) / 10, (EXT * 2) / 10), { rough: 0.92 })
+  const road = texMat('asphalt', () => repeated(asphaltTex(), (EXT * 2) / 10, (EXT * 2) / 10), { rough: 0.92, vary: true })
   const walk = texMat('hsr-pavers', () => repeated(paverTex(), EXT, EXT), { rough: 0.9 })
   const grass = texMat('hsr-median', () => repeated(grassTex(), 60, 1), { rough: 0.95 })
   const paint = mat(C.ROAD_PAINT, { rough: 0.9, grade: false })
