@@ -19,6 +19,8 @@ type Net = {
   online: Record<string, string>
   /** member ids live in your room (driven by the network, not wandering) */
   live: Set<string>
+  /** round trip to the room in ms (median of the last few), null until measured */
+  ping: number | null
 }
 
 export const useNet = create<Net>(() => ({
@@ -29,15 +31,8 @@ export const useNet = create<Net>(() => ({
   cityRooms: {},
   online: {},
   live: new Set(),
+  ping: null,
 }))
-
-/** Members here right now in this district: your room's live count plus the district's other shards. */
-export function hereInDistrict(n: Net, district: string): number | null {
-  if (n.status !== 'live' || !n.room) return null
-  let others = 0
-  for (const [name, c] of Object.entries(n.cityRooms)) if (name !== n.room && name.startsWith(`${district}#`)) others += c
-  return n.hereNow + others
-}
 
 if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
   ;(window as unknown as { __net?: typeof useNet }).__net = useNet

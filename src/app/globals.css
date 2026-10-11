@@ -5236,18 +5236,51 @@ button.cn-btn:disabled {
   }
 }
 
-.hud-here {
-  background: var(--saffron);
-  color: var(--ink);
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: 0.12em;
-  padding: 4px 12px;
-  box-shadow: var(--hard);
+/* real round trip to the room: a quiet segment at the end of the online pill, bars + ms */
+.hud-ping {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(255, 246, 229, 0.14);
+  color: rgba(255, 246, 229, 0.7);
+  font-size: 0.7em;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
 }
 
-.hud-here .np-here-dot {
-  margin-right: 4px;
+.hud-ping-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+}
+
+.hud-ping-bars i {
+  width: 3px;
+  background: rgba(255, 246, 229, 0.25);
+}
+
+.hud-ping-bars i:nth-child(1) {
+  height: 4px;
+}
+.hud-ping-bars i:nth-child(2) {
+  height: 7px;
+}
+.hud-ping-bars i:nth-child(3) {
+  height: 10px;
+}
+
+.hud-ping--good .hud-ping-bars i {
+  background: var(--open);
+}
+.hud-ping--ok .hud-ping-bars i:nth-child(-n + 2) {
+  background: var(--saffron);
+}
+.hud-ping--bad .hud-ping-bars i:nth-child(1) {
+  background: var(--action);
 }
 
 .warp-live {
