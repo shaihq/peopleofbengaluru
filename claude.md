@@ -1026,10 +1026,35 @@ Rules:
 - Who owns what: connect.ts is the store for your connections (fetch, server actions, toasts) and takes events from the chat (a message arrived, you read a chat); connections.ts holds the rules as plain functions (how the list changes, what's new, grouping, landing tab, badge), tested in connections.test.ts; chat.ts owns only the message threads and the live channel. Change list behaviour in connections.ts, not in the components.
 
 - Profile panel: CONNECT is the primary action and turns the whole panel into a stepper (ConnectFlow): WHY (1–5 keys) → NOTE with a live "what they see" card → REQUEST SENT. Esc steps back; from the first step it returns to the profile. The panel shows the state for that person: sent, wants to connect with you (ACCEPT / NOT NOW), or connected (MESSAGE ▸ with the unread count).
-- CONNECTIONS screen (C, or the HUD button with a badge): REQUESTS, CHATS, SENT, plus the email setting. A chat row shows the last line, unread count and time; the whole row opens the chat.
+- CONNECTIONS screen (C, or the HUD button with a badge): REQUESTS, CHATS, SENT, plus the email setting. A chat row shows the last line, unread count and time; the whole row opens the chat. (Now the 5G-C tray: the same content, sections instead of tabs.)
 - The match moment: a game screen, "IT'S A MATCH", both names, "Both of you want to grab coffee.", SAY HI ▸.
 - The chat: the request card first, your lines as saffron slabs on the right, theirs ink-soft on the left; Enter sends, Shift+Enter is a new line; a failed message stays with RETRY. Esc closes the ••• menu, then goes back to the list.
 - Notifications in game: the badge (requests + new matches + chats with unread), and a toast for a new request, match or message (instant on the live channel; otherwise within a minute and when the tab comes back).
+
+
+## 5G-C — CONNECTIONS, REDESIGNED: SIGNAL + TRAY + ARRIVAL CARD (built: src/game/hud/Connections.tsx)
+
+Why: the CONNECTIONS screen reused the Become Visible panel (tag, giant title, explanation paragraph, chip tabs), the HUD entry looked like every other saffron button, and the rows were text only. It read as a form and an admin inbox, not a social game.
+
+- The signal: a bell button on the same row as FIND SOMEONE, as a dark ink panel (a status signal, not the main action, so not saffron), with a drawn bell glyph and the [C] keycap (desktop; hidden on touch, like every keycap). It says what's waiting in words, never a red count: something arrives → it grows to "PRIYA WANTS TO MEET" / "IT'S A MATCH · KARTHIK" for ~8 s, the bell swings, an outline pings, the chime plays (D-major vocabulary); then it settles to "1 REQUEST", "2 REQUESTS · 1 MATCH". News turns the whole button UI_ACTION red-orange with cream text (design.md: alerts), its own colour so it never merges with FIND's saffron; a match turns it solid green (UI_OPEN) with ink text. Narrow phones: "2 NEW", and the button sits under FIND SOMEONE. While anything waits, a soft band of light sweeps across the button every 3.2 s (a shimmer, not a glow) until it's answered or seen; off under reduced motion. Reminder: while something unseen waits, the bell swings again every 40 s, silently, never over a menu; opening the tray (everything seen) stops it. Tried and dropped: a 3D-rendered bell, a bare floating bell, a saffron button and a red count badge.
+- The arrival card: a request that arrives while playing slides in from the right under the HUD: their portrait, "PRIYA wants to ☕ grab coffee", the start of the note, and ACCEPT / VIEW. VIEW opens the tray on that request (the full note lives there). After ~6 s it tucks into the tray.
+- The tray: a pane that slides in from the right edge (~380 px; a bottom sheet on phones). The world stays visible and only lightly dimmed. No tabs, no title, no explanation paragraph. One list, ordered by what needs you:
+  - NEEDS YOU: incoming requests as cards: portrait, name, role, the intent emoji large, the note as a quote, ACCEPT / NOT NOW, how long ago.
+  - CHATS (matches): the last line of the chat, the unread count, MESSAGE ▸ / SAY HI ▸ (opens the chat inside the tray) and WALK TO THEM (the finder guides you to them in the city).
+  - WAITING ON THEM: sent requests, small and collapsed, with withdraw.
+  - The gear: the email setting.
+  - The chat (5G-B's Thread) opens inside the tray; Esc closes its ••• menu, then returns to the list. The bell's summary counts unread messages too ("1 REQUEST · 2 MESSAGES"); new requests and matches ring the bell and slide in the arrival card, new messages keep the chat's toast.
+- Motion: the tray slides in fast with a slight overshoot, cards stagger in; ACCEPT turns the card into a match in place; NOT NOW slides it away.
+- Built notes: the arrival card sits under the HUD in portrait and top centre in landscape, clear of the bell. Cards show a slanted badge in the person's character colour with initials until 5G-D's portraits. Reduced motion: no swing, ping or slides.
+
+## 5G-D — CHARACTER PORTRAITS (planned, after 5G-C)
+
+- Every card (tray, arrival card, match) shows the person's rendered character portrait: each of the character styles is rendered once (head and shoulders, in the game's lighting) and reused. Fallback: a slanted badge in their character colour.
+
+## 5G-E — FUTURE IMPROVEMENTS (paused; revisit later)
+
+- The match moment as a real moment: both characters side by side on a full-screen card, the intent emoji between them, the match stinger, then SAY HI.
+- Requests in the city itself: someone who asked you, walking nearby, carries a small wave marker on their nameplate; walking up shows [E] SEE REQUEST instead of VIEW PROFILE, so you answer face to face. Once matched, their nameplate shows it.
 
 ---
 

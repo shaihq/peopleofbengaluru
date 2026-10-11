@@ -21,7 +21,7 @@ import { Create } from './hud/Create'
 import { Pause } from './hud/Pause'
 import { YouCard, Toast } from './hud/YouCard'
 import { StatusEditor } from './hud/StatusEditor'
-import { Connections } from './hud/Connections'
+import { ConnectArrival, Connections } from './hud/Connections'
 import { Invites } from './hud/Invites'
 import { Session } from './Session'
 import { Net } from './net/Net'
@@ -103,6 +103,7 @@ export default function Game() {
       <LiveElsewhere />
       <StatusEditor />
       <Connections />
+      <ConnectArrival />
       <Invites />
       <Create />
       <Pause />

@@ -38,6 +38,15 @@ type ConnectState = {
   /** chat.ts's live channel is up: messages toast as they arrive, not from the next fetch */
   live: boolean
   busy: boolean
+  /** The bell rings when this changes (5G-C): a request ('ask') or a match. */
+  ring: { n: number; kind: 'ask' | 'match' } | null
+  /** The card that slides in when something arrives while you play. */
+  arrival: { conn: Conn; more: number } | null
+  /** Open the tray on this request/match (scrolled to and highlighted). */
+  focus: string | null
+  /** Open the tray, optionally on one connection. */
+  openTray: (focus?: string | null) => void
+  dismissArrival: () => void
   load: () => Promise<void>
   /** A chat message arrived (or you sent one). Marks it read if that chat is on screen; true if it was. */
   messageArrived: (m: { connection_id: string; body: string; created_at: string }, mine: boolean) => boolean
@@ -93,6 +102,9 @@ export const useConnect = create<ConnectState>((set, get) => ({
   threadId: null,
   live: false,
   busy: false,
+  ring: null,
+  arrival: null,
+  focus: null,
 
   load: async () => {
     if (!supabase || !isMember()) return
@@ -104,6 +116,23 @@ export const useConnect = create<ConnectState>((set, get) => ({
     // the chat you were in ended (unmatched, blocked, or they left the city)
     const t = get().threadId
     if (t && !items.some((c) => c.id === t && c.state === 'matched')) set({ threadId: null })
+
+    // a new request or match: the bell rings and a card slides in (5G-C)
+    const before = new Set(prev.map((c) => `${c.id}:${c.state}`))
+    const freshMatches = items.filter((c) => c.dir === 'out' && c.state === 'matched' && !c.seen && !before.has(`${c.id}:matched`))
+    const freshAsks = items.filter((c) => c.dir === 'in' && c.state === 'pending' && !c.seen && !before.has(`${c.id}:pending`))
+    const fresh = freshMatches.length ? freshMatches : freshAsks
+    if (fresh.length) {
+      const kind = freshMatches.length ? 'match' : 'ask'
+      const newest = [...fresh].sort((a, b) => (b.decided_at ?? b.created_at).localeCompare(a.decided_at ?? a.created_at))[0]
+      set({
+        ring: { n: (get().ring?.n ?? 0) + 1, kind },
+        // the card only when you're out in the city (the screen shows it anyway)
+        arrival: useGame.getState().connectOpen ? null : { conn: newest, more: freshMatches.length + freshAsks.length - 1 },
+      })
+      return
+    }
+    // anything else new (messages, when the live channel is down) is a toast
     const news = whatsNew(prev, items, get().live)
     if (news) useGame.getState().showToast(news.msg, news.tone)
   },
@@ -192,6 +221,11 @@ export const useConnect = create<ConnectState>((set, get) => ({
   },
 
   setTab: (tab) => set({ tab }),
+  openTray: (focus = null) => {
+    set({ focus, arrival: null })
+    useGame.getState().setConnectOpen(true)
+  },
+  dismissArrival: () => set({ arrival: null }),
   showMatch: (matchId) => {
     if (matchId) useGame.getState().setConnectOpen(true)
     set({ matchId })
@@ -201,7 +235,7 @@ export const useConnect = create<ConnectState>((set, get) => ({
     set({ threadId, matchId: null })
   },
   reset: () => {
-    set({ items: [], loaded: false, emails: true, tab: 'requests', matchId: null, threadId: null, live: false, busy: false })
+    set({ items: [], loaded: false, emails: true, tab: 'requests', matchId: null, threadId: null, live: false, busy: false, ring: null, arrival: null, focus: null })
   },
 }))
 

@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { INTENTS, intentOf, type Intent } from '@/lib/intents'
-import { NOTE_MAX, SEND_ERRORS, connWith, groups, landingTab, unseenCount, useConnect, type Conn, type Tab } from '../connect'
+import { NOTE_MAX, SEND_ERRORS, connWith, groups, useConnect, type Conn } from '../connect'
 import { openThread } from '../chat'
 import { Thread, escInThread } from './Chat'
 import type { Profile } from '../people/profiles'
-import { useDirectory } from '../people/directory'
+import { getPeople, useDirectory } from '../people/directory'
 import { getCharacter } from '../characters/roster'
 import { useOnboarding } from '../onboarding'
 import { isTyping, requestLook } from '../player/input'
 import { useGame } from '../store'
 import { isTouch } from '../device'
+import { homeDistrict } from '../districts/registry'
 
 // CONNECT (CLAUDE.md Phase 5G) — the profile-panel action, the Connections screen (C), the match
 // moment and the chats (Chat.tsx). design.md §10: ink panels, slanted saffron actions, condensed caps.
@@ -369,16 +370,184 @@ export function ConnectBlock({ p, onConnect }: { p: Profile; onConnect: () => vo
 }
 
 /** HUD button with the badge. Members only. */
+/** How often the bell reminds you of something unseen. */
+const NUDGE_MS = 40_000
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+const firstName = (name: string) => name.split(/\s+/)[0].toUpperCase()
+
+/**
+ * Top right, beside FIND SOMEONE: the connections button (5G-C). It says what's waiting in
+ * words, not a red dot: "PRIYA WANTS TO MEET" when it arrives (the bell swings), then a short
+ * summary ("1 REQUEST · 1 MATCH") until you open it. [C] on desktop, like FIND SOMEONE [F].
+ */
 export function ConnectHud() {
   const member = useDirectory((s) => s.me?.status === 'approved')
-  const n = useConnect((s) => unseenCount(s.items))
+  const items = useConnect((s) => s.items)
+  const ring = useConnect((s) => s.ring)
+  const [announce, setAnnounce] = useState<{ text: string; kind: 'ask' | 'match' } | null>(null)
+  const [nudge, setNudge] = useState(0)
+  const unseen = items.filter((c) => (!c.seen && ((c.dir === 'in' && c.state === 'pending') || (c.dir === 'out' && c.state === 'matched'))) || c.unread > 0).length
+
+  // a reminder: while something you haven't seen waits, the bell swings again every 40 s —
+  // silently (the chime only plays when it first arrives), never over a menu, and it stops
+  // once you open the tray (that marks everything seen)
+  useEffect(() => {
+    if (!unseen) return
+    const id = setInterval(() => {
+      const g = useGame.getState()
+      const busy = g.phase !== 'play' || !!g.openId || g.searchOpen || g.paused || g.connectOpen || g.statusOpen || g.invitesOpen || !!g.travel
+      if (!busy && document.visibilityState === 'visible') setNudge((n) => n + 1)
+    }, NUDGE_MS)
+    return () => clearInterval(id)
+  }, [unseen])
+
+  // something arrived: name it for a few seconds, then settle to the summary
+  useEffect(() => {
+    if (!ring) return
+    setNudge(0) // the arrival's own swing (a match rings bigger) takes over from reminders
+    const s = useConnect.getState()
+    const c =
+      s.arrival?.conn ??
+      [...s.items]
+        .filter((x) => (ring.kind === 'match' ? x.state === 'matched' && x.dir === 'out' : x.state === 'pending' && x.dir === 'in'))
+        .sort((x, y) => (y.decided_at ?? y.created_at).localeCompare(x.decided_at ?? x.created_at))[0]
+    if (!c) return
+    setAnnounce({ text: ring.kind === 'match' ? `IT’S A MATCH · ${firstName(c.other.name)}` : `${firstName(c.other.name)} WANTS TO MEET`, kind: ring.kind })
+    const id = setTimeout(() => setAnnounce(null), 8000)
+    return () => clearTimeout(id)
+  }, [ring])
+
   if (!member) return null
+  const asks = items.filter((c) => c.dir === 'in' && c.state === 'pending').length
+  const matches = items.filter((c) => c.dir === 'out' && c.state === 'matched' && !c.seen).length
+  const msgs = items.reduce((n, c) => n + (c.state === 'matched' ? c.unread : 0), 0)
+  const summary = [asks && plural(asks, 'REQUEST', 'REQUESTS'), matches && plural(matches, 'MATCH', 'MATCHES'), msgs && plural(msgs, 'MESSAGE', 'MESSAGES')]
+    .filter(Boolean)
+    .join(' · ')
+  const label = announce?.text ?? summary
+  const short = asks + matches + msgs > 0 ? `${asks + matches + msgs} NEW` : ''
+  const isMatch = announce ? announce.kind === 'match' : matches > 0 && !asks
   return (
-    <button className="slant hud-find hud-connect" onClick={() => useGame.getState().setConnectOpen(true)}>
+    <button
+      className={`slant hud-find hud-bell${label ? ' hud-bell--news' : ''}${isMatch ? ' hud-bell--match' : ''}`}
+      onClick={() => useConnect.getState().openTray()}
+      aria-label={label ? `Connections: ${label}` : 'Connections'}
+    >
+      {ring && <span key={`p${ring.n}`} className={`hud-bell-ping hud-bell-ping--${ring.kind}`} />}
+      {label && <span className="hud-bell-shine" aria-hidden />}
       <span className="unslant">
-        CONNECTIONS {n > 0 && <em className="hud-badge">{n}</em>} <span className="keycap">C</span>
+        <svg
+          key={`g${ring?.n ?? 0}-${nudge}`}
+          className={`hud-bell-glyph${ring || nudge ? ` hud-bell-glyph--${nudge ? 'ask' : ring!.kind}` : ''}`}
+          viewBox="0 0 24 24"
+          aria-hidden
+        >
+          <path d="M12 2.4a1.7 1.7 0 0 1 1.7 1.7v.45c3 .72 5 3.3 5 6.45v3.1l1.95 2.65c.42.57.01 1.38-.7 1.38H4.05c-.71 0-1.12-.81-.7-1.38l1.95-2.65V11c0-3.15 2-5.73 5-6.45V4.1A1.7 1.7 0 0 1 12 2.4Z" />
+          <path d="M9.4 19.2h5.2a2.6 2.6 0 0 1-5.2 0Z" />
+        </svg>
+        {label && (
+          <span className="hud-bell-label" key={label}>
+            <span className="hud-bell-long">{label}</span>
+            <span className="hud-bell-short">{short}</span>
+          </span>
+        )}
+        <span className="keycap">C</span>
       </span>
     </button>
+  )
+}
+
+/** Who someone is at a glance: their character's colour + initials (rendered portraits: 5G-D). */
+function Portrait({ who, size = 'm' }: { who: Conn['other']; size?: 's' | 'm' }) {
+  const accent = getCharacter(who.character).accent
+  const n = parseInt(accent.slice(1), 16)
+  const light = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255 > 0.5
+  const ini = who.name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+  return (
+    <span className={`cn-face cn-face--${size}`} style={{ ['--accent' as string]: accent, color: light ? '#1C1F2B' : '#FFF6E5' }}>
+      {ini}
+    </span>
+  )
+}
+
+/** Walk to them: the finder's route (through the portal if they live in another district). */
+function walkTo(id: string) {
+  const person = getPeople().find((x) => x.id === id)
+  if (!person) return false
+  const g = useGame.getState()
+  g.setConnectOpen(false)
+  const there = homeDistrict(person.location)
+  if (there === g.district) g.track(id)
+  else {
+    g.setPortalFor({ id, district: there })
+    g.track('portal')
+  }
+  return true
+}
+
+/** Slides in from the right when a request or match arrives while you play (5G-C). */
+export function ConnectArrival() {
+  const arrival = useConnect((s) => s.arrival)
+  const busy = useGame((s) => s.phase !== 'play' || !!s.openId || s.searchOpen || s.paused || s.connectOpen || !!s.travel || s.statusOpen)
+  const [hold, setHold] = useState(false)
+  useEffect(() => {
+    if (!arrival || hold) return
+    const id = setTimeout(() => useConnect.getState().dismissArrival(), 6500)
+    return () => clearTimeout(id)
+  }, [arrival, hold])
+  if (!arrival || busy) return null
+  const { conn: c, more } = arrival
+  const i = intentOf(c.intent)
+  const matched = c.state === 'matched'
+  const view = () => (matched ? useConnect.getState().showMatch(c.id) : useConnect.getState().openTray(c.id))
+  const accept = async () => {
+    useConnect.getState().dismissArrival()
+    await useConnect.getState().respond(c.id, true)
+  }
+  return (
+    <div
+      className={`cn-arrive slant${matched ? ' cn-arrive--match' : ''}`}
+      key={c.id + c.state}
+      onMouseEnter={() => setHold(true)}
+      onMouseLeave={() => setHold(false)}
+      role="status"
+    >
+      <span className="unslant cn-arrive-body">
+        <span className="cn-arrive-top">
+          <Portrait who={c.other} />
+          <span className="cn-arrive-who">
+            <span className="cn-arrive-k">{matched ? 'IT’S A MATCH' : 'WANTS TO MEET YOU'}</span>
+            <b>{c.other.name.toUpperCase()}</b>
+            <span className="cn-arrive-intent">
+              <span className="cn-arrive-e">{i.emoji}</span> {matched ? `You both want to ${i.verb}` : `wants to ${i.verb}`}
+            </span>
+          </span>
+          <button className="cn-arrive-x" onClick={() => useConnect.getState().dismissArrival()} aria-label="Dismiss">
+            ×
+          </button>
+        </span>
+        {!matched && c.note && <q className="cn-arrive-note">{c.note}</q>}
+        <span className="cn-arrive-actions">
+          {!matched && (
+            <button className="pp-btn slant pp-btn--primary cn-btn" onClick={accept}>
+              <span className="unslant">ACCEPT</span>
+            </button>
+          )}
+          <button className={`pp-btn slant cn-btn${matched ? ' pp-btn--primary' : ''}`} onClick={view}>
+            <span className="unslant">
+              VIEW {!isTouch && <span className="keycap">C</span>}
+            </span>
+          </button>
+          {more > 0 && <span className="cn-arrive-more">+{more} more</span>}
+        </span>
+      </span>
+    </div>
   )
 }
 
@@ -410,87 +579,115 @@ function Match({ c, onBack }: { c: Conn; onBack: () => void }) {
   )
 }
 
-/** A match in the list: who, the last line, unread. Opens the chat. */
-function ChatRow({ c }: { c: Conn }) {
-  const i = intentOf(c.intent)
-  const fresh = c.unread > 0 || (c.dir === 'out' && !c.seen)
-  return (
-    <button className={`cn-row cn-chat-row${fresh ? ' cn-row--new' : ''}`} onClick={() => void openThread(c.id)}>
-      <div className="cn-row-who">
-        <b>{c.other.name.toUpperCase()}</b>
-        <em>
-          {c.other.role} · {c.other.location}
-        </em>
-      </div>
-      <div className={`cn-chat-last${c.unread > 0 ? ' cn-chat-last--unread' : ''}`}>
-        {c.last ? (
-          <>
-            {c.last.mine && <span className="cn-chat-you">YOU:</span>} {c.last.body}
-          </>
-        ) : (
-          <>
-            <span>{i.emoji}</span> BOTH WANT TO {i.label} · SAY HI
-          </>
-        )}
-      </div>
-      <span className="cn-chat-meta">
-        {c.unread > 0 && <em className="hud-badge cn-unread">{c.unread}</em>}
-        <small>{ago(c.last?.at ?? c.decided_at ?? c.created_at)}</small>
-      </span>
-    </button>
-  )
-}
-
-function Row({ c }: { c: Conn }) {
+/** Someone asked you: who, why, what they said — then one clear decision. */
+function AskCard({ c, focus, i: idx }: { c: Conn; focus: boolean; i: number }) {
   const busy = useConnect((s) => s.busy)
+  const [leaving, setLeaving] = useState(false)
   const i = intentOf(c.intent)
-  if (c.state === 'matched') return <ChatRow c={c} />
+  const notNow = () => {
+    setLeaving(true)
+    setTimeout(async () => {
+      await useConnect.getState().respond(c.id, false)
+      useGame.getState().showToast('NOT NOW · THEY WON’T BE TOLD', 'info')
+    }, 220)
+  }
   return (
-    <div className={`cn-row${!c.seen ? ' cn-row--new' : ''}`}>
-      <div className="cn-row-who">
-        <b>{c.other.name.toUpperCase()}</b>
-        <em>
-          {c.other.role} · {c.other.location}
-        </em>
+    <div
+      className={`cn-card${focus ? ' cn-card--focus' : ''}${!c.seen ? ' cn-card--new' : ''}${leaving ? ' cn-card--out' : ''}`}
+      style={{ ['--i' as string]: idx }}
+      data-id={c.id}
+    >
+      <div className="cn-card-main">
+        <div className="cn-card-head">
+          <Portrait who={c.other} />
+          <span className="cn-card-who">
+            <b>{c.other.name.toUpperCase()}</b>
+            <em>
+              {c.other.role} · {c.other.location}
+            </em>
+          </span>
+          <small className="cn-card-ago">{ago(c.created_at)}</small>
+        </div>
+        <span className="cn-chip">
+          <span className="cn-chip-e">{i.emoji}</span> {i.label}
+        </span>
+        {c.note && <p className="cn-bubble">{c.note}</p>}
       </div>
-      <div className="cn-row-intent">
-        <span>{i.emoji}</span>
-        {c.dir === 'in' ? `WANTS TO ${i.label}` : `YOU ASKED TO ${i.label}`}
-        <small>{ago(c.created_at)}</small>
-      </div>
-      {c.note && <q className="cn-note cn-row-note">{c.note}</q>}
-      <div className="cn-row-actions">
-        {c.dir === 'in' && (
-          <>
-            <button
-              className="pp-btn slant cn-btn"
-              disabled={busy}
-              onClick={async () => {
-                await useConnect.getState().respond(c.id, false)
-                useGame.getState().showToast('NOT NOW · THEY WON’T BE TOLD', 'info')
-              }}
-            >
-              <span className="unslant">NOT NOW</span>
-            </button>
-            <button className="pp-btn slant pp-btn--primary cn-btn" disabled={busy} onClick={() => useConnect.getState().respond(c.id, true)}>
-              <span className="unslant">ACCEPT ▸</span>
-            </button>
-          </>
-        )}
-        {c.dir === 'out' && (
-          <button className="gate-switch" onClick={() => useConnect.getState().withdraw(c.id)}>
-            WITHDRAW
-          </button>
-        )}
+      <div className="cn-foot">
+        <button className="cn-foot-btn" disabled={busy || leaving} onClick={notNow}>
+          <span>NOT NOW</span>
+        </button>
+        <button className="cn-foot-btn cn-foot-btn--go" disabled={busy || leaving} onClick={() => useConnect.getState().respond(c.id, true)}>
+          <span>ACCEPT ▸</span>
+        </button>
       </div>
     </div>
   )
 }
 
-const EMPTY: Record<Tab, string> = {
-  requests: 'No requests yet. Set a status (N) to tell people what you’re up for.',
-  matches: 'No chats yet. Find someone (F), open their profile and hit CONNECT. When they say yes, your chat is here.',
-  sent: 'Nothing waiting. Requests nobody answers quietly disappear after 14 days.',
+/** You both said yes: the chat — its last line and unread — and where they are in the city. */
+function ChatCard({ c, focus, i: idx }: { c: Conn; focus: boolean; i: number }) {
+  const i = intentOf(c.intent)
+  const there = getPeople().some((x) => x.id === c.other.id)
+  const fresh = c.unread > 0 || (c.dir === 'out' && !c.seen)
+  return (
+    <div className={`cn-card cn-card--match${focus ? ' cn-card--focus' : ''}`} style={{ ['--i' as string]: idx }} data-id={c.id}>
+      <div className="cn-card-main">
+        <div className="cn-card-head">
+          <Portrait who={c.other} />
+          <span className="cn-card-who">
+            <b>{c.other.name.toUpperCase()}</b>
+            <em>{c.other.role}</em>
+          </span>
+          {c.unread > 0 ? <em className="cn-unread-pill">{c.unread} NEW</em> : <small className="cn-card-ago">{ago(c.last?.at ?? c.decided_at ?? c.created_at)}</small>}
+        </div>
+        <span className="cn-chip cn-chip--match">
+          ✓ MATCHED · <span className="cn-chip-e">{i.emoji}</span> {i.label}
+        </span>
+        {c.last ? (
+          <p className={`cn-bubble cn-bubble--last${c.unread > 0 ? ' cn-bubble--unread' : ''}`}>
+            {c.last.mine && <span className="cn-bubble-you">YOU: </span>}
+            {c.last.body}
+          </p>
+        ) : (
+          fresh && <p className="cn-bubble cn-bubble--last">You both want to {i.verb}. Say hi.</p>
+        )}
+      </div>
+      <div className="cn-foot">
+        {there ? (
+          <button className="cn-foot-btn" onClick={() => walkTo(c.other.id)}>
+            <span>WALK TO THEM</span>
+          </button>
+        ) : (
+          <span className="cn-foot-btn cn-foot-btn--off">
+            <span>NOT IN THE CITY NOW</span>
+          </span>
+        )}
+        <button className="cn-foot-btn cn-foot-btn--match" onClick={() => void openThread(c.id)}>
+          <span>{c.last ? 'MESSAGE ▸' : 'SAY HI ▸'}</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** You asked: small, out of the way. */
+function SentCard({ c }: { c: Conn }) {
+  const i = intentOf(c.intent)
+  return (
+    <div className="cn-sent">
+      <Portrait who={c.other} size="s" />
+      <span className="cn-sent-who">
+        <b>{c.other.name.toUpperCase()}</b>
+        <em>
+          {i.emoji} {i.verb} · {ago(c.created_at)}
+        </em>
+      </span>
+      <button className="gate-switch" onClick={() => useConnect.getState().withdraw(c.id)}>
+        WITHDRAW
+      </button>
+    </div>
+  )
 }
 
 /** Email on or off (requests, matches, unread messages). */
@@ -510,52 +707,61 @@ function EmailSetting() {
   )
 }
 
-/** C — the Connections screen. */
+/** C — the connections tray: a pane from the right; the city stays in view (5G-C). */
 export function Connections() {
   const phase = useGame((s) => s.phase)
   const open = useGame((s) => s.connectOpen)
   const setOpen = useGame((s) => s.setConnectOpen)
   const member = useDirectory((s) => s.me?.status === 'approved')
   const items = useConnect((s) => s.items)
-  const tab = useConnect((s) => s.tab)
-  const setTab = useConnect((s) => s.setTab)
   const matchId = useConnect((s) => s.matchId)
+  const focus = useConnect((s) => s.focus)
   const showMatch = useConnect((s) => s.showMatch)
   const threadId = useConnect((s) => s.threadId)
   const showThread = useConnect((s) => s.showThread)
-
-  const lists = groups(items)
+  const [settings, setSettings] = useState(false)
+  const [sentOpen, setSentOpen] = useState(false)
+  const { requests, matches, sent } = groups(items)
   const match = matchId ? items.find((c) => c.id === matchId) : undefined
   const thread = threadId ? items.find((c) => c.id === threadId && c.state === 'matched') : undefined
-
   const close = () => {
     setOpen(false)
     showMatch(null)
     showThread(null)
+    useConnect.setState({ focus: null })
     requestLook()
   }
-
-  // C = connections (members), from the street
+  // C = connections (members), from the street; with a card on screen, C opens the tray on it
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
       if (e.code !== 'KeyC' || e.repeat || isTyping(e) || g.phase !== 'play' || !isMemberNow()) return
       if (g.openId || g.searchOpen || g.paused || g.portalOpen || g.travel || g.statusOpen || g.invitesOpen) return
       e.preventDefault()
-      g.setConnectOpen(!g.connectOpen)
+      if (g.connectOpen) return g.setConnectOpen(false)
+      const a = useConnect.getState().arrival
+      if (a?.conn.state === 'matched') useConnect.getState().showMatch(a.conn.id)
+      else useConnect.getState().openTray(a?.conn.id ?? null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
-
-  // opening: land on what needs you, and mark it seen
+  // opening: load and mark seen
   useEffect(() => {
     if (!open) return
-    const s = useConnect.getState()
-    if (!s.matchId && !s.threadId) s.setTab(landingTab(s.items))
-    void s.load().then(() => useConnect.getState().markSeen())
+    setSettings(false)
+    useConnect.getState().dismissArrival()
+    void useConnect
+      .getState()
+      .load()
+      .then(() => useConnect.getState().markSeen())
   }, [open])
-
+  // the focused card scrolls into view
+  useEffect(() => {
+    if (!open || !focus) return
+    const id = setTimeout(() => document.querySelector(`.cn-card[data-id="${focus}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 260)
+    return () => clearTimeout(id)
+  }, [open, focus, items])
   // links from the emails: /?connections
   useEffect(() => {
     if (phase !== 'play' || !member) return
@@ -565,7 +771,6 @@ export function Connections() {
     window.history.replaceState(null, '', url)
     setOpen(true)
   }, [phase, member, setOpen])
-
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -573,63 +778,86 @@ export function Connections() {
       e.preventDefault()
       e.stopPropagation()
       const st = useConnect.getState()
-      if (st.threadId && escInThread()) return
-      if (st.threadId) {
-        showThread(null)
-        st.setTab('matches')
-      } else if (st.matchId) showMatch(null)
+      if (st.threadId && escInThread()) return // the chat's ••• menu closes first
+      if (st.threadId) showThread(null)
+      else if (st.matchId) showMatch(null)
       else close()
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
   })
-
   if (phase !== 'play' || !open || !member) return null
-
+  const nothing = !requests.length && !matches.length && !sent.length
+  let k = 0
   return (
-    <div className="cr cn">
-      <div className="select-shade" />
-      <div className={`cr-panel cn-panel${thread ? ' cn-panel--chat' : ''}`} key={thread ? `t${thread.id}` : match ? match.id : 'list'}>
-        <div className="cr-top">
-          <span className="cr-tag slant">
-            <span className="unslant">CONNECTIONS</span>
-          </span>
-          <button className="pp-close st-close" onClick={close} aria-label="Close">
+    <div className="cn-tray-wrap" onMouseDown={(e) => e.target === e.currentTarget && close()}>
+      <aside className="cn-tray" aria-label="Connections">
+        <header className="cn-tray-top">
+          <span className="cn-tray-k">CONNECTIONS</span>
+          <button
+            className={`cn-gear${settings ? ' cn-gear--on' : ''}`}
+            onClick={() => setSettings((v) => !v)}
+            aria-label="Email settings"
+            aria-expanded={settings}
+          >
+            ⚙
+          </button>
+          <button className="pp-close" onClick={close} aria-label="Close">
             <span className="keycap">ESC</span>
           </button>
-        </div>
+        </header>
 
-        {thread ? (
-          <Thread
-            c={thread}
-            onBack={() => {
-              showThread(null)
-              setTab('matches')
-            }}
-          />
-        ) : match ? (
-          <Match c={match} onBack={() => showMatch(null)} />
-        ) : (
-          <>
-            <h2 className="cr-title">WHO WANTS TO MEET</h2>
-            <p className="cr-copy st-lede">Say yes and a chat opens between you two. Say not now and they’re never told.</p>
-            <div className="cn-tabs">
-              {(['requests', 'matches', 'sent'] as Tab[]).map((t) => (
-                <button key={t} className={`chip slant${tab === t ? ' chip--on' : ''}`} onClick={() => setTab(t)}>
-                  <span className="unslant">
-                    {t === 'matches' ? 'CHATS' : t.toUpperCase()}
-                    {lists[t].length > 0 && <em className="cn-count">{lists[t].length}</em>}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <div className="cn-list">
-              {lists[tab].length ? lists[tab].map((c) => <Row key={c.id} c={c} />) : <p className="cn-empty">{EMPTY[tab]}</p>}
-            </div>
+        {settings ? (
+          <div className="cn-tray-scroll">
             <EmailSetting />
-          </>
+          </div>
+        ) : thread ? (
+          <div className="cn-tray-chat" key={`t${thread.id}`}>
+            <Thread c={thread} onBack={() => showThread(null)} />
+          </div>
+        ) : match ? (
+          <div className="cn-tray-scroll" key={match.id}>
+            <Match c={match} onBack={() => showMatch(null)} />
+          </div>
+        ) : (
+          <div className="cn-tray-scroll">
+            {nothing && (
+              <div className="cn-empty-tray">
+                <b>NOBODY YET</b>
+                <p>Set a status (N) so people know what you’re up for, or find someone (F) and hit CONNECT on their profile.</p>
+              </div>
+            )}
+            {requests.length > 0 && (
+              <section className="cn-sec">
+                <h3 className="cn-sec-k cn-sec-k--hot">
+                  NEEDS YOU <em>{requests.length}</em>
+                </h3>
+                {requests.map((c) => (
+                  <AskCard key={c.id} c={c} focus={focus === c.id} i={k++} />
+                ))}
+              </section>
+            )}
+            {matches.length > 0 && (
+              <section className="cn-sec">
+                <h3 className="cn-sec-k">
+                  CHATS <em>{matches.length}</em>
+                </h3>
+                {matches.map((c) => (
+                  <ChatCard key={c.id} c={c} focus={focus === c.id} i={k++} />
+                ))}
+              </section>
+            )}
+            {sent.length > 0 && (
+              <section className="cn-sec">
+                <button className="cn-sec-k cn-sec-toggle" onClick={() => setSentOpen((v) => !v)} aria-expanded={sentOpen}>
+                  WAITING ON THEM <em>{sent.length}</em> <span className="cn-chev">{sentOpen ? '▾' : '▸'}</span>
+                </button>
+                {sentOpen && sent.map((c) => <SentCard key={c.id} c={c} />)}
+              </section>
+            )}
+          </div>
         )}
-      </div>
+      </aside>
     </div>
   )
 }

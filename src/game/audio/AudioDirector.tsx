@@ -80,6 +80,8 @@ export function AudioDirector() {
     // IT'S A MATCH — the motif, fully stated (same as finding someone)
     const unsubMatch = useConnect.subscribe((s, p) => {
       if (s.matchId && s.matchId !== p.matchId) sfx.found()
+      // the bell (5G-C)
+      if (s.ring && s.ring !== p.ring) sfx.bellRing(s.ring.kind)
     })
     // results-count confirmation in the finder (debounced)
     let deb: ReturnType<typeof setTimeout> | null = null
