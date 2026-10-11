@@ -20,7 +20,7 @@ export const NOTE_MAX = 200
 export const SEND_ERRORS: Record<string, string> = {
   not_member: 'Only people in the city can connect. Become visible first.',
   not_found: 'They’re not in the city any more.',
-  cooldown: 'You asked them recently. You can ask again 30 days after your last request.',
+  cooldown: 'You asked them recently. You can ask again 2 days after your last request.',
   limit: 'That’s today’s connect requests used up. Try again tomorrow.',
   error: 'Couldn’t send it right now. Try again in a moment.',
 }

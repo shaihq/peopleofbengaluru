@@ -49,6 +49,11 @@ export const FLOOD_S = 3
 export const HELLO_TIMEOUT_MS = 5000
 /** The room stops ticking when nobody has moved for this long (so it can sleep). */
 export const IDLE_STOP_MS = 2000
+/**
+ * Standing still this long takes you off the live map: to everyone else you go offline and wander again,
+ * like other offline members. Moving rejoins by itself.
+ */
+export const AWAY_MS = 10 * 60_000
 
 /** Close codes. */
 export const CLOSE = {
@@ -61,6 +66,8 @@ export const CLOSE = {
   NOT_MEMBER: 4006,
   /** the login token ran out: rejoin with a fresh one */
   EXPIRED: 4007,
+  /** stood still for AWAY_MS: off the live map until you move again */
+  AWAY: 4008,
 } as const
 
 /** "koramangala#2" — district plus shard number (1-based). */

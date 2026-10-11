@@ -5575,19 +5575,42 @@ html.touch .ch-list {
   }
 }
 
-/* paused: you're live in another tab or on another device (same bar as the ghost bar) */
+/* paused: you went live in another tab or on another device; this one stops behind a pause-style card */
+.elsewhere-screen {
+  z-index: 95;
+}
+
+.elsewhere-screen .pause-bar {
+  align-items: center;
+}
+
+.elsewhere-screen .pause-body {
+  gap: 18px;
+  padding-bottom: 30px;
+}
+
+.elsewhere-copy {
+  margin: 0;
+  font-family: var(--font-body), sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: rgba(255, 246, 229, 0.78);
+}
+
 .elsewhere-icon {
   position: relative;
   width: 30px;
   height: 24px;
   flex: none;
+  align-self: center;
 }
 
 .elsewhere-icon i {
   position: absolute;
   width: 20px;
   height: 15px;
-  border: 2px solid var(--cream);
+  border: 2px solid var(--ink);
   transform: skewX(var(--skew));
 }
 
@@ -5600,27 +5623,12 @@ html.touch .ch-list {
 .elsewhere-icon i:last-child {
   right: 0;
   bottom: 0;
-  background: var(--saffron);
-  border-color: var(--saffron);
+  background: var(--ink);
 }
 
-.ghostbar.elsewhere {
-  border-left-color: var(--saffron);
-  animation-delay: 0s;
-}
-
-/* phones: members have their card at the bottom, so the paused bar sits just above it */
-@media (max-width: 820px), (max-height: 520px) {
-  .ghostbar.elsewhere {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 116px);
-  }
-}
-
-/* phones on their side: the top centre is free, like desktop */
-@media (max-height: 520px) {
-  .ghostbar.elsewhere {
-    top: calc(env(safe-area-inset-top, 0px) + 10px);
-    bottom: auto;
+@media (max-width: 520px) {
+  .elsewhere-screen .pause-title {
+    font-size: 26px;
   }
 }
 

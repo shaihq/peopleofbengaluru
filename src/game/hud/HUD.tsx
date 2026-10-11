@@ -4,6 +4,8 @@ import { useGame } from '../store'
 import { districtInfo } from '../districts/registry'
 import { ConnectHud } from './Connections'
 import { useNet } from '../net/useNet'
+import { useClock } from '../scene/time'
+import { clockText, phaseAt } from '../scene/daylight'
 
 function Keycap({ k, wide }: { k: string; wide?: boolean }) {
   return <span className={`keycap${wide ? ' keycap--wide' : ''}`}>{k}</span>
@@ -19,6 +21,8 @@ export function HUD() {
   const info = districtInfo(district)
   // round trip to the live city, while connected
   const ping = useNet((s) => (s.status === 'live' ? s.ping : null))
+  // Bengaluru's time, the same clock the light runs on
+  const hour = useClock((s) => s.hour)
 
   if (phase !== 'play') return null
 
@@ -57,8 +61,10 @@ export function HUD() {
             </span>
           </button>
         </div>
-        <div className="slant hud-weather">
-          <span className="unslant">☀ 27° · 10:40 AM</span>
+        <div className="slant hud-weather" title="Time in Bengaluru">
+          <span className="unslant">
+            {phaseAt(hour) === 'night' ? '☾' : '☀'} {clockText(hour)}
+          </span>
         </div>
       </div>
 
