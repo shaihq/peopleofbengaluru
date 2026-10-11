@@ -1177,7 +1177,7 @@ Add:
 - Café activity
 - Environmental animations
 - Weather
-- Day/night
+- Day/night (built: src/game/scene/daylight.ts, time.ts). The city runs on Bengaluru's real clock (IST, wherever the player is); the HUD clock under FIND SOMEONE shows the same time. Looks: night → dawn → morning → day → golden hour → dusk, each a full set of sun, sky, fog, ambient and reflections, blended between keys. At night only real light sources emit: street lamps (with a light pool on the road) and about half the windows (warm bulbs or tube lights), plus the moon and a few stars. `?time=19:30` freezes the clock for trying the looks. Change the looks in daylight.ts (tested in daylight.test.ts).
 - More landmarks
 
 Expand the world carefully.

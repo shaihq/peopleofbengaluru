@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { applyGroundGrade } from '../materials'
+import { applySurfaceKind, surfaceKind } from '../materials'
 
 /**
  * The city is authored as thousands of small kit pieces. Once mounted, this
@@ -23,8 +23,8 @@ function surfaceKey(m: THREE.Material): string | null {
   const s = m as THREE.MeshStandardMaterial
   if (s.type !== 'MeshStandardMaterial' || s.map || s.emissiveMap || s.vertexColors || s.transparent || s.opacity < 1) return null
   if (s.emissive.getHex() !== 0 || !s.depthWrite || s.polygonOffset) return null
-  const painted = s.customProgramCacheKey() === 'painted-surface'
-  return `surface|${s.roughness}|${s.metalness}|${s.envMapIntensity}|${s.side}|${s.flatShading}|${painted}`
+  // painted walls and lit-room glass keep their shader on the merged copy
+  return `surface|${s.roughness}|${s.metalness}|${s.envMapIntensity}|${s.side}|${s.flatShading}|${surfaceKind(s)}`
 }
 const surfaces = new Map<string, THREE.MeshStandardMaterial>()
 function surfaceMaterial(key: string, like: THREE.MeshStandardMaterial) {
@@ -38,7 +38,7 @@ function surfaceMaterial(key: string, like: THREE.MeshStandardMaterial) {
       side: like.side,
       flatShading: like.flatShading,
     })
-    if (like.customProgramCacheKey() === 'painted-surface') applyGroundGrade(m)
+    applySurfaceKind(m, surfaceKind(like))
     surfaces.set(key, m)
   }
   return m

@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { useMemo } from 'react'
 import { C } from '@/lib/palette'
-import { glassMat, leafMat, mat, texMat } from '../materials'
+import { glassMat, leafMat, mat, roomGlassMat, texMat } from '../materials'
 import { canopyGeo, chamferBox, cyl, plane, rbox } from '../geometry'
 import { isTouch } from '../device'
 import { rng, shutterTex, signTexture, stripeTex, useFontsReady, repeated, type SignSpec } from '../textures'
@@ -70,11 +70,21 @@ type WinProps = {
   door?: boolean
 }
 
+// At night about half the windows have someone home: mostly warm bulbs, some white tube lights.
+// Decided once per window as the city is built (it's merged after), so the pattern stays put.
+let winCount = 0
+function windowGlass() {
+  const n = winCount++
+  const r = Math.abs(Math.sin(n * 127.1 + 311.7) * 43758.5453) % 1
+  return r < 0.48 ? glassMat() : roomGlassMat(r < 0.82 ? 'warm' : 'tube')
+}
+
 /** Window placed on a wall surface (local +Z = outward). Frame protrudes so the glass reads as recessed. */
 export function Win({ p, r, w = 1.3, h = 1.5, frame = C.WALL_WHITE, grille = false, shade = true, shadeColor, curtain, door }: WinProps) {
   const t = 0.13
   const dp = 0.16
   const bars = grille ? Math.max(2, Math.round(w / 0.3)) : 0
+  const glass = useMemo(windowGlass, [])
   return (
     <group position={p} rotation={r}>
       <Box s={[w + t * 2, t, dp]} p={[0, h / 2 + t / 2, dp / 2]} c={frame} />
@@ -82,7 +92,7 @@ export function Win({ p, r, w = 1.3, h = 1.5, frame = C.WALL_WHITE, grille = fal
       <Box s={[t, h, dp]} p={[-w / 2 - t / 2, 0, dp / 2]} c={frame} />
       <Box s={[t, h, dp]} p={[w / 2 + t / 2, 0, dp / 2]} c={frame} />
       <Box s={[0.07, h, 0.06]} p={[0, 0, 0.04]} c={frame} shadow={false} />
-      <mesh geometry={plane(w, h)} material={glassMat()} position={[0, 0, 0.012]} receiveShadow />
+      <mesh geometry={plane(w, h)} material={glass} position={[0, 0, 0.012]} receiveShadow />
       {curtain && (
         <mesh geometry={plane(w * 0.42, h * 0.94)} material={mat(curtain, { grade: false })} position={[-w * 0.27, 0, 0.018]} />
       )}

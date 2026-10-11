@@ -1,10 +1,11 @@
 'use client'
 
 import * as THREE from 'three'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { C } from '@/lib/palette'
 import { BASE, POLE_RUNS } from '../layout'
-import { mat } from '../materials'
+import { lampMat, lights, mat } from '../materials'
 import { Box } from './kit'
 
 const POLE = '#BDB2A0'
@@ -20,7 +21,9 @@ function Pole({ x, z, ax, az, transformer }: { x: number; z: number; ax: number;
       <Box s={[1.5, 0.14, 0.14]} p={[0, ARM, 0]} c={POLE} />
       {/* lamp arm reaching over the road */}
       <Box s={[0.1, 0.1, 1.9]} p={[0, 7.0, 0.95]} c={C.GRILLE} metal={0.4} rough={0.5} grade={false} />
-      <Box s={[0.34, 0.14, 0.6]} p={[0, 6.92, 1.95]} c="#E9E4DA" rough={0.5} grade={false} />
+      <Box s={[0.34, 0.14, 0.6]} p={[0, 6.92, 1.95]} material={lampMat()} />
+      {/* the pool of light it throws on the road at night */}
+      <mesh geometry={poolGeo} material={poolMat} position={[0, 0.02 - BASE, 1.95]} rotation={[-Math.PI / 2, 0, 0]} userData={{ noMerge: true }} />
       {transformer && (
         <group position={[0, 5.2, -0.42]}>
           <Box s={[0.9, 1.1, 0.55]} p={[0, 0, 0]} c="#8E98A3" metal={0.3} rough={0.5} grade={false} />
@@ -31,6 +34,50 @@ function Pole({ x, z, ax, az, transformer }: { x: number; z: number; ax: number;
       )}
     </group>
   )
+}
+
+// Lamp light on the ground: a soft warm disc, added on top of the road (no real lights: dozens of
+// point lights would cost more than the whole city). Fades in with the night.
+const poolGeo = new THREE.CircleGeometry(4.2, 40)
+const poolTex = (() => {
+  if (typeof document === 'undefined') return null
+  const c = document.createElement('canvas')
+  c.width = c.height = 128
+  const g = c.getContext('2d')!
+  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64)
+  grad.addColorStop(0, 'rgba(255,255,255,1)')
+  grad.addColorStop(0.35, 'rgba(255,255,255,0.55)')
+  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  g.fillStyle = grad
+  g.fillRect(0, 0, 128, 128)
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  return t
+})()
+const poolMat = new THREE.MeshBasicMaterial({
+  color: '#FFD494',
+  map: poolTex,
+  transparent: true,
+  opacity: 0,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -4,
+  fog: false,
+})
+
+/** Lamps on with the dusk, off with the dawn. */
+function LampsOn() {
+  const was = useRef(-1)
+  useFrame(() => {
+    const on = lights.value
+    if (on === was.current) return
+    was.current = on
+    lampMat().emissiveIntensity = on * 7
+    poolMat.opacity = on * 0.32
+    poolMat.visible = on > 0
+  })
+  return null
 }
 
 function sagCurve(a: THREE.Vector3, b: THREE.Vector3, sag: number) {
@@ -84,6 +131,7 @@ export function StreetPoles() {
         run.map(([x, z, ax, az], i) => <Pole key={`${ri}-${i}`} x={x} z={z} ax={ax} az={az} transformer={(ri + i) % 4 === 1} />),
       )}
       <Cables />
+      <LampsOn />
     </>
   )
 }
