@@ -1002,7 +1002,7 @@ Rules:
 - Members only: only visible members can send or receive. Ghosts see CONNECT as "become visible to connect". Sample people can't be connected with.
 - A decline is never shown to the sender. Declined and ignored requests look the same: "sent", then gone after 14 days.
 - If they already asked you, your CONNECT is an instant match.
-- No pestering: one open request per pair, a daily cap per sender (settings value), and after a request ends without a match you wait 30 days before asking that person again.
+- No pestering: one open request per pair, a daily cap per sender (settings value), and after a request ends without a match you wait 2 days before asking that person again.
 - Chat v1 is text only: ≤ 500 characters a message, 30 a minute per sender. No images, groups, edits, typing indicators or read receipts.
 - Unmatch, block and report are in the chat's ••• menu. Unmatch and block delete the thread for both people. Block also stops either side asking again; it reads as "not found", and they're never told. Report copies the request and the last 20 messages for the admins, then blocks.
 - Privacy: messages are readable only by the two people in the chat (through the server's functions). Admins never read chats, only what someone reported. Messages are deleted on unmatch, block, or when either account is deleted. Emails never contain message text. We don't ask for or store contact details any more; people can share theirs in the chat if they want.
@@ -1018,7 +1018,7 @@ Rules:
 - Rolling out over a shared database (dev and production use one Supabase project): 0009 is additive and the live site keeps running the old functions. Run 0010_drop_contacts.sql (deletes the saved contacts and the old functions) only after main is deployed with the chat.
 - Emails by Resend from the server: "X wants to grab coffee with you" to the recipient, "It's a match" to the sender (/api/connect/send, /api/connect/respond), unread messages (/api/cron/chat-digest, every 5 minutes from pg_cron: supabase/cron.sql). Emails link back into the city. Without RESEND_API_KEY, nothing is emailed and the rest still works.
 - Sender: People of Bengaluru <noreply@updates.peopleofbengaluru.com> (domain verified in Resend). The sender address (From) is set on each template in Resend, not in code.
-- Settings (app_settings): connect_daily_limit 10, connect_expiry_days 14, connect_cooldown_days 30.
+- Settings (app_settings): connect_daily_limit 10, connect_expiry_days 14, connect_cooldown_days 2.
 - Moderation: /admin → REPORTS: what was reported, RESOLVE or HIDE MEMBER (profiles.status = hidden: they leave the city).
 
 ## 5G-B — CONNECT + CHAT UX/UI (built: src/game/connect.ts, src/game/chat.ts, src/game/hud/Connections.tsx, src/game/hud/Chat.tsx)
@@ -1229,7 +1229,7 @@ In the game:
 
 - Offline members (and samples) keep wandering, as before; guests and ghosts only ever see wandering. A member who comes online is driven by the network (src/game/people/Person.tsx: wander ↔ live) and gets the saffron ● HERE NOW tag; going offline, they wander again from where they stood. Members live in another district leave this one; members live here from another district appear.
 - HUD: while live, the real round trip to the room (ping every 3 s, median of the last five) sits at the end of the online pill: bars + "42 MS" (green < 80, saffron < 160, red above). The portal picker shows live counts.
-- One live tab or device per member: the newest takes over (toast "LIVE HERE · YOUR OTHER TAB OR DEVICE IS PAUSED"); the other shows "LIVE IN ANOTHER TAB" with PLAY HERE (H) and never takes over by itself (switching tabs, travelling or reconnecting don't count).
+- One live tab or device per member: the newest takes over (toast "LIVE HERE · YOUR OTHER TAB OR DEVICE IS PAUSED"); the other is disconnected and stops behind one card, "PLAYING ELSEWHERE" (close the tab, or PLAY HERE: H / Enter), and never takes over by itself (switching tabs, travelling or reconnecting don't count).
 - Unset NEXT_PUBLIC_REALTIME_URL, or the room server down: everyone wanders and the game works exactly as before; it reconnects with backoff.
 - Known limits: people in different shards of one district can't see each other (finding someone joins their shard); a profile change applies on the next join.
 

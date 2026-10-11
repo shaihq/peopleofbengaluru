@@ -3,53 +3,66 @@
 import { useEffect } from 'react'
 import { useGame } from '../store'
 import { useDirectory } from '../people/directory'
-import { isTyping } from '../player/input'
+import { keys } from '../player/input'
 import { takeOver } from '../net/client'
 import { useNet } from '../net/useNet'
 
 /**
- * LIVE CITY (CLAUDE.md Phase 8A): you're live in another tab or on another device, so this tab is paused —
- * nobody sees you from here. PLAY HERE (or H) makes this one live and pauses the other.
+ * LIVE CITY (CLAUDE.md Phase 8A): you went live in another tab or on another device, so this tab was
+ * disconnected. The game stops here behind one card: PLAY HERE (H or Enter) makes this one live again
+ * and pauses the other; otherwise just close the tab.
  */
 export function LiveElsewhere() {
   const phase = useGame((s) => s.phase)
-  const tracking = useGame((s) => !!s.trackId)
   const member = useDirectory((s) => s.me?.status === 'approved')
   const paused = useNet((s) => s.status === 'replaced')
   const show = phase === 'play' && member && paused
 
-  // H = play here (the mouse is captured while you walk)
   useEffect(() => {
     if (!show) return
+    // let go of the mouse and stop walking: nothing in the game runs under this card
+    if (document.pointerLockElement) document.exitPointerLock()
+    for (const k in keys) keys[k] = false
+    // the card owns the keyboard: H / Enter play here, every other game key is swallowed
     const onKey = (e: KeyboardEvent) => {
-      const g = useGame.getState()
-      if (e.code !== 'KeyH' || e.repeat || isTyping(e) || g.openId || g.searchOpen || g.statusOpen || g.connectOpen || g.invitesOpen || g.paused) return
-      e.preventDefault()
-      takeOver()
+      e.stopImmediatePropagation()
+      if (e.type !== 'keydown' || e.repeat) return
+      if (e.code === 'KeyH' || e.code === 'Enter') {
+        e.preventDefault()
+        takeOver()
+      }
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey, true)
+    window.addEventListener('keyup', onKey, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('keyup', onKey, true)
+    }
   }, [show])
 
-  // the tracking banner owns top-centre while you're heading to someone
-  if (!show || tracking) return null
+  if (!show) return null
   return (
-    <div className="ghostbar slant elsewhere" role="status">
-      <span className="unslant ghostbar-inner">
-        <span className="elsewhere-icon" aria-hidden>
-          <i />
-          <i />
-        </span>
-        <span className="ghostbar-text">
-          <b>LIVE IN ANOTHER TAB</b>
-          <span>Or on another device. Nobody sees you from this one.</span>
-        </span>
-        <button className="btn-primary slant ghostbar-cta" onClick={takeOver}>
-          <span className="unslant">
-            PLAY HERE <span className="keycap">H</span>
+    <div className="pause elsewhere-screen" role="alertdialog" aria-labelledby="elsewhere-title">
+      <div className="pause-card">
+        <header className="pause-bar">
+          <span className="elsewhere-icon" aria-hidden>
+            <i />
+            <i />
           </span>
-        </button>
-      </span>
+          <span className="pause-title" id="elsewhere-title">
+            PLAYING ELSEWHERE
+          </span>
+        </header>
+        <div className="pause-body">
+          <p className="elsewhere-copy">
+            You went live in another tab or on another device, so this one was disconnected. Close this tab, or play here instead.
+          </p>
+          <button className="pause-row pause-row--primary" onClick={takeOver} autoFocus>
+            <span className="pause-label">PLAY HERE</span>
+            <span className="keycap">H</span>
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

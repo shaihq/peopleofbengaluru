@@ -259,9 +259,11 @@ export function ConnectBlock({ p, onConnect }: { p: Profile; onConnect: () => vo
   const busy = useConnect((s) => s.busy)
   const c = connWith(items, p.id)
   const [err, setErr] = useState<string | null>(null)
+  const [unmatching, setUnmatching] = useState(false)
 
   useEffect(() => {
     setErr(null)
+    setUnmatching(false)
   }, [p.id])
 
   if (p.sample) {
@@ -302,6 +304,14 @@ export function ConnectBlock({ p, onConnect }: { p: Profile; onConnect: () => vo
 
   if (c?.state === 'matched') {
     const i = intentOf(c.intent)
+    const first = c.other.name.split(' ')[0]
+    const unmatch = async () => {
+      useConnect.setState({ busy: true })
+      await useConnect.getState().remove(c.id)
+      useConnect.setState({ busy: false })
+      setUnmatching(false)
+      useGame.getState().showToast(`UNMATCHED · THE CHAT WITH ${first.toUpperCase()} IS GONE`, 'info')
+    }
     return (
       <div className="cn-block">
         <div className="cn-state cn-state--match slant">
@@ -314,6 +324,27 @@ export function ConnectBlock({ p, onConnect }: { p: Profile; onConnect: () => vo
             MESSAGE ▸{c.unread > 0 && <em className="hud-badge cn-unread">{c.unread}</em>}
           </span>
         </button>
+        {unmatching ? (
+          <div className="ch-confirm">
+            <b>UNMATCH {first.toUpperCase()}?</b>
+            <p>Your chat is deleted for both of you. You can connect again later.</p>
+            <div className="ch-confirm-row">
+              <button className="pp-btn slant cn-btn" onClick={() => setUnmatching(false)} disabled={busy}>
+                <span className="unslant">CANCEL</span>
+              </button>
+              <button className="pp-btn slant cn-btn ch-danger" onClick={() => void unmatch()} disabled={busy}>
+                <span className="unslant">{busy ? '…' : 'UNMATCH'}</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="cn-fine">
+            Changed your mind?{' '}
+            <button className="gate-switch" onClick={() => setUnmatching(true)}>
+              UNMATCH
+            </button>
+          </p>
+        )}
       </div>
     )
   }
