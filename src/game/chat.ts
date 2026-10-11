@@ -5,7 +5,7 @@ import { useConnect } from './connect'
 import { useDirectory } from './people/directory'
 
 // CHAT (CLAUDE.md Phase 5G): one thread per match, inside the city. Messages are written through
-// send_message() and read through thread_messages() (supabase/migrations/0009_chat.sql). New ones
+// send_message() and read through thread_messages() (supabase/migrations/20261011080848_chat_phase_a.sql). New ones
 // arrive live on your own private channel "user:<id>"; if that channel is down, the minute-by-minute
 // refresh in Session.tsx still brings them in.
 

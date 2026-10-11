@@ -739,7 +739,7 @@ Split into two sub-phases. The UX/UI is designed and built first; the database c
 - New profiles start PENDING. You see yourself immediately; everyone else sees you once an admin sets status = approved.
 - Row-level security: anyone can read approved profiles, people can only write their own, nobody can self-approve.
 - Sample profiles retire automatically once enough real people are approved.
-- Schema: supabase/migrations/0001_profiles.sql
+- Schema: supabase/migrations/20261003193000_profiles.sql
 
 ---
 
@@ -845,7 +845,7 @@ Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both
 - Sign-in for returning members and applicants: "SIGN IN" on the gate, on the ghost bar (L; not signed in only) and in the pause menu. Magic link with shouldCreateUser off, so it never creates an account (unknown email → points to the ways in). After the return trip the person lands back on their profile or application status.
 - Quality bar: it must feel like a game screen, not a form (design.md).
 
-## 5D-B — ACCESS DATA (Supabase, no payments) — built: supabase/migrations/0002_access.sql
+## 5D-B — ACCESS DATA (Supabase, no payments) — built: supabase/migrations/20261003193100_access.sql
 
 - Invites table, settings table, user states, RLS. Codes are BLR- + 6 characters (no look-alike letters), so they can't be guessed.
 - check_invite(code): ok / invalid / used / expired / own + who vouched. Uses nothing up.
@@ -853,7 +853,7 @@ Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both
 - Existing approved members get their codes; the admin mints founder codes with select public.issue_invites(null, n).
 - "Apply to join" is open to everyone; it is the paid path (Phase 5E) — no free applications.
 - ?gatepreview runs every screen on local mocks (preview codes, all result states).
-- supabase/migrations/0007_invites.sql: create_invite_link(code, note) marks a code sent; my_invites() retires links unused for 30 days (state expired), issues a fresh code in their place (renewed_from) and lists your slots with who joined.
+- supabase/migrations/20261008102020_invites.sql: create_invite_link(code, note) marks a code sent; my_invites() retires links unused for 30 days (state expired), issues a fresh code in their place (renewed_from) and lists your slots with who joined.
 - Redeeming goes through /api/invite/redeem (runs redeem_invite as the caller, then sends the welcome + "they joined" emails).
 - No rate limiting of code checks, by decision. Known risk: check_invite can be called repeatedly to guess codes (~887M space). Revisit if it matters.
 
@@ -903,17 +903,17 @@ Rules:
 - RULE (6B): every screen works on touch and keyboard, including with the on-screen keyboard.
 - Quality bar: the questions feel like a game screen, not a form (design.md).
 
-## 5E-A — APPLICATION FORM + SUPABASE (built: supabase/migrations/0003_applications.sql)
+## 5E-A — APPLICATION FORM + SUPABASE (built: supabase/migrations/20261006175948_applications.sql)
 
 - The four question screens inside the Become Visible flow, on the pay path only; the progress bar covers them.
-- supabase/migrations/0003_applications.sql: an applications table: user id, email, the four answers, a snapshot of the profile, status (draft / submitted / paid / under_review / approved / rejected / refunded / refund_failed), Dodo payment id, amount, reviewer, reason, timestamps.
+- supabase/migrations/20261006175948_applications.sql: an applications table: user id, email, the four answers, a snapshot of the profile, status (draft / submitted / paid / under_review / approved / rejected / refunded / refund_failed), Dodo payment id, amount, reviewer, reason, timestamps.
 - RLS: applicants read and write only their own application, and only while it is draft / submitted. Nobody can set their own status. Admins read all.
 - One open application per email.
 - ?gatepreview covers every application screen and state on local mocks.
 - submit_application(answers, profile): signed-in only; creates the application or updates it while unpaid; never creates a profile (that happens on approval, 5E-B).
 - Admins live in public.admins (added by hand); is_admin() gates reviewer reads.
 
-## 5E-B — PAYMENT (DODO) + ADMIN REVIEW (built: supabase/migrations/0004_payments_review.sql; emails still to do)
+## 5E-B — PAYMENT (DODO) + ADMIN REVIEW (built: supabase/migrations/20261006181812_payments_review.sql; emails still to do)
 
 - Dodo Payments checkout once the application is saved. Payment is confirmed by a server-side Dodo webhook, never by the client → status under_review. Payment fails: retry, no review starts.
 - The admin page (/admin, admins only): a queue of applications under review, each showing the profile card, the four answers and the "one thing" link. Two actions: ACCEPT or REJECT + REFUND, with an optional reason.
@@ -964,7 +964,7 @@ How it shows without opening anyone's profile:
 - Your status is kept in this browser (localStorage). ?statuspreview lets anyone try the editor.
 - RULE (6B): works on touch, keyboard, and with the on-screen keyboard.
 
-## 5F-B — STATUS IN SUPABASE (built: supabase/migrations/0005_status.sql)
+## 5F-B — STATUS IN SUPABASE (built: supabase/migrations/20261007000000_status.sql)
 
 - profiles: note_text (1–100), note_emoji (one emoji, ≤ 16 code units), note_expires_at (null = don't clear). Members update these columns on their own row without re-approval; nothing else opens up.
 - Your status loads from your profile on any device and saves straight back; the editor shows it at once and rolls back with a message if the save fails.
@@ -1009,14 +1009,14 @@ Rules:
 - Nobody keeps a website tab open, so an unread message sends one email ("Ananya sent you a message") after 10 minutes, at most once per chat every 6 hours. Members can turn emails off.
 - RULE (6B): works on touch and keyboard, including with the on-screen keyboard. Typing in the chat never moves the player or triggers hotkeys.
 
-## 5G-A — DATA, PRIVACY, EMAIL (built: supabase/migrations/0006_connections.sql, 0009_chat.sql)
+## 5G-A — DATA, PRIVACY, EMAIL (built: supabase/migrations/20261007110614_connections.sql, 20261011080848_chat_phase_a.sql)
 
-- connections (0006): no client access at all; everything goes through security-definer functions, so a decline can't be read. The note: 0008_connect_note.sql.
+- connections (0006): no client access at all; everything goes through security-definer functions, so a decline can't be read. The note: 20261010022208_connect_note.sql.
 - Chat (0009): messages, blocks and reports have no client access either (reports: admins read). member_settings holds the email on/off (owner-only).
 - Functions: send_connect_v2, respond_connect_v2, withdraw_connect, remove_connect (also deletes the thread), my_connections_v2 (requests, matches with unread + last line, sent), mark_connections_seen, send_message, thread_messages, mark_read, block_member, report_member, admin_resolve_report. For the server only (service role): chat_digest_due, chat_mark_emailed.
 - Live delivery: a trigger on messages (and on connection changes) broadcasts to each person's private Realtime topic "user:<id>"; RLS on realtime.messages lets you join only your own topic. The game also refreshes every minute, so chats keep working if Realtime is down or over its connection limit (Free 200 at once; upgrade to Pro before launch).
-- Rolling out over a shared database (dev and production use one Supabase project): 0009 is additive and the live site keeps running the old functions. Run 0010_drop_contacts.sql (deletes the saved contacts and the old functions) only after main is deployed with the chat.
-- Emails by Resend from the server: "X wants to grab coffee with you" to the recipient, "It's a match" to the sender (/api/connect/send, /api/connect/respond), unread messages (/api/cron/chat-digest, every 5 minutes from pg_cron: supabase/cron.sql). Emails link back into the city. Without RESEND_API_KEY, nothing is emailed and the rest still works.
+- Rollout: 0009 (chat_phase_a) is additive, so the live site kept running the old functions. 20261012000000_drop_contacts.sql (deletes the saved contacts and the old functions) is already on staging; run it on production only after main is deployed with the chat.
+- Emails by Resend from the server: "X wants to grab coffee with you" to the recipient, "It's a match" to the sender (/api/connect/send, /api/connect/respond), unread messages (/api/cron/chat-digest, every 5 minutes from pg_cron: supabase/migrations/20261011083138_scheduled_jobs.sql). Emails link back into the city. Without RESEND_API_KEY, nothing is emailed and the rest still works.
 - Sender: People of Bengaluru <noreply@updates.peopleofbengaluru.com> (domain verified in Resend). The sender address (From) is set on each template in Resend, not in code.
 - Settings (app_settings): connect_daily_limit 10, connect_expiry_days 14, connect_cooldown_days 2.
 - Moderation: /admin → REPORTS: what was reported, RESOLVE or HIDE MEMBER (profiles.status = hidden: they leave the city).
@@ -1055,6 +1055,22 @@ Why: the CONNECTIONS screen reused the Become Visible panel (tag, giant title, e
 
 - The match moment as a real moment: both characters side by side on a full-screen card, the intent emoji between them, the match stinger, then SAY HI.
 - Requests in the city itself: someone who asked you, walking nearby, carries a small wave marker on their nameplate; walking up shows [E] SEE REQUEST instead of VIEW PROFILE, so you answer face to face. Once matched, their nameplate shows it.
+
+---
+
+# DATABASES (SUPABASE)
+
+Two databases, never shared:
+
+| Database | Ref | Used by |
+|---|---|---|
+| Production (main project, Pro) | taidgykcrdigmmgjyshv | main → peopleofbengaluru.com (Vercel Production), room server pob-realtime |
+| Staging (persistent branch "staging") | rwhjknklzedimfzuetuv | dev → dev.peopleofbengaluru.com + previews (Vercel Preview), room server pob-realtime-staging, local dev (.env.local, `npm run rt:dev`) |
+
+- Each has its own users, data, keys, Vault secrets (site_url, cron_secret) and Auth settings. Staging starts empty: sign up there to test.
+- Schema changes are files in supabase/migrations, named `<version>_<name>.sql`; the version is the one in each database's history (supabase_migrations.schema_migrations), so a file is never applied twice. Apply to staging first, test on dev, then to production when main deploys.
+- Grants are explicit (20261011182137_api_grants.sql): newer Supabase databases don't open new tables to the API by default. A new table needs its grants written in its migration.
+- Never point local dev or a preview at production. Production keys live only in Vercel Production.
 
 ---
 

@@ -8,7 +8,7 @@ import { useGame } from './store'
 // CONNECT (CLAUDE.md Phase 5G): Discovery → Intent → Mutual match → a chat inside the city.
 // This store owns your list of connections: it fetches it, takes events from the chat (a message
 // arrived, you read a chat) and toasts what's new. How the list changes is decided in connections.ts;
-// the server's rules are in supabase/migrations/0006_connections.sql and 0009_chat.sql; the message
+// the server's rules are in supabase/migrations/20261007110614_connections.sql and 20261011080848_chat_phase_a.sql; the message
 // threads themselves are in chat.ts.
 
 export type { Conn, Tab } from './connections'

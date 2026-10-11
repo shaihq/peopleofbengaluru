@@ -94,7 +94,7 @@ export async function refreshDirectory() {
   const { data, error } = await supabase.from('profiles').select('*')
   if (error) {
     const setup = error.code === 'PGRST205' || error.code === '42P01'
-    if (setup) console.info('[directory] profiles table not found — run supabase/migrations/0001_profiles.sql')
+    if (setup) console.info('[directory] profiles table not found — run supabase/migrations/20261003193000_profiles.sql')
     return useDirectory.setState({ loaded: true, error: setup ? 'setup' : 'network', userId: user?.id ?? null, email: user?.email ?? null })
   }
   const rows = (data ?? []) as ProfileRow[]

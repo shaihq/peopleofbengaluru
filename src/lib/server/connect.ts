@@ -5,7 +5,7 @@ import { admin } from './supabaseAdmin'
 import { sendTemplate } from './email/send'
 
 // CONNECT (CLAUDE.md Phase 5G): the actions run as the caller (their token, so auth.uid() and the
-// rules in 0006_connections.sql apply); the emails go out from the server afterwards.
+// rules in 20261007110614_connections.sql apply); the emails go out from the server afterwards.
 // Emails never carry message text or anything private — they only bring people back to the city.
 
 export function bearer(req: Request) {

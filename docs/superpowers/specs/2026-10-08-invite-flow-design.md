@@ -52,7 +52,7 @@ line "Bring in people you'd vouch for. They go live instantly, no review." Then 
 
 Client data: `src/game/invites.ts` (zustand), `load()` → `my_invites()`, `create(code, note)` → `create_invite_link()`.
 
-## 2. Database — `supabase/migrations/0007_invites.sql`
+## 2. Database — `supabase/migrations/20261008102020_invites.sql`
 
 All `security definer`, `auth.uid()`-scoped, granted to `authenticated` only. Safe to re-run.
 
