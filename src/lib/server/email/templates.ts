@@ -9,6 +9,8 @@ export const TEMPLATES = {
   connectRequest: { alias: 'connect-request', variables: ['EMOJI', 'SENDER', 'SENDER_FIRST', 'VERB', 'NOTE', 'LINK'] },
   /** "It's a match" → the person who asked first. */
   connectMatch: { alias: 'connect-match', variables: ['EMOJI', 'SENDER', 'VERB', 'LINK'] },
+  /** "Ananya sent you a message" → unread for 10+ minutes, at most once per chat every 6 hours. No message text. */
+  chatMessage: { alias: 'chat-message', variables: ['SENDER', 'SENDER_FIRST', 'COUNT', 'LINK'] },
   /** "You're in the city" → someone who just joined with an invite. */
   inviteWelcome: { alias: 'invite-welcome', variables: ['NAME', 'INVITER', 'INVITES', 'LINK'] },
   /** "Priya used your invite" → the member who vouched. */

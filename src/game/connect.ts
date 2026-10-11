@@ -1,104 +1,18 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
-import { intentOf, type Intent } from '@/lib/intents'
+import type { Intent } from '@/lib/intents'
+import { apply, messageToast, whatsNew, type Conn, type Tab } from './connections'
 import { useDirectory } from './people/directory'
 import { useGame } from './store'
 
-// CONNECT (CLAUDE.md Phase 5G): Discovery → Intent → Mutual match → Introduction → Take it from here.
-// The rules live on the server (supabase/migrations/0006_connections.sql); a contact only ever
-// arrives here inside an accepted connection.
+// CONNECT (CLAUDE.md Phase 5G): Discovery → Intent → Mutual match → a chat inside the city.
+// This store owns your list of connections: it fetches it, takes events from the chat (a message
+// arrived, you read a chat) and toasts what's new. How the list changes is decided in connections.ts;
+// the server's rules are in supabase/migrations/0006_connections.sql and 0009_chat.sql; the message
+// threads themselves are in chat.ts.
 
-export type ContactMethod = 'whatsapp' | 'instagram' | 'email' | 'telegram' | 'linkedin' | 'x'
-export type Contact = { method: ContactMethod; value: string }
-
-export const METHODS: { id: ContactMethod; label: string; placeholder: string; hint: string }[] = [
-  { id: 'whatsapp', label: 'WHATSAPP', placeholder: '+91 98765 43210', hint: 'Your number, with the country code.' },
-  { id: 'instagram', label: 'INSTAGRAM', placeholder: '@yourhandle', hint: 'They’ll DM you on Instagram.' },
-  { id: 'email', label: 'EMAIL', placeholder: 'you@studio.com', hint: 'Any address — it doesn’t have to be your sign-in one.' },
-  { id: 'telegram', label: 'TELEGRAM', placeholder: '@yourhandle', hint: 'Your Telegram username.' },
-  { id: 'linkedin', label: 'LINKEDIN', placeholder: 'linkedin.com/in/you', hint: 'They’ll message you on LinkedIn.' },
-  { id: 'x', label: 'X', placeholder: '@handle', hint: 'Make sure your DMs are open.' },
-]
-
-const CONTACT_ERRORS: Record<ContactMethod, string> = {
-  whatsapp: 'That doesn’t look like a phone number. Include the country code, like +91 98765 43210.',
-  instagram: 'That doesn’t look like an Instagram handle.',
-  email: 'That doesn’t look like an email address.',
-  telegram: 'Telegram usernames are 5–32 letters, numbers or underscores.',
-  linkedin: 'Paste your LinkedIn profile link, like linkedin.com/in/you.',
-  x: 'X handles are up to 15 letters, numbers or underscores.',
-}
-
-export const methodOf = (id: string) => METHODS.find((m) => m.id === id) ?? METHODS[0]
-
-/** The stored form of a contact (same rules as valid_contact() on the server), or null if it isn't valid. */
-export function normContact(method: ContactMethod, raw: string): string | null {
-  const v = raw.trim()
-  const handle = v.replace(/^@/, '').replace(/^https?:\/\/(www\.)?[^/]+\//i, '').replace(/\/.*$/, '')
-  switch (method) {
-    case 'whatsapp': {
-      let d = v.replace(/[^\d+]/g, '')
-      if (!d.startsWith('+')) d = d.length === 10 ? `+91${d}` : `+${d}` // a bare 10-digit number is Indian
-      return /^\+[1-9]\d{7,14}$/.test(d) ? d : null
-    }
-    case 'email':
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length <= 200 ? v : null
-    case 'instagram':
-      return /^[A-Za-z0-9._]{1,30}$/.test(handle) ? handle : null
-    case 'telegram':
-      return /^[A-Za-z0-9_]{5,32}$/.test(handle) ? handle : null
-    case 'x':
-      return /^[A-Za-z0-9_]{1,15}$/.test(handle) ? handle : null
-    case 'linkedin': {
-      const u = /^https?:\/\//i.test(v) ? v.replace(/^http:/i, 'https:') : `https://${v}`
-      return /^https:\/\/(www\.)?linkedin\.com\/\S+$/i.test(u) && u.length <= 200 ? u : null
-    }
-  }
-}
-
-/** How a contact reads on screen. */
-export function contactLabel(c: Contact) {
-  if (c.method === 'instagram' || c.method === 'telegram' || c.method === 'x') return `@${c.value}`
-  if (c.method === 'linkedin') return c.value.replace(/^https:\/\/(www\.)?/, '')
-  return c.value
-}
-
-/** Where TAKE IT FROM HERE goes. */
-export function contactHref(c: Contact) {
-  switch (c.method) {
-    case 'whatsapp':
-      return `https://wa.me/${c.value.replace(/\D/g, '')}`
-    case 'instagram':
-      return `https://instagram.com/${c.value}`
-    case 'telegram':
-      return `https://t.me/${c.value}`
-    case 'x':
-      return `https://x.com/${c.value}`
-    case 'email':
-      return `mailto:${c.value}`
-    case 'linkedin':
-      return c.value
-  }
-}
-
-export type Conn = {
-  id: string
-  /** in: they asked you · out: you asked them */
-  dir: 'in' | 'out'
-  intent: Intent
-  /** The sender's one line with the request (≤ NOTE_MAX), if they wrote one. */
-  note: string | null
-  /** A decline looks exactly like 'pending' to the sender. */
-  state: 'pending' | 'matched'
-  created_at: string
-  decided_at: string | null
-  /** in + pending: you've seen the request · out + matched: you've seen the match */
-  seen: boolean
-  other: { id: string; name: string; role: string; character: string; location: string }
-  contact: Contact | null
-}
-
-export type Tab = 'requests' | 'matches' | 'sent'
+export type { Conn, Tab } from './connections'
+export { connWith, groups, landingTab, unseenCount } from './connections'
 
 /** Longest note on a connect request (same as the database). */
 export const NOTE_MAX = 200
@@ -108,23 +22,31 @@ export const SEND_ERRORS: Record<string, string> = {
   not_found: 'They’re not in the city any more.',
   cooldown: 'You asked them recently. You can ask again 30 days after your last request.',
   limit: 'That’s today’s connect requests used up. Try again tomorrow.',
-  no_contact: 'Add how people can reach you first.',
   error: 'Couldn’t send it right now. Try again in a moment.',
 }
 
 type ConnectState = {
   items: Conn[]
   loaded: boolean
-  /** Your own preferred contact (owner-only row). */
-  contact: (Contact & { emails: boolean }) | null
-  contactLoaded: boolean
+  /** Email me about requests, matches and unread messages (member_settings, owner-only). */
+  emails: boolean
   tab: Tab
   /** The match moment on screen. */
   matchId: string | null
+  /** The chat open in the Connections screen. */
+  threadId: string | null
+  /** chat.ts's live channel is up: messages toast as they arrive, not from the next fetch */
+  live: boolean
   busy: boolean
   load: () => Promise<void>
-  loadContact: () => Promise<void>
-  saveContact: (method: ContactMethod, raw: string) => Promise<{ ok: boolean; error?: string }>
+  /** A chat message arrived (or you sent one). Marks it read if that chat is on screen; true if it was. */
+  messageArrived: (m: { connection_id: string; body: string; created_at: string }, mine: boolean) => boolean
+  /** You've read this chat: here at once, on the server shortly after. */
+  threadRead: (id: string) => void
+  /** A chat ended from this side (blocked, reported): close it and refetch. */
+  ended: () => Promise<void>
+  setLive: (on: boolean) => void
+  loadSettings: () => Promise<void>
   setEmails: (on: boolean) => Promise<void>
   send: (to: string, intent: Intent, note?: string) => Promise<{ ok: boolean; state: string; id?: string }>
   respond: (id: string, accept: boolean) => Promise<{ ok: boolean; state: string }>
@@ -133,10 +55,17 @@ type ConnectState = {
   markSeen: () => Promise<void>
   setTab: (t: Tab) => void
   showMatch: (id: string | null) => void
+  showThread: (id: string | null) => void
   reset: () => void
 }
 
 const isMember = () => useDirectory.getState().me?.status === 'approved'
+/** The Connections screen is open and you can see it. */
+const openNow = () => useGame.getState().connectOpen && typeof document !== 'undefined' && document.visibilityState === 'visible'
+/** The chat on screen right now, if any. */
+const viewing = (): string | null => (openNow() ? useConnect.getState().threadId : null)
+
+let readTimer: ReturnType<typeof setTimeout> | null = null
 
 async function token() {
   const { data } = (await supabase?.auth.getSession()) ?? { data: { session: null } }
@@ -155,70 +84,74 @@ async function post(path: string, body: unknown) {
   return ((await res.json().catch(() => null)) ?? { ok: false, state: 'error' }) as { ok: boolean; state: string; id?: string }
 }
 
-/** Badge count: requests you haven't answered + matches you haven't opened. */
-export const unseenCount = (items: Conn[]) =>
-  items.filter((c) => (c.dir === 'in' && c.state === 'pending') || (c.dir === 'out' && c.state === 'matched' && !c.seen)).length
-
-/** The connection between you and this person, if any. */
-export const connWith = (items: Conn[], personId: string) => items.find((c) => c.other.id === personId)
-
 export const useConnect = create<ConnectState>((set, get) => ({
   items: [],
   loaded: false,
-  contact: null,
-  contactLoaded: false,
+  emails: true,
   tab: 'requests',
   matchId: null,
+  threadId: null,
+  live: false,
   busy: false,
 
   load: async () => {
     if (!supabase || !isMember()) return
-    const { data, error } = await supabase.rpc('my_connections')
+    const { data, error } = await supabase.rpc('my_connections_v2')
     if (error) return
-    const items = (data ?? []) as Conn[]
-    const before = new Set(get().items.map((c) => `${c.id}:${c.state}`))
+    const prev = get().items
+    const items = apply(prev, { type: 'fetched', items: (data ?? []) as Conn[], viewing: viewing() })
     set({ items, loaded: true })
-
-    // in-game notifications: what's new since the last look
-    const toast = useGame.getState().showToast
-    const freshMatches = items.filter((c) => c.dir === 'out' && c.state === 'matched' && !c.seen && !before.has(`${c.id}:matched`))
-    const freshAsks = items.filter((c) => c.dir === 'in' && c.state === 'pending' && !c.seen && !before.has(`${c.id}:pending`))
-    if (freshMatches.length === 1) {
-      const m = freshMatches[0]
-      toast(`IT’S A MATCH · ${m.other.name.toUpperCase()} WANTS TO ${intentOf(m.intent).label} TOO · PRESS C`, 'good')
-    } else if (freshMatches.length > 1) toast(`${freshMatches.length} NEW MATCHES · PRESS C`, 'good')
-    else if (freshAsks.length === 1) {
-      const a = freshAsks[0]
-      toast(`${intentOf(a.intent).emoji} ${a.other.name.toUpperCase()} WANTS TO ${intentOf(a.intent).label} · PRESS C`, 'good')
-    } else if (freshAsks.length > 1) toast(`${freshAsks.length} NEW CONNECT REQUESTS · PRESS C`, 'good')
+    // the chat you were in ended (unmatched, blocked, or they left the city)
+    const t = get().threadId
+    if (t && !items.some((c) => c.id === t && c.state === 'matched')) set({ threadId: null })
+    const news = whatsNew(prev, items, get().live)
+    if (news) useGame.getState().showToast(news.msg, news.tone)
   },
 
-  loadContact: async () => {
+  messageArrived: (m, mine) => {
+    const c = get().items.find((x) => x.id === m.connection_id)
+    // a chat this list doesn't know yet (just matched): fetch it
+    if (!c) {
+      void get().load()
+      return false
+    }
+    const seen = viewing() === m.connection_id
+    set({ items: apply(get().items, { type: 'message', connId: c.id, body: m.body, at: m.created_at, mine, viewing: seen }) })
+    if (seen && !mine) get().threadRead(c.id)
+    else if (!mine) {
+      const t = messageToast(c, m.body)
+      useGame.getState().showToast(t.msg, t.tone)
+    }
+    return seen
+  },
+
+  threadRead: (id) => {
+    set({ items: apply(get().items, { type: 'read', connId: id }) })
+    if (readTimer) clearTimeout(readTimer)
+    readTimer = setTimeout(() => void supabase?.rpc('mark_read', { p_conn: id }), 400)
+  },
+
+  ended: async () => {
+    set({ threadId: null, matchId: null })
+    await get().load()
+  },
+
+  setLive: (live) => set({ live }),
+
+  loadSettings: async () => {
     const uid = useDirectory.getState().userId
     if (!supabase || !uid) return
-    const { data } = await supabase.from('contacts').select('method, value, emails').eq('user_id', uid).maybeSingle()
-    set({ contact: (data as ConnectState['contact']) ?? null, contactLoaded: true })
-  },
-
-  saveContact: async (method, raw) => {
-    const uid = useDirectory.getState().userId
-    if (!supabase || !uid) return { ok: false, error: 'Sign in first.' }
-    const value = normContact(method, raw)
-    if (!value) return { ok: false, error: CONTACT_ERRORS[method] }
-    const emails = get().contact?.emails ?? true
-    const { error } = await supabase.from('contacts').upsert({ user_id: uid, method, value, emails })
-    if (error) return { ok: false, error: 'Couldn’t save it. Try again.' }
-    set({ contact: { method, value, emails } })
-    return { ok: true }
+    const { data } = await supabase.from('member_settings').select('emails').eq('user_id', uid).maybeSingle()
+    set({ emails: (data as { emails: boolean } | null)?.emails ?? true })
   },
 
   setEmails: async (on) => {
-    const c = get().contact
     const uid = useDirectory.getState().userId
-    if (!supabase || !uid || !c) return
-    set({ contact: { ...c, emails: on } })
-    const { error } = await supabase.from('contacts').update({ emails: on }).eq('user_id', uid)
-    if (error) set({ contact: c })
+    if (!supabase || !uid) return
+    const was = get().emails
+    set({ emails: on })
+    const { error } = await supabase.from('member_settings').upsert({ user_id: uid, emails: on })
+    if (error) set({ emails: was })
   },
 
   send: async (to, intent, note = '') => {
@@ -248,7 +181,7 @@ export const useConnect = create<ConnectState>((set, get) => ({
   remove: async (id) => {
     if (!supabase) return
     await supabase.rpc('remove_connect', { p_id: id })
-    set({ matchId: null })
+    set({ matchId: null, threadId: null })
     await get().load()
   },
 
@@ -263,8 +196,12 @@ export const useConnect = create<ConnectState>((set, get) => ({
     if (matchId) useGame.getState().setConnectOpen(true)
     set({ matchId })
   },
+  showThread: (threadId) => {
+    if (threadId) useGame.getState().setConnectOpen(true)
+    set({ threadId, matchId: null })
+  },
   reset: () => {
-    set({ items: [], loaded: false, contact: null, contactLoaded: false, matchId: null })
+    set({ items: [], loaded: false, emails: true, tab: 'requests', matchId: null, threadId: null, live: false, busy: false })
   },
 }))
 

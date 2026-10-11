@@ -13,9 +13,10 @@ import { useNet } from './useNet'
 // everyone goes back to wandering and the game carries on exactly as before; it reconnects with backoff.
 
 const BASE = (process.env.NEXT_PUBLIC_REALTIME_URL ?? '').replace(/\/$/, '')
-export const realtimeEnabled = () => !!BASE
 const WS_BASE = BASE.replace(/^http/, 'ws')
-const KEEPALIVE_MS = 25_000
+// the room answers 'ping' with 'pong' without waking up (setWebSocketAutoResponse), so this doubles as the
+// keepalive and measures the real round trip to the room
+const PING_MS = 3_000
 const CITY_POLL_MS = 15_000
 const MAX_BACKOFF_MS = 30_000
 
@@ -26,6 +27,8 @@ let tries = 0
 let retry: ReturnType<typeof setTimeout> | null = null
 let sender: ReturnType<typeof setInterval> | null = null
 let keepalive: ReturnType<typeof setInterval> | null = null
+let pingAt = 0
+let pings: number[] = []
 let poller: ReturnType<typeof setInterval> | null = null
 let lastCorrect = 0
 const slots = new Map<number, string>()
@@ -45,6 +48,8 @@ function teardown() {
   if (sender) clearInterval(sender)
   if (keepalive) clearInterval(keepalive)
   sender = keepalive = null
+  pingAt = 0
+  pings = []
   if (ws) {
     ws.onclose = ws.onmessage = ws.onopen = ws.onerror = null
     try {
@@ -56,7 +61,22 @@ function teardown() {
   ws = null
   slots.clear()
   clearRemotes()
-  useNet.setState({ live: new Set(), room: null, hereNow: 0 })
+  useNet.setState({ live: new Set(), room: null, hereNow: 0, ping: null })
+}
+
+function sendPing(sock: WebSocket) {
+  if (sock.readyState !== WebSocket.OPEN) return
+  pingAt = performance.now()
+  sock.send('ping')
+}
+
+/** A pong: the round trip, shown as the median of the last five so one hiccup doesn't flash on screen. */
+function gotPong() {
+  if (!pingAt) return
+  pings = [...pings.slice(-4), performance.now() - pingAt]
+  pingAt = 0
+  const sorted = [...pings].sort((a, b) => a - b)
+  useNet.setState({ ping: Math.round(sorted[sorted.length >> 1]) })
 }
 
 function scheduleRetry() {
@@ -111,7 +131,10 @@ async function connect() {
     ws = sock
     sock.onopen = () => sock.send(encodeHello(t))
     sock.onmessage = (e) => {
-      if (typeof e.data === 'string') return
+      if (typeof e.data === 'string') {
+        if (e.data === 'pong') gotPong()
+        return
+      }
       const m = decodeServer(e.data as ArrayBuffer)
       if (!m) return
       switch (m.op) {
@@ -122,7 +145,8 @@ async function connect() {
           useNet.setState({ status: 'live' })
           sendPos()
           sender = setInterval(sendPos, 1000 / SEND_HZ)
-          keepalive = setInterval(() => sock.readyState === WebSocket.OPEN && sock.send('ping'), KEEPALIVE_MS)
+          sendPing(sock)
+          keepalive = setInterval(() => sendPing(sock), PING_MS)
           break
         case Op.Join:
           setLive((s) => {

@@ -7,13 +7,18 @@ import { redeemInvite, submitApplication, submitProfile, useOnboarding } from '.
 import { SIGNIN_KEY, useAccess } from './access'
 import { useGame } from './store'
 import { useConnect } from './connect'
+import { startChat, stopChat } from './chat'
 
-/** Requests, matches and your contact (Phase 5G). Members only; a no-op otherwise. */
+/** Requests, matches, chats and your email setting (Phase 5G). Members only; a no-op otherwise. */
 function refreshConnect() {
   const c = useConnect.getState()
-  if (!useDirectory.getState().userId) return c.reset()
-  void c.loadContact()
+  if (!useDirectory.getState().userId) {
+    stopChat()
+    return c.reset()
+  }
+  void c.loadSettings()
   void c.load()
+  void startChat()
 }
 
 /** True once, right after a sign-in link sent from the sign-in screen comes back. */
