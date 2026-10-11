@@ -31,6 +31,9 @@ let pingAt = 0
 let pings: number[] = []
 let poller: ReturnType<typeof setInterval> | null = null
 let lastCorrect = 0
+/** away (stood still too long): where you stood, and the check that rejoins once you move */
+let awayAt: { x: number; z: number } | null = null
+let awayWatch: ReturnType<typeof setInterval> | null = null
 const slots = new Map<number, string>()
 let sent = { qx: NaN, qz: NaN, qyaw: NaN, anim: -1 }
 
@@ -42,8 +45,33 @@ function setLive(fn: (s: Set<string>) => void) {
   useNet.setState({ live: next })
 }
 
+function stopAwayWatch() {
+  if (awayWatch) clearInterval(awayWatch)
+  awayWatch = null
+  awayAt = null
+}
+
+/**
+ * The room took you off the live map for standing still (AWAY_MS). Nothing on screen changes for you;
+ * to everyone else you wander like other offline members. The first step you take puts you back live.
+ */
+function away() {
+  useNet.setState({ status: 'away' })
+  awayAt = player.pos ? { x: player.pos.x, z: player.pos.z } : null
+  awayWatch = setInterval(() => {
+    const p = player.pos
+    if (!p || !wantDistrict) return
+    const moved = !awayAt || Math.hypot(p.x - awayAt.x, p.z - awayAt.z) > 0.3 || player.anim !== 'idle'
+    if (!moved) return
+    stopAwayWatch()
+    tries = 0
+    void connect()
+  }, 500)
+}
+
 /** Close the socket and forget everyone in it (they go back to wandering). */
 function teardown() {
+  stopAwayWatch()
   gen++
   if (sender) clearInterval(sender)
   if (keepalive) clearInterval(keepalive)
@@ -196,6 +224,7 @@ async function connect() {
         void connect()
         return
       }
+      if (e.code === CLOSE.AWAY) return away()
       if (e.code === CLOSE.REPLACED) {
         // you went live in another tab or device: this one pauses until you choose PLAY HERE
         useNet.setState({ status: 'replaced' })

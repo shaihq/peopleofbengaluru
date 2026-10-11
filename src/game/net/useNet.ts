@@ -3,7 +3,8 @@ import { create } from 'zustand'
 // LIVE CITY state for the HUD and the people (CLAUDE.md Phase 8A). Positions themselves live in remotes.ts
 // (read every frame, never through React).
 
-export type NetStatus = 'off' | 'connecting' | 'live' | 'down' | 'replaced'
+/** away: stood still for AWAY_MS, off the live map until you move */
+export type NetStatus = 'off' | 'connecting' | 'live' | 'down' | 'replaced' | 'away'
 
 type Net = {
   status: NetStatus

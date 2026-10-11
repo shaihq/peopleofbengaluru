@@ -1,5 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
 import {
+  AWAY_MS,
   CLOSE,
   FLOOD_S,
   HELLO_TIMEOUT_MS,
@@ -45,6 +46,8 @@ type Seat = {
   /** login token expiry (unix s): the socket is closed then, and the game rejoins with a fresh token */
   exp: number
   joinedAt: number
+  /** when they last moved (ms): standing still for AWAY_MS takes them off the live map */
+  active: number
   /** last accepted position (for the movement check) */
   move: MoveState | null
   qx: number
@@ -111,6 +114,7 @@ export class Room extends DurableObject<Env> {
       hello: false,
       exp: 0,
       joinedAt: Date.now(),
+      active: Date.now(),
       move: null,
       qx: 0,
       qz: 0,
@@ -140,6 +144,7 @@ export class Room extends DurableObject<Env> {
       return
     }
     seat.move = next
+    seat.active = now
     seat.qx = qPos(m.x)
     seat.qz = qPos(m.z)
     seat.qyaw = qYaw(m.yaw)
@@ -162,14 +167,21 @@ export class Room extends DurableObject<Env> {
     this.drop(ws)
   }
 
-  /** Hello timeouts, expired logins, and the heartbeat to City while anyone is here. */
+  /** Hello timeouts, expired logins, people standing still too long, and the heartbeat to City while anyone is here. */
   async alarm() {
     const now = Date.now()
     let pending = Infinity
     for (const [ws, s] of this.seats) {
-      const due = s.hello ? s.exp * 1000 : s.joinedAt + HELLO_TIMEOUT_MS
-      if (due <= now + ALARM_SLACK_MS) this.kick(ws, s.hello ? CLOSE.EXPIRED : CLOSE.HELLO_TIMEOUT, s.hello ? 'login expired' : 'hello timeout')
-      else pending = Math.min(pending, due)
+      if (!s.hello) {
+        const due = s.joinedAt + HELLO_TIMEOUT_MS
+        if (due <= now + ALARM_SLACK_MS) this.kick(ws, CLOSE.HELLO_TIMEOUT, 'hello timeout')
+        else pending = Math.min(pending, due)
+        continue
+      }
+      const away = (s.active ?? s.joinedAt) + AWAY_MS
+      if (s.exp * 1000 <= now + ALARM_SLACK_MS) this.kick(ws, CLOSE.EXPIRED, 'login expired')
+      else if (away <= now + ALARM_SLACK_MS) this.kick(ws, CLOSE.AWAY, 'away')
+      else pending = Math.min(pending, s.exp * 1000, away)
     }
     if (this.memberCount() > 0) await this.report()
     // this alarm is spent: set the next one outright (alarmBy would compare against the one firing now)
@@ -211,7 +223,7 @@ export class Room extends DurableObject<Env> {
     const used = new Set([...this.seats.values()].map((s) => s.slot))
     let slot = 0
     while (used.has(slot)) slot++
-    Object.assign(seat, { slot, uid: who.uid, member: true, hello: true, exp: who.exp })
+    Object.assign(seat, { slot, uid: who.uid, member: true, hello: true, exp: who.exp, active: Date.now() })
     ws.serializeAttachment(seat)
 
     send(ws, encodeWelcome(slot, true, this.tickN, tookOver))
@@ -221,7 +233,7 @@ export class Room extends DurableObject<Env> {
     for (const [o, s] of this.seats) if (o !== ws && s.hello) send(o, join)
     this.broadcastCount()
     this.scheduleReport()
-    await this.alarmBy(who.exp * 1000)
+    await this.alarmBy(Math.min(who.exp * 1000, Date.now() + AWAY_MS))
     this.wake() // so the newcomer gets everyone's position now
   }
 
@@ -241,6 +253,13 @@ export class Room extends DurableObject<Env> {
 
   private kick(ws: WebSocket, code: number, reason: string) {
     this.drop(ws)
+    // forget the seat on the socket too, or webSocketClose would read it back and announce the leave twice
+    // (by then the slot may belong to someone new)
+    try {
+      ws.serializeAttachment(null)
+    } catch {
+      // already gone
+    }
     try {
       ws.close(code, reason)
     } catch {

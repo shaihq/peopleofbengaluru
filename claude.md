@@ -1229,6 +1229,7 @@ In the game:
 
 - Offline members (and samples) keep wandering, as before; guests and ghosts only ever see wandering. A member who comes online is driven by the network (src/game/people/Person.tsx: wander ↔ live) and gets the saffron ● HERE NOW tag; going offline, they wander again from where they stood. Members live in another district leave this one; members live here from another district appear.
 - HUD: while live, the real round trip to the room (ping every 3 s, median of the last five) sits at the end of the online pill: bars + "42 MS" (green < 80, saffron < 160, red above). The portal picker shows live counts.
+- Away: standing still for 10 minutes (AWAY_MS in shared/net/config.ts) takes you off the live map. The room enforces it (close 4008), so a modified client can't stay forever. To everyone else you go offline and wander like other offline members; nothing changes on your screen, and your first step puts you back live.
 - One live tab or device per member: the newest takes over (toast "LIVE HERE · YOUR OTHER TAB OR DEVICE IS PAUSED"); the other is disconnected and stops behind one card, "PLAYING ELSEWHERE" (close the tab, or PLAY HERE: H / Enter), and never takes over by itself (switching tabs, travelling or reconnecting don't count).
 - Unset NEXT_PUBLIC_REALTIME_URL, or the room server down: everyone wanders and the game works exactly as before; it reconnects with backoff.
 - Known limits: people in different shards of one district can't see each other (finding someone joins their shard); a profile change applies on the next join.
