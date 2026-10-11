@@ -13,7 +13,6 @@ import { useNet } from './useNet'
 // everyone goes back to wandering and the game carries on exactly as before; it reconnects with backoff.
 
 const BASE = (process.env.NEXT_PUBLIC_REALTIME_URL ?? '').replace(/\/$/, '')
-export const realtimeEnabled = () => !!BASE
 const WS_BASE = BASE.replace(/^http/, 'ws')
 // the room answers 'ping' with 'pong' without waking up (setWebSocketAutoResponse), so this doubles as the
 // keepalive and measures the real round trip to the room

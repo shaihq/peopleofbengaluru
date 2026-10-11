@@ -3,7 +3,7 @@ import { asUser, bearer, emailMatch, emailRequest, type ConnectResult } from '@/
 import { json } from '@/lib/server/supabaseAdmin'
 import { siteOrigin } from '@/lib/server/env'
 
-// CONNECT → send_connect() as the caller; then email the other person (CLAUDE.md 5G-A).
+// CONNECT → send_connect_v2() as the caller; then email the other person (CLAUDE.md 5G-A).
 export async function POST(req: Request) {
   const token = bearer(req)
   if (!token) return json({ ok: false, state: 'signed_out' }, 401)
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
   const sb = asUser(token)
   const note = typeof body.note === 'string' ? body.note : null
-  const { data, error } = await sb.rpc('send_connect', { p_to: body.to, p_intent: body.intent, p_note: note })
+  const { data, error } = await sb.rpc('send_connect_v2', { p_to: body.to, p_intent: body.intent, p_note: note })
   if (error) return json({ ok: false, state: 'error' }, 500)
   const r = data as ConnectResult
 

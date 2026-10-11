@@ -6,7 +6,7 @@ import { sendTemplate } from './email/send'
 
 // CONNECT (CLAUDE.md Phase 5G): the actions run as the caller (their token, so auth.uid() and the
 // rules in 0006_connections.sql apply); the emails go out from the server afterwards.
-// Emails never carry contact details — the reveal happens in the city.
+// Emails never carry message text or anything private — they only bring people back to the city.
 
 export function bearer(req: Request) {
   return req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || null
@@ -32,7 +32,7 @@ async function who(fromId: string, toId: string) {
   const db = admin()
   const [{ data: from }, { data: pref }, { data: user }] = await Promise.all([
     db.from('profiles').select('name').eq('id', fromId).maybeSingle(),
-    db.from('contacts').select('emails').eq('user_id', toId).maybeSingle(),
+    db.from('member_settings').select('emails').eq('user_id', toId).maybeSingle(),
     db.auth.admin.getUserById(toId),
   ])
   if (pref && pref.emails === false) return null
@@ -61,4 +61,18 @@ export async function emailMatch(accepterId: string, askerId: string, intent: st
   if (!w) return
   const i = intentOf(intent)
   await sendTemplate(w.email, 'connectMatch', { EMOJI: i.emoji, SENDER: w.name, VERB: i.verb, LINK: `${origin}/?connections` })
+}
+
+/** "Ananya sent you a message" → someone with unread messages (from /api/cron/chat-digest). No message text. */
+export async function emailMessage(recipientId: string, senderName: string, count: number, origin: string) {
+  const { data: user } = await admin().auth.admin.getUserById(recipientId)
+  const email = user?.user?.email
+  if (!email) return false
+  const r = await sendTemplate(email, 'chatMessage', {
+    SENDER: senderName,
+    SENDER_FIRST: firstName(senderName),
+    COUNT: count === 1 ? 'a message' : `${count} messages`,
+    LINK: `${origin}/?connections`,
+  })
+  return 'ok' in r && r.ok
 }

@@ -830,7 +830,7 @@ Edge cases to design:
 - Under review and then given a code: may switch paths; payment refunded.
 - One account per email.
 - Rejected applicants: reapply rules and the reason they are shown.
-- A reviewer never decides: auto-refund after N days.
+- A reviewer never decides: no automatic refund. Admins refund by hand (REJECT + REFUND), or the payment stands.
 - Refund timing and refund failure.
 
 Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both paths were designed, so new people can really get in; the rest of 5D-A (Your invites, invite landing, sign-in) is built on top of the real data.
@@ -919,21 +919,21 @@ Rules:
 - The admin page (/admin, admins only): a queue of applications under review, each showing the profile card, the four answers and the "one thing" link. Two actions: ACCEPT or REJECT + REFUND, with an optional reason.
 - ACCEPT: profile status = approved (goes live), the member gets their invite codes (same as redeem_invite), approval email.
 - REJECT: refund through Dodo from the server, status refunded, email with the reason. Refund failure → refund_failed, shown on the admin page for retry.
-- No decision after N days (settings value): automatic refund.
+- No automatic refund when nobody decides: admins refund by hand, or the payment stands.
 - Applicant given an invite code while under review: may switch paths, payment refunded.
 - Emails: application received, approved, rejected + refunded.
 
 Built:
 
 - Fee: INR 599 (app_settings.application_fee). Dodo product per mode in app_settings.dodo_product_id ({"test": …, "live": …}), brand "People of Bangalore".
-- Server: src/lib/server/ (secret keys, never shipped to the browser). Routes: /api/apply/checkout, /api/apply/confirm (return page asks Dodo directly; same transition as the webhook, so either can arrive first), /api/dodo/webhook (Standard Webhooks signature, 5-min replay window), /api/admin/reject, /api/cron/auto-refund (Bearer CRON_SECRET).
+- Server: src/lib/server/ (secret keys, never shipped to the browser). Routes: /api/apply/checkout, /api/apply/confirm (return page asks Dodo directly; same transition as the webhook, so either can arrive first), /api/dodo/webhook (Standard Webhooks signature, 5-min replay window), /api/admin/reject.
 - The Dodo business is shared with other brands: the webhook ignores events tagged with another brand (BRAND in src/lib/server/dodo.ts) and payments without our application_id.
 - ACCEPT is approve_application() (checks is_admin() itself): the profile snapshot goes live, invite codes are issued.
 - Paid twice: the second payment is refunded automatically. Joined by invite while under review: the admin page flags it and offers REFUND.
 - Env: DODO_API_KEY, DODO_WEBHOOK_SECRET, CRON_SECRET. See .env.example. Live mode only on the Vercel production deployment (isProduction() in src/lib/server/env.ts reads VERCEL_ENV); preview and local use test mode.
 - Still to do: the emails (needs an email provider), and the cron schedule on the host.
 
-Still to decide: the fee, N days to auto-refund, who reviews and on what criteria, whether rejected applicants can reapply and after how long.
+Still to decide: the fee, who reviews and on what criteria, whether rejected applicants can reapply and after how long.
 
 ---
 
@@ -979,9 +979,9 @@ How it shows without opening anyone's profile:
 
 Goal:
 
-The product makes the introduction; it does not become another messaging app.
+The product makes the introduction, and the first conversation happens inside the city.
 
-Discovery → Intent → Mutual match → Introduction → Take it from here.
+Discovery → Intent → Mutual match → Chat.
 
 The flow:
 
@@ -990,40 +990,46 @@ Find someone in the city → open their profile → CONNECT
    → the profile panel becomes a short stepper:
         1 WHY:  ☕ Grab coffee · 🤝 Work together · 🧠 Exchange ideas · 🚀 Build something · 🎉 Hang out
         2 NOTE (optional, ≤ 200): "people say yes far more often when they know why"
-        3 HOW THEY REACH YOU (only the first time)
    → request sent (they get an in-game notification + an email)
-   → they ACCEPT  → IT'S A MATCH: "Both of you want to grab coffee. Take it from here →"
-                     → each sees the other's preferred contact (WhatsApp, Instagram, email…)
-                     → the conversation leaves the product
+   → they ACCEPT  → IT'S A MATCH: "Both of you want to grab coffee." → SAY HI ▸
+                     → a 1:1 chat opens, inside the Connections screen (the request is its first line)
    → they don't   → nothing. The request quietly expires after 14 days.
 ```
 
 Rules:
 
-- Contact details are private. They are revealed only to the two people in an accepted connection, and only by the server. Never in the city, on a nameplate, in the profile panel, in an email, or to anyone else.
+- Only matched members chat. The request → accept gate is the anti-spam: nobody can message someone who didn't say yes.
 - Members only: only visible members can send or receive. Ghosts see CONNECT as "become visible to connect". Sample people can't be connected with.
-- Everyone sets one preferred contact method (WhatsApp, Instagram, email, Telegram, LinkedIn, X) before they send or accept their first request. It's asked inline, not up front.
 - A decline is never shown to the sender. Declined and ignored requests look the same: "sent", then gone after 14 days.
 - If they already asked you, your CONNECT is an instant match.
 - No pestering: one open request per pair, a daily cap per sender (settings value), and after a request ends without a match you wait 30 days before asking that person again.
-- Either side can remove a connection later; the contacts are hidden again.
-- No chat, no messages. A request carries the intent plus one optional note (≤ 200 characters), sent once and never replied to. The recipient sees it in the city and in the request email. The note box warns not to put contact details in it.
-- RULE (6B): works on touch and keyboard.
+- Chat v1 is text only: ≤ 500 characters a message, 30 a minute per sender. No images, groups, edits, typing indicators or read receipts.
+- Unmatch, block and report are in the chat's ••• menu. Unmatch and block delete the thread for both people. Block also stops either side asking again; it reads as "not found", and they're never told. Report copies the request and the last 20 messages for the admins, then blocks.
+- Privacy: messages are readable only by the two people in the chat (through the server's functions). Admins never read chats, only what someone reported. Messages are deleted on unmatch, block, or when either account is deleted. Emails never contain message text. We don't ask for or store contact details any more; people can share theirs in the chat if they want.
+- Nobody keeps a website tab open, so an unread message sends one email ("Ananya sent you a message") after 10 minutes, at most once per chat every 6 hours. Members can turn emails off.
+- RULE (6B): works on touch and keyboard, including with the on-screen keyboard. Typing in the chat never moves the player or triggers hotkeys.
 
-## 5G-A — DATA, PRIVACY, EMAIL (built: supabase/migrations/0006_connections.sql)
+## 5G-A — DATA, PRIVACY, EMAIL (built: supabase/migrations/0006_connections.sql, 0009_chat.sql)
 
-- supabase/migrations/0006_connections.sql: contacts (one per member, owner-only) and connections (no client access at all; everything goes through security-definer functions, so a decline can't be read).
-- Functions: send_connect, respond_connect, withdraw_connect, remove_connect, my_connections (the only place a contact is revealed, accepted pairs only), mark_connections_seen.
-- Emails by Resend from the server (/api/connect/send, /api/connect/respond): "X wants to grab coffee with you" to the recipient, "It's a match" to the sender. Emails link back into the city and never contain contact details. Members can turn emails off. Without RESEND_API_KEY, nothing is emailed and the rest still works.
+- connections (0006): no client access at all; everything goes through security-definer functions, so a decline can't be read. The note: 0008_connect_note.sql.
+- Chat (0009): messages, blocks and reports have no client access either (reports: admins read). member_settings holds the email on/off (owner-only).
+- Functions: send_connect_v2, respond_connect_v2, withdraw_connect, remove_connect (also deletes the thread), my_connections_v2 (requests, matches with unread + last line, sent), mark_connections_seen, send_message, thread_messages, mark_read, block_member, report_member, admin_resolve_report. For the server only (service role): chat_digest_due, chat_mark_emailed.
+- Live delivery: a trigger on messages (and on connection changes) broadcasts to each person's private Realtime topic "user:<id>"; RLS on realtime.messages lets you join only your own topic. The game also refreshes every minute, so chats keep working if Realtime is down or over its connection limit (Free 200 at once; upgrade to Pro before launch).
+- Rolling out over a shared database (dev and production use one Supabase project): 0009 is additive and the live site keeps running the old functions. Run 0010_drop_contacts.sql (deletes the saved contacts and the old functions) only after main is deployed with the chat.
+- Emails by Resend from the server: "X wants to grab coffee with you" to the recipient, "It's a match" to the sender (/api/connect/send, /api/connect/respond), unread messages (/api/cron/chat-digest, every 5 minutes from pg_cron: supabase/cron.sql). Emails link back into the city. Without RESEND_API_KEY, nothing is emailed and the rest still works.
 - Sender: People of Bengaluru <noreply@updates.peopleofbengaluru.com> (domain verified in Resend). The sender address (From) is set on each template in Resend, not in code.
 - Settings (app_settings): connect_daily_limit 10, connect_expiry_days 14, connect_cooldown_days 30.
+- Moderation: /admin → REPORTS: what was reported, RESOLVE or HIDE MEMBER (profiles.status = hidden: they leave the city).
 
-## 5G-B — CONNECT UX/UI (built: src/game/connect.ts, src/game/hud/Connections.tsx; the note: supabase/migrations/0008_connect_note.sql)
+## 5G-B — CONNECT + CHAT UX/UI (built: src/game/connect.ts, src/game/chat.ts, src/game/hud/Connections.tsx, src/game/hud/Chat.tsx)
 
-- Profile panel: CONNECT is the primary action and turns the whole panel into a stepper (ConnectFlow): WHY (1–5 keys) → NOTE with a live "what they see" card → (contact, if not set) → REQUEST SENT. Esc steps back; from the first step it returns to the profile. The panel shows the state for that person: sent, wants to connect with you (ACCEPT / NOT NOW), or connected.
-- CONNECTIONS screen (C, or the HUD button with a badge): REQUESTS, MATCHES, SENT, plus your contact and email setting.
-- The match moment: a game screen, "IT'S A MATCH", both names, "Both of you want to grab coffee.", the revealed contact and TAKE IT FROM HERE →.
-- Notifications in game: the badge, and a toast when a new request or match arrives (checked every minute and when the tab comes back).
+- Who owns what: connect.ts is the store for your connections (fetch, server actions, toasts) and takes events from the chat (a message arrived, you read a chat); connections.ts holds the rules as plain functions (how the list changes, what's new, grouping, landing tab, badge), tested in connections.test.ts; chat.ts owns only the message threads and the live channel. Change list behaviour in connections.ts, not in the components.
+
+- Profile panel: CONNECT is the primary action and turns the whole panel into a stepper (ConnectFlow): WHY (1–5 keys) → NOTE with a live "what they see" card → REQUEST SENT. Esc steps back; from the first step it returns to the profile. The panel shows the state for that person: sent, wants to connect with you (ACCEPT / NOT NOW), or connected (MESSAGE ▸ with the unread count).
+- CONNECTIONS screen (C, or the HUD button with a badge): REQUESTS, CHATS, SENT, plus the email setting. A chat row shows the last line, unread count and time; the whole row opens the chat.
+- The match moment: a game screen, "IT'S A MATCH", both names, "Both of you want to grab coffee.", SAY HI ▸.
+- The chat: the request card first, your lines as saffron slabs on the right, theirs ink-soft on the left; Enter sends, Shift+Enter is a new line; a failed message stays with RETRY. Esc closes the ••• menu, then goes back to the list.
+- Notifications in game: the badge (requests + new matches + chats with unread), and a toast for a new request, match or message (instant on the live channel; otherwise within a minute and when the tab comes back).
 
 ---
 
@@ -1042,7 +1048,7 @@ Rules for every template:
 - The game card: ink panel, saffron top bar, one kicker, one italic uppercase title, a short body, one saffron CTA. Feels like the game, not a SaaS newsletter (design.md).
 - A footer only where it's true (the "turn these emails off" line is for connect emails only).
 - Links only point at our own origins.
-- Never include contact details, application answers or anything private to someone else.
+- Never include contact details, message text, application answers or anything private to someone else.
 - Plain text: Resend generates it from the HTML.
 - From on every template: People of Bengaluru <noreply@updates.peopleofbengaluru.com> (verified domain). New templates use the same.
 
@@ -1083,9 +1089,10 @@ No payment or refund emails from us. Dodo Payments sends the receipts, failed-pa
 | # | Email | When | Status |
 |---|---|---|---|
 | 12 | "X wants to grab coffee with you" | Connect request received (/api/connect/send), with the sender's note if any | built; template connect-request (EMOJI, SENDER, SENDER_FIRST, VERB, NOTE, LINK; NOTE is "" without a note) |
-| 13 | "It's a match" | Request accepted, to the sender (/api/connect/respond) | built; template connect-match |
+| 13 | "It's a match" | Request accepted, to the sender (/api/connect/respond) | built; template connect-match (copy: "say hi in the city", no contact details any more) |
+| 14 | "X sent you a message" | Unread for 10+ minutes, at most once per chat every 6 hours (/api/cron/chat-digest). Never the message text | built; template chat-message (SENDER, SENDER_FIRST, COUNT, LINK; COUNT is "a message" or "3 messages") |
 
-Members can turn connect emails off (built). Auth and application emails are always sent.
+Members can turn connect and chat emails off (built). Auth and application emails are always sent.
 
 ---
 
