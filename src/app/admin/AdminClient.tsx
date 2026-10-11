@@ -7,6 +7,7 @@ import './admin.css'
 // THE REVIEW QUEUE (CLAUDE.md 5E-B). Admins only (public.admins).
 // ACCEPT → approve_application() (profile goes live, invite codes issued).
 // REJECT + REFUND → /api/admin/reject (Dodo refund from the server).
+// REPORTS (5G): what a member reported from a chat → RESOLVE, or HIDE MEMBER (they leave the city).
 
 type App = {
   id: string
@@ -46,7 +47,21 @@ const TABS = [
   { id: 'unpaid', label: 'NOT PAID YET', statuses: ['draft', 'submitted'] },
   { id: 'decided', label: 'DECIDED', statuses: ['approved', 'rejected', 'refunded'] },
 ] as const
-type Tab = (typeof TABS)[number]['id']
+type Tab = (typeof TABS)[number]['id'] | 'reports'
+
+type Report = {
+  id: string
+  reporter_id: string | null
+  reported_id: string | null
+  reason: string | null
+  status: 'open' | 'resolved' | 'hidden'
+  created_at: string
+  snapshot: {
+    connection: { from_id: string; to_id: string; intent: string; note: string | null; status: string; created_at: string }
+    reported: { id: string; name: string; role: string } | null
+    messages: { from: string; body: string; at: string }[]
+  }
+}
 
 const STATUS_LABEL: Record<App['status'], string> = {
   draft: 'DRAFT',
@@ -90,6 +105,7 @@ export default function AdminClient() {
   const [sent, setSent] = useState(false)
   const [apps, setApps] = useState<App[]>([])
   const [members, setMembers] = useState<Set<string>>(new Set())
+  const [reports, setReports] = useState<Report[]>([])
   const [tab, setTab] = useState<Tab>('queue')
   const [err, setErr] = useState<string | null>(null)
 
@@ -99,6 +115,8 @@ export default function AdminClient() {
     if (error) return setErr(error.message)
     const list = (data ?? []) as App[]
     setApps(list)
+    const { data: rep } = await supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(200)
+    setReports((rep ?? []) as Report[])
     // approved profiles are public: tells us who got in by invite while waiting
     const ids = list.map((a) => a.user_id)
     if (ids.length) {
@@ -129,7 +147,8 @@ export default function AdminClient() {
     [apps],
   )
   const shown = useMemo(() => {
-    const t = TABS.find((x) => x.id === tab)!
+    const t = TABS.find((x) => x.id === tab)
+    if (!t) return []
     const list = apps.filter((a) => (t.statuses as readonly string[]).includes(a.status))
     return tab === 'decided' ? list.reverse() : list
   }, [apps, tab])
@@ -224,17 +243,36 @@ export default function AdminClient() {
                 </span>
               </button>
             ))}
+            <button
+              className={`adm-tab slant${tab === 'reports' ? ' adm-tab--on' : ''}${reports.some((r) => r.status === 'open') ? ' adm-tab--alert' : ''}`}
+              onClick={() => setTab('reports')}
+            >
+              <span className="unslant">
+                REPORTS <em>{reports.filter((r) => r.status === 'open').length}</em>
+              </span>
+            </button>
           </nav>
 
-          {shown.length === 0 && (
-            <p className="adm-empty">{tab === 'queue' ? 'NOBODY WAITING · THE QUEUE IS CLEAR' : 'NOTHING HERE'}</p>
-          )}
+          {tab === 'reports' ? (
+            <div className="adm-list">
+              {reports.length === 0 && <p className="adm-empty">NO REPORTS</p>}
+              {reports.map((r) => (
+                <ReportCard key={r.id} r={r} onDone={load} onError={setErr} />
+              ))}
+            </div>
+          ) : (
+            <>
+              {shown.length === 0 && (
+                <p className="adm-empty">{tab === 'queue' ? 'NOBODY WAITING · THE QUEUE IS CLEAR' : 'NOTHING HERE'}</p>
+              )}
 
-          <div className="adm-list">
-            {shown.map((a) => (
-              <Card key={a.id} a={a} member={members.has(a.user_id)} onDone={load} onError={setErr} />
-            ))}
-          </div>
+              <div className="adm-list">
+                {shown.map((a) => (
+                  <Card key={a.id} a={a} member={members.has(a.user_id)} onDone={load} onError={setErr} />
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
@@ -406,5 +444,66 @@ function Q({ k, v }: { k: string; v: string }) {
       <span className="adm-k">{k}</span>
       <p>{v}</p>
     </div>
+  )
+}
+
+/** A member reported from a chat: what they saw (the request + the last messages, copied before the chat was deleted). */
+function ReportCard({ r, onDone, onError }: { r: Report; onDone: () => void; onError: (e: string) => void }) {
+  const [busy, setBusy] = useState(false)
+  const who = r.snapshot.reported
+  const c = r.snapshot.connection
+  const resolve = async (hide: boolean) => {
+    setBusy(true)
+    const { data, error } = await supabase!.rpc('admin_resolve_report', { p_id: r.id, p_hide: hide })
+    setBusy(false)
+    if (error || !(data as { ok?: boolean } | null)?.ok) return onError(error?.message ?? 'Couldn’t update the report.')
+    onDone()
+  }
+  const side = (id: string) => (id === r.reported_id ? (who?.name ?? 'Reported').toUpperCase() : 'REPORTER')
+  return (
+    <article className={`adm-card adm-card--${r.status === 'open' ? 'under_review' : 'approved'}`}>
+      <div className="adm-who">
+        <div className="adm-status">
+          <span className={`adm-chip adm-chip--${r.status === 'open' ? 'refund_failed' : 'approved'}`}>
+            {r.status === 'open' ? 'OPEN' : r.status === 'hidden' ? 'MEMBER HIDDEN' : 'RESOLVED'}
+          </span>
+        </div>
+        <h2>{(who?.name ?? 'Unknown member').toUpperCase()}</h2>
+        <p className="adm-role">{who?.role}</p>
+        <dl className="adm-facts">
+          <dt>REPORTED</dt>
+          <dd>{ago(r.created_at)}</dd>
+          <dt>CONNECTION</dt>
+          <dd>
+            {c.intent} · {c.status}
+          </dd>
+        </dl>
+      </div>
+      <div className="adm-answers">
+        <Q k="WHAT HAPPENED (REPORTER)" v={r.reason ?? '—'} />
+        {c.note && <Q k={`REQUEST NOTE (${side(c.from_id)})`} v={c.note} />}
+        <div className="adm-q">
+          <span className="adm-k">LAST MESSAGES ({r.snapshot.messages.length})</span>
+          {r.snapshot.messages.length === 0 && <p>—</p>}
+          {r.snapshot.messages.map((m, n) => (
+            <p key={n}>
+              <b>{side(m.from)}:</b> {m.body}
+            </p>
+          ))}
+        </div>
+        {r.status === 'open' && (
+          <div className="adm-decide">
+            <div className="adm-row">
+              <button className="adm-ghost" onClick={() => resolve(false)} disabled={busy}>
+                RESOLVE · NO ACTION
+              </button>
+              <button className="adm-btn adm-btn--reject slant" onClick={() => resolve(true)} disabled={busy || !r.reported_id}>
+                <span className="unslant">{busy ? '…' : 'HIDE MEMBER ▸'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </article>
   )
 }

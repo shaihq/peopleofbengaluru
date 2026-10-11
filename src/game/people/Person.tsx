@@ -16,6 +16,8 @@ import { activeStatus } from '../status'
 import { StatusBubble } from '../hud/StatusBubble'
 import { Wanderer } from './wander'
 import { rayDistance, resolveCircle } from '../player/collision'
+import { poseOf } from '../net/remotes'
+import { useNet } from '../net/useNet'
 
 const PLATE_Y = 2.2
 
@@ -31,10 +33,21 @@ function dampAngle(a: number, b: number, rate: number, dt: number) {
   return a + d * (1 - Math.exp(-rate * dt))
 }
 
+// a member who comes online mid-walk eases into where they really are, unless that's far or out of sight
+const BLEND_S = 0.5
+const SNAP_M = 6
+const ease = (t: number) => t * t * (3 - 2 * t)
+
 function Nameplate({ p, plate }: { p: Profile; plate: React.RefObject<HTMLDivElement | null> }) {
   const status = activeStatus(p.status)
+  const here = useNet((s) => s.live.has(p.id))
   return (
     <div ref={plate} className="np" data-lod="off">
+      {here && (
+        <div className="np-here">
+          <span className="np-here-dot" /> HERE NOW
+        </div>
+      )}
       {p.openToWork && (
         <div className="np-open">
           <span className="np-dot" /> OPEN TO WORK
@@ -51,7 +64,10 @@ function Nameplate({ p, plate }: { p: Profile; plate: React.RefObject<HTMLDivEle
   )
 }
 
-/** A real (well — sample) person living in the district: character + nameplate + routine. */
+/**
+ * A person in the district: character + nameplate + routine. Offline (and samples) they wander their
+ * neighbourhood; a member who is online is wherever they really are (CLAUDE.md Phase 8A).
+ */
 export function Person({ p }: { p: Profile }) {
   const root = useRef<THREE.Group>(null!)
   const plate = useRef<HTMLDivElement>(null)
@@ -65,9 +81,14 @@ export function Person({ p }: { p: Profile }) {
     occluded: false,
     engaged: false,
     want: 'off' as Lod,
+    live: false,
+    blend: 1,
+    from: new THREE.Vector3(),
+    liveSpeed: 0,
   })
   // offline: the character keeps walking around their neighbourhood
-  const walker = useMemo(() => new Wanderer(start[0], start[1], p.spot?.face ?? 0, p.location), [p.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const walkerRef = useRef<Wanderer | null>(null)
+  walkerRef.current ??= new Wanderer(start[0], start[1], p.spot?.face ?? 0, p.location)
   const ring = useRef<THREE.Mesh>(null!)
   const marker = useRef<THREE.Group>(null!)
   const markerMat = useMemo(
@@ -96,34 +117,64 @@ export function Person({ p }: { p: Profile }) {
     const dt = Math.min(rawDt, 0.05)
     const s = st.current
 
-    // --- engaged with the player? stop, turn to them, say hi ---------------
     const g = useGame.getState()
     const tracked = g.trackId === p.id
     const engaged = g.focusId === p.id || g.openId === p.id || (tracked && g.trackStage === 'found')
-    if (engaged && !s.engaged) avatar.current.waveUntil = performance.now() + 1900
-    s.engaged = engaged
-
-    // --- routine ---------------------------------------------------------
+    const pose = poseOf(p.id)
     let speed = 0
-    if (engaged && player.pos) {
-      s.facing = dampAngle(s.facing, Math.atan2(player.pos.x - s.pos.x, player.pos.z - s.pos.z), 7, dt)
-      walker.speed = 0
+    let mode: AvatarState['mode'] = 'idle'
+
+    if (pose) {
+      // --- live: a real person, where they really are -------------------
+      if (!s.live) {
+        s.live = true
+        s.from.copy(s.pos)
+        const far = Math.hypot(pose.x - s.pos.x, pose.z - s.pos.z) > SNAP_M
+        s.blend = far || s.occluded || s.want === 'off' ? 1 : 0
+      }
+      s.blend = Math.min(1, s.blend + dt / BLEND_S)
+      const k = ease(s.blend)
+      const px = s.pos.x
+      const pz = s.pos.z
+      s.pos.x = k < 1 ? s.from.x + (pose.x - s.from.x) * k : pose.x
+      s.pos.z = k < 1 ? s.from.z + (pose.z - s.from.z) * k : pose.z
+      const v = dt > 0 ? Math.hypot(s.pos.x - px, s.pos.z - pz) / dt : 0
+      s.liveSpeed = THREE.MathUtils.damp(s.liveSpeed, v, 8, dt)
+      s.facing = dampAngle(s.facing, pose.yaw, 12, dt)
+      mode = pose.parked ? 'idle' : pose.mode
+      speed = mode === 'idle' ? 0 : Math.max(0.6, s.liveSpeed)
+      s.engaged = engaged
     } else {
-      walker.update(dt)
-      s.pos.x = walker.x
-      s.pos.z = walker.z
-      resolveCircle(s.pos, 0.3) // never clip into buildings or props
-      walker.x = s.pos.x
-      walker.z = s.pos.z
-      s.facing = walker.facing
-      speed = walker.speed
+      if (s.live) {
+        // they went offline (or the connection dropped): back to wandering from right here
+        s.live = false
+        walkerRef.current = new Wanderer(s.pos.x, s.pos.z, s.facing, p.location)
+      }
+      // --- engaged with the player? stop, turn to them, say hi ---------
+      if (engaged && !s.engaged) avatar.current.waveUntil = performance.now() + 1900
+      s.engaged = engaged
+      const walker = walkerRef.current!
+      if (engaged && player.pos) {
+        s.facing = dampAngle(s.facing, Math.atan2(player.pos.x - s.pos.x, player.pos.z - s.pos.z), 7, dt)
+        walker.speed = 0
+      } else {
+        walker.update(dt)
+        s.pos.x = walker.x
+        s.pos.z = walker.z
+        resolveCircle(s.pos, 0.3) // never clip into buildings or props
+        walker.x = s.pos.x
+        walker.z = s.pos.z
+        s.facing = walker.facing
+        speed = walker.speed
+      }
+      walker.facing = s.facing
+      mode = speed > 0.1 ? 'walk' : 'idle'
     }
-    walker.facing = s.facing
     s.pos.y = THREE.MathUtils.damp(s.pos.y, active.def.ground(s.pos.x, s.pos.z), 20, dt)
     root.current.position.copy(s.pos)
     root.current.rotation.y = s.facing
     avatar.current.speed = speed
-    avatar.current.mode = speed > 0.1 ? 'walk' : 'idle'
+    avatar.current.mode = mode
 
     // highlight ring
     const t = performance.now() / 1000

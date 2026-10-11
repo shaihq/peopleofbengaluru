@@ -3,12 +3,13 @@
 import * as THREE from 'three'
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { C } from '@/lib/palette'
 import { canopyGeo } from '../geometry'
 import { SUN_DIR } from './Lighting'
+import { daylight } from './time'
 
-/** Painted gradient sky with a soft sun glow. */
+/** Painted gradient sky with a soft sun glow (the moon and a few stars at night), on the city's clock. */
 export function SkyDome() {
+  const seen = useRef(-1)
   const material = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -16,10 +17,11 @@ export function SkyDome() {
         depthWrite: false,
         fog: false,
         uniforms: {
-          top: { value: new THREE.Color(C.SKY_TOP) },
-          horizon: { value: new THREE.Color(C.SKY_HORIZON) },
+          top: { value: new THREE.Color(daylight.look.skyTop) },
+          horizon: { value: new THREE.Color(daylight.look.horizon) },
           sunDir: { value: SUN_DIR },
-          sunColor: { value: new THREE.Color('#FFF1D6') },
+          sunColor: { value: new THREE.Color(daylight.look.glow) },
+          night: { value: daylight.look.night },
         },
         vertexShader: /* glsl */ `
           varying vec3 vDir;
@@ -32,13 +34,25 @@ export function SkyDome() {
           uniform vec3 horizon;
           uniform vec3 sunDir;
           uniform vec3 sunColor;
+          uniform float night;
           varying vec3 vDir;
+          float starHash(vec3 p) {
+            p = fract(p * 0.3183099 + 0.1);
+            p *= 17.0;
+            return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+          }
           void main() {
             vec3 d = normalize(vDir);
             float h = max(d.y, 0.0);
             vec3 col = mix(horizon, top, pow(smoothstep(0.0, 0.42, h), 0.55));
             float s = max(dot(d, normalize(sunDir)), 0.0);
-            col += sunColor * (pow(s, 900.0) * 3.0 + pow(s, 32.0) * 0.22 + pow(s, 4.0) * 0.08);
+            // by day a big soft sun; at night a small crisp moon with a faint halo
+            float glow = mix(pow(s, 32.0) * 0.22 + pow(s, 4.0) * 0.08, pow(s, 120.0) * 0.12, night);
+            col += sunColor * (pow(s, mix(900.0, 2600.0, night)) * 3.0 + glow);
+            // a few stars, only once it's dark, thinning toward the city haze
+            vec3 cell = floor(d * 160.0);
+            float star = step(0.9965, starHash(cell)) * smoothstep(0.08, 0.45, d.y);
+            col += vec3(0.85, 0.9, 1.0) * star * smoothstep(0.7, 1.0, night) * 0.55;
             if (d.y < 0.0) col = horizon * 0.96;
             gl_FragColor = vec4(col, 1.0);
             #include <colorspace_fragment>
@@ -46,6 +60,15 @@ export function SkyDome() {
       }),
     [],
   )
+  useFrame(() => {
+    if (daylight.v === seen.current) return
+    seen.current = daylight.v
+    const l = daylight.look
+    material.uniforms.top.value.set(l.skyTop)
+    material.uniforms.horizon.value.set(l.horizon)
+    material.uniforms.sunColor.value.set(l.glow)
+    material.uniforms.night.value = l.night
+  })
   return (
     <mesh material={material} renderOrder={-1} frustumCulled={false}>
       <sphereGeometry args={[520, 32, 16]} />
@@ -67,6 +90,7 @@ const CLOUDS: [number, number, number, number, number][] = [
 /** Big soft stylized cumulus, drifting slowly. */
 export function Clouds() {
   const group = useRef<THREE.Group>(null!)
+  const seen = useRef(-1)
   const material = useMemo(() => new THREE.MeshBasicMaterial({ vertexColors: true, fog: false }), [])
   const geos = useMemo(
     () =>
@@ -83,6 +107,11 @@ export function Clouds() {
     [],
   )
   useFrame((_, dt) => {
+    // clouds take the light of the hour: white by day, peach at sunset, blue-grey at night
+    if (daylight.v !== seen.current) {
+      seen.current = daylight.v
+      material.color.set(daylight.look.clouds)
+    }
     group.current.rotation.y += dt * 0.0025
   })
   return (

@@ -8,7 +8,7 @@ import type { SignSpec } from './textures'
 
 export const ROAD = 5.25 // road half-width to kerb face
 export const BASE = 0.15 // sidewalk / lot height
-export const BOUNDS = 46
+export { BOUNDS } from '@shared/net/config'
 export const FH = 3.2 // floor height
 
 export type AABB = { min: [number, number, number]; max: [number, number, number] }

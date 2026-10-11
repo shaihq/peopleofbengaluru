@@ -2,29 +2,45 @@
 
 import * as THREE from 'three'
 import { useLayoutEffect, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { player } from '../people/bodies'
 import { useGame } from '../store'
 import { Environment, Lightformer } from '@react-three/drei'
-import { C } from '@/lib/palette'
 import { flag, quality, showQualityDebug, useDebugToggles } from '../device'
+import { daylight, tickDaylight, useClock } from './time'
+import { lights } from '../materials'
+import { lightsOn } from './daylight'
 
 const SHADOWS = flag('shadows') // diagnostics: 'off' | 'static'
 
-// Late-morning Bengaluru sun (design.md §7.1): warm key from the south-west,
-// cool sky fill, warm ground bounce, cool rim from behind.
-export const SUN_DIR = new THREE.Vector3(-0.55, 0.78, 0.42).normalize()
+// Bengaluru light on the city's real clock (design.md §7.1, §7.3): a warm key sun (the moon at night),
+// sky fill, ground bounce and a cool rim from behind. The looks themselves are in daylight.ts.
+/** Where the light comes from right now (mutated in place as the hour moves; the sky reads it too). */
+export const SUN_DIR = new THREE.Vector3(...daylight.look.sunDir).normalize()
 
 // The sun's own axes. The shadow box is snapped along THESE (not world x/z), so it
 // only ever moves by whole shadow-map texels and nothing re-samples as you walk.
+// They're re-derived when the sun moves (a few times a minute, by a hair).
 const LIGHT_X = new THREE.Vector3()
 const LIGHT_Y = new THREE.Vector3()
-new THREE.Matrix4().lookAt(SUN_DIR, new THREE.Vector3(), new THREE.Vector3(0, 1, 0)).extractBasis(LIGHT_X, LIGHT_Y, new THREE.Vector3())
+const _m = new THREE.Matrix4()
+const _zero = new THREE.Vector3()
+const _up = new THREE.Vector3(0, 1, 0)
+const _z = new THREE.Vector3()
+const sunAxes = () => _m.lookAt(SUN_DIR, _zero, _up).extractBasis(LIGHT_X, LIGHT_Y, _z)
+sunAxes()
 const _center = new THREE.Vector3()
 
 export function Lighting() {
   const sun = useRef<THREE.DirectionalLight>(null!)
+  const hemi = useRef<THREE.HemisphereLight>(null!)
+  const rim = useRef<THREE.DirectionalLight>(null!)
   const dbgShadows = useDebugToggles((s) => s.shadows)
+  const scene = useThree((s) => s.scene)
+  // the reflections are baked once; rebake every 10 minutes of the clock
+  const envKey = useClock((s) => Math.floor(s.hour * 6))
+  const look = daylight.look
+  const seen = useRef(-1)
 
   useLayoutEffect(() => {
     const s = sun.current
@@ -47,6 +63,23 @@ export function Lighting() {
   const extent = useRef(62)
   useFrame(() => {
     const s = sun.current
+    const d = tickDaylight()
+    if (d.v !== seen.current) {
+      seen.current = d.v
+      const l = d.look
+      SUN_DIR.set(...l.sunDir).normalize()
+      sunAxes()
+      s.color.set(l.sun)
+      s.intensity = l.sunI
+      hemi.current.color.set(l.sky)
+      hemi.current.groundColor.set(l.ground)
+      hemi.current.intensity = l.hemiI
+      rim.current.color.set(l.rim)
+      rim.current.intensity = l.rimI
+      lights.value = lightsOn(l.night)
+      if (scene.fog) scene.fog.color.set(l.fog)
+      if (scene.background instanceof THREE.Color) scene.background.set(l.fog)
+    }
     const playing = SHADOWS !== 'static' && useGame.getState().phase !== 'intro' && player.pos
     const want = playing ? 34 : 62
     if (want !== extent.current) {
@@ -71,24 +104,24 @@ export function Lighting() {
 
   return (
     <>
-      <hemisphereLight args={[C.SKY_TOP_LIGHT, C.GROUND_BOUNCE, 1.15]} />
+      <hemisphereLight ref={hemi} args={[look.sky, look.ground, look.hemiI]} />
       <directionalLight
         ref={sun}
         position={sunPos}
-        color={C.SUN}
-        intensity={3.1}
+        color={look.sun}
+        intensity={look.sunI}
         castShadow={SHADOWS !== 'off' && (!showQualityDebug || dbgShadows)}
         shadow-mapSize={[quality.shadowMap, quality.shadowMap]}
         shadow-bias={-0.0003}
         shadow-normalBias={0.04}
         shadow-radius={3}
       />
-      <directionalLight position={[60, 25, -50]} color="#B8CFF2" intensity={0.55} />
-      <Environment resolution={128} frames={1} environmentIntensity={0.6}>
-        <Lightformer form="rect" intensity={1.3} color={C.SKY_TOP} scale={[80, 80, 1]} position={[0, 40, 0]} rotation-x={Math.PI / 2} />
-        <Lightformer form="rect" intensity={3} color={C.SUN} scale={[25, 25, 1]} position={SUN_DIR.clone().multiplyScalar(50)} target={[0, 0, 0]} />
-        <Lightformer form="rect" intensity={0.9} color={C.SKY_HORIZON} scale={[200, 20, 1]} position={[0, 4, -60]} />
-        <Lightformer form="rect" intensity={0.7} color={C.GROUND_BOUNCE} scale={[80, 80, 1]} position={[0, -20, 0]} rotation-x={-Math.PI / 2} />
+      <directionalLight ref={rim} position={[60, 25, -50]} color={look.rim} intensity={look.rimI} />
+      <Environment key={envKey} resolution={128} frames={1} environmentIntensity={look.envI}>
+        <Lightformer form="rect" intensity={1.3} color={look.envTop} scale={[80, 80, 1]} position={[0, 40, 0]} rotation-x={Math.PI / 2} />
+        <Lightformer form="rect" intensity={3 * (1 - look.night * 0.7)} color={look.sun} scale={[25, 25, 1]} position={SUN_DIR.clone().multiplyScalar(50)} target={[0, 0, 0]} />
+        <Lightformer form="rect" intensity={0.9} color={look.horizon} scale={[200, 20, 1]} position={[0, 4, -60]} />
+        <Lightformer form="rect" intensity={0.7} color={look.ground} scale={[80, 80, 1]} position={[0, -20, 0]} rotation-x={-Math.PI / 2} />
       </Environment>
     </>
   )

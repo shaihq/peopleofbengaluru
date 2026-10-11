@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "rt:dev": "npm --prefix realtime run dev",
+    "rt:deploy:staging": "npm --prefix realtime run deploy:staging",
+    "rt:deploy:production": "npm --prefix realtime run deploy:production"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -24,6 +28,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
-    "typescript": "5.9"
+    "typescript": "5.9",
+    "vitest": "^5.0.3"
   }
 }

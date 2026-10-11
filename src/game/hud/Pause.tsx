@@ -7,6 +7,10 @@ import { requestLook } from '../player/input'
 import { useGame } from '../store'
 import { useAudio } from '../audio/engine'
 import { useAccess } from '../access'
+import { useConnect } from '../connect'
+import { useInvites } from '../invites'
+import { activeStatus, useMyStatus } from '../status'
+import { useCanSetStatus } from './StatusEditor'
 
 const CONTROLS: [string[], string][] = [
   [['W', 'A', 'S', 'D'], 'MOVE'],
@@ -14,7 +18,11 @@ const CONTROLS: [string[], string][] = [
   [['MOUSE'], 'LOOK AROUND'],
   [['E'], 'TALK TO SOMEONE'],
   [['F'], 'FIND SOMEONE'],
+  [['C'], 'CONNECTIONS'],
+  [['N'], 'SET STATUS'],
+  [['I'], 'YOUR INVITES'],
   [['V'], 'BECOME VISIBLE / EDIT PROFILE'],
+  [['L'], 'SIGN IN'],
   [['M'], 'MUTE SOUND'],
   [['ESC'], 'PAUSE'],
 ]
@@ -28,6 +36,8 @@ export function Pause() {
   const showToast = useGame((s) => s.showToast)
   const me = useDirectory((s) => s.me)
   const signedIn = useDirectory((s) => !!s.userId)
+  const canStatus = useCanSetStatus()
+  const hasStatus = useMyStatus((s) => !!activeStatus(s.status))
   const [controls, setControls] = useState(false)
   const [sound, setSound] = useState(false)
   const [confirmOut, setConfirmOut] = useState(false)
@@ -43,15 +53,15 @@ export function Pause() {
     // that just closed — they must not open Pause.
     let overlayClosedAt = -1e9
     const unsub = useGame.subscribe((s, p) => {
-      const was = p.portalOpen || p.searchOpen || p.statusOpen || !!p.openId
-      const now = s.portalOpen || s.searchOpen || s.statusOpen || !!s.openId
+      const was = p.portalOpen || p.searchOpen || p.statusOpen || p.connectOpen || p.invitesOpen || !!p.openId
+      const now = s.portalOpen || s.searchOpen || s.statusOpen || s.connectOpen || s.invitesOpen || !!s.openId
       if (was && !now) overlayClosedAt = performance.now()
     })
     const plain = () => {
       const g = useGame.getState()
       const cinematic = g.trackStage === 'fly' || g.trackStage === 'hold'
       return (
-        g.phase === 'play' && !g.openId && !g.searchOpen && !g.statusOpen && !g.paused && !cinematic && !g.portalOpen && !g.travel && performance.now() - overlayClosedAt > 700
+        g.phase === 'play' && !g.openId && !g.searchOpen && !g.statusOpen && !g.connectOpen && !g.invitesOpen && !g.paused && !cinematic && !g.portalOpen && !g.travel && performance.now() - overlayClosedAt > 700
       )
     }
 
@@ -111,6 +121,8 @@ export function Pause() {
     if (!confirmOut) return setConfirmOut(true)
     await signOut()
     useAccess.setState({ status: 'ghost', reason: null, result: null })
+    useConnect.getState().reset()
+    useInvites.getState().reset()
     setPaused(false)
     showToast('SIGNED OUT · YOU’RE INVISIBLE AGAIN', 'info')
     requestLook()
@@ -147,10 +159,36 @@ export function Pause() {
             <span className="keycap">V</span>
           </button>
 
+          {canStatus && (
+            <button
+              className="pause-row"
+              onClick={() => {
+                setPaused(false)
+                useGame.getState().setStatusOpen(true)
+              }}
+            >
+              <span className="pause-label">{hasStatus ? 'EDIT STATUS' : 'SET STATUS'}</span>
+              <span className="keycap">N</span>
+            </button>
+          )}
+
+          {me?.status === 'approved' && (
+            <button
+              className="pause-row"
+              onClick={() => {
+                setPaused(false)
+                useGame.getState().setInvitesOpen(true)
+              }}
+            >
+              <span className="pause-label">YOUR INVITES</span>
+              <span className="keycap">I</span>
+            </button>
+          )}
+
           {!signedIn && (
             <button className="pause-row" onClick={signIn}>
               <span className="pause-label">SIGN IN</span>
-              <span className="pause-caret">MEMBERS + APPLICANTS</span>
+              <span className="keycap">L</span>
             </button>
           )}
 

@@ -1,8 +1,11 @@
 'use client'
 
 import { useGame } from '../store'
-import { hasSamples, usePeople } from '../people/directory'
-import { districtInfo, homeDistrict } from '../districts/registry'
+import { districtInfo } from '../districts/registry'
+import { ConnectHud } from './Connections'
+import { useNet } from '../net/useNet'
+import { useClock } from '../scene/time'
+import { clockText, phaseAt } from '../scene/daylight'
 
 function Keycap({ k, wide }: { k: string; wide?: boolean }) {
   return <span className={`keycap${wide ? ' keycap--wide' : ''}`}>{k}</span>
@@ -13,10 +16,13 @@ export function HUD() {
   const phase = useGame((s) => s.phase)
   const landmark = useGame((s) => s.landmark)
   const locked = useGame((s) => s.pointerLocked)
-  const talking = useGame((s) => !!s.openId || s.searchOpen || s.paused)
+  const talking = useGame((s) => !!s.openId || s.searchOpen || s.paused || s.connectOpen || s.invitesOpen)
   const district = useGame((s) => s.district)
   const info = districtInfo(district)
-  const people = usePeople().filter((p) => homeDistrict(p.location) === district)
+  // round trip to the live city, while connected
+  const ping = useNet((s) => (s.status === 'live' ? s.ping : null))
+  // Bengaluru's time, the same clock the light runs on
+  const hour = useClock((s) => s.hour)
 
   if (phase !== 'play') return null
 
@@ -35,24 +41,30 @@ export function HUD() {
       </div>
 
       <div className="hud-status">
-        <div className="slant panel hud-online">
-          <span className="unslant">
-            <span className="dot" /> {people.length} <span className="hud-online-long">DESIGNERS IN {info.title}</span>
-            <span className="hud-online-short">HERE</span>
-          </span>
-        </div>
-        {hasSamples() && (
-          <div className="slant hud-sample">
-            <span className="unslant">INCLUDES SAMPLE PROFILES</span>
+        {ping !== null && (
+          <div className="slant hud-pingtag" title="Round trip to the live city">
+            <span className={`unslant hud-ping hud-ping--${ping < 80 ? 'good' : ping < 160 ? 'ok' : 'bad'}`}>
+              <span className="hud-ping-bars" aria-hidden>
+                <i />
+                <i />
+                <i />
+              </span>
+              {ping} MS
+            </span>
           </div>
         )}
-        <button className="slant hud-find" onClick={() => useGame.getState().setSearch(true)}>
+        <div className="hud-find-row">
+          <ConnectHud />
+          <button className="slant hud-find" onClick={() => useGame.getState().setSearch(true)}>
+            <span className="unslant">
+              <span className="find-glass" /> FIND SOMEONE <span className="keycap">F</span>
+            </span>
+          </button>
+        </div>
+        <div className="slant hud-weather" title="Time in Bengaluru">
           <span className="unslant">
-            <span className="find-glass" /> FIND SOMEONE <span className="keycap">F</span>
+            {phaseAt(hour) === 'night' ? '☾' : '☀'} {clockText(hour)}
           </span>
-        </button>
-        <div className="slant hud-weather">
-          <span className="unslant">☀ 27° · 10:40 AM</span>
         </div>
       </div>
 

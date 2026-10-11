@@ -1,0 +1,121 @@
+# LIVE CITY room server (CLAUDE.md Phase 8A). One Room per district shard, one City for counts + shard choice.
+# Local: npm run dev (port 8787) · deploy: npm run deploy:staging / deploy:production
+
+name = "pob-realtime-dev"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[vars]
+ENV_NAME = "dev"
+SUPABASE_URL = "https://taidgykcrdigmmgjyshv.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_XQZgF2VVIZ4sdvv8DnwQcA_KuOkyNmv"
+# comma-separated; "*" in a host matches one label (https://*.vercel.app)
+ALLOWED_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[durable_objects.bindings]]
+name = "CITY"
+class_name = "City"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room", "City"]
+
+# new sockets per IP per minute (generous: a whole office can share one IP)
+[[ratelimits]]
+name = "CONNECT_LIMIT"
+namespace_id = "8101"
+  [ratelimits.simple]
+  limit = 120
+  period = 60
+
+# /assign + /city per member per minute
+[[ratelimits]]
+name = "API_LIMIT"
+namespace_id = "8111"
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+# our own console errors only; no per-request logs, which could include the Authorization header (login token)
+[observability]
+enabled = true
+[observability.logs]
+invocation_logs = false
+
+# --- staging: previews + local dev against a deployed room server; load tests run here ---
+[env.staging]
+name = "pob-realtime-staging"
+
+[env.staging.observability]
+enabled = true
+[env.staging.observability.logs]
+invocation_logs = false
+
+[env.staging.vars]
+ENV_NAME = "staging"
+SUPABASE_URL = "https://taidgykcrdigmmgjyshv.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_XQZgF2VVIZ4sdvv8DnwQcA_KuOkyNmv"
+ALLOWED_ORIGINS = "http://localhost:3000,https://dev.peopleofbengaluru.com,https://peopleofbengaluru-dev.vercel.app"
+
+[[env.staging.durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[env.staging.durable_objects.bindings]]
+name = "CITY"
+class_name = "City"
+
+[[env.staging.ratelimits]]
+name = "CONNECT_LIMIT"
+namespace_id = "8102"
+  [env.staging.ratelimits.simple]
+  limit = 120
+  period = 60
+
+[[env.staging.ratelimits]]
+name = "API_LIMIT"
+namespace_id = "8112"
+  [env.staging.ratelimits.simple]
+  limit = 30
+  period = 60
+
+# --- production ---
+[env.production]
+name = "pob-realtime"
+
+[env.production.observability]
+enabled = true
+[env.production.observability.logs]
+invocation_logs = false
+
+[env.production.vars]
+ENV_NAME = "production"
+SUPABASE_URL = "https://taidgykcrdigmmgjyshv.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_XQZgF2VVIZ4sdvv8DnwQcA_KuOkyNmv"
+ALLOWED_ORIGINS = "https://peopleofbengaluru.vercel.app,https://peopleofbengaluru.com,https://www.peopleofbengaluru.com"
+
+[[env.production.durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[env.production.durable_objects.bindings]]
+name = "CITY"
+class_name = "City"
+
+[[env.production.ratelimits]]
+name = "CONNECT_LIMIT"
+namespace_id = "8103"
+  [env.production.ratelimits.simple]
+  limit = 120
+  period = 60
+
+[[env.production.ratelimits]]
+name = "API_LIMIT"
+namespace_id = "8113"
+  [env.production.ratelimits.simple]
+  limit = 30
+  period = 60

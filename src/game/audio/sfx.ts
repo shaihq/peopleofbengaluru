@@ -263,6 +263,19 @@ export const sfx = {
     MOTIF.forEach((m, i) => bell(m + 12, t + 0.45 + i * 0.1, 0.09, dest('ui'), 1.6))
     shimmer(t + 0.9, 0.06, dest('ui'))
   },
+  /** The connections bell (5G-C): a request = two struck notes; a match = the whole motif, rung. */
+  bellRing(kind: 'ask' | 'match') {
+    if (!ready()) return
+    const t = now()
+    if (kind === 'ask') {
+      bell(MOTIF[2], t, 0.15, dest('ui'), 1.3)
+      bell(MOTIF[3], t + 0.16, 0.13, dest('ui'), 1.5)
+      return
+    }
+    duckMusic(0.3, 1.4)
+    MOTIF.forEach((m, i) => bell(m, t + i * 0.12, 0.15 + i * 0.03, dest('ui'), 1.5))
+    bell(MOTIF[3], t + 0.62, 0.12, dest('ui'), 1.8)
+  },
   toast(tone: 'good' | 'info' | 'bad') {
     if (!ready()) return
     if (tone === 'bad') return sfx.error()

@@ -96,6 +96,59 @@ export function glassMat() {
   }))
 }
 
+// NIGHT LIGHTS (design.md §7.3: at night only real light sources emit). One shared value, 0 by day,
+// 1 once it's dark (lightsOn in daylight.ts), set by Lighting from the city's clock; every lit window
+// and lamp reads it.
+export const lights = { value: 0 }
+
+/** Lit rooms behind the glass: warm bulbs, or the white tube lights half of Bengaluru still uses. */
+export type Room = 'warm' | 'tube'
+const ROOM: Record<Room, THREE.Color> = {
+  warm: new THREE.Color('#FFC27A').multiplyScalar(1.15),
+  tube: new THREE.Color('#E4EEF0').multiplyScalar(0.95),
+}
+
+/** A window with a lit room behind it: dark glass by day, glowing after dusk. Survives StaticMerge. */
+export function applyRoomLight(m: THREE.Material, room: Room) {
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uLights = lights
+    shader.uniforms.uRoom = { value: ROOM[room] }
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float uLights;\nuniform vec3 uRoom;')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += uRoom * uLights;')
+  }
+  m.customProgramCacheKey = () => `room-${room}`
+}
+
+const rooms = new Map<Room, THREE.MeshStandardMaterial>()
+/** Glass with a room behind it that lights up at night. */
+export function roomGlassMat(room: Room) {
+  let m = rooms.get(room)
+  if (!m) {
+    m = glassMat().clone()
+    applyRoomLight(m, room)
+    rooms.set(room, m)
+  }
+  return m
+}
+
+/** Which special shader a material carries, so StaticMerge can give the merged copy the same one. */
+export function surfaceKind(m: THREE.Material): 'painted' | Room | null {
+  const k = m.customProgramCacheKey()
+  return k === 'painted-surface' ? 'painted' : k === 'room-warm' ? 'warm' : k === 'room-tube' ? 'tube' : null
+}
+
+export function applySurfaceKind(m: THREE.Material, kind: 'painted' | Room | null) {
+  if (kind === 'painted') applyGroundGrade(m)
+  else if (kind) applyRoomLight(m, kind)
+}
+
+let lamp: THREE.MeshStandardMaterial | null = null
+/** A street-lamp head: pale enamel by day, the brightest thing on the street at night (it blooms). */
+export function lampMat() {
+  return (lamp ??= new THREE.MeshStandardMaterial({ color: '#E9E4DA', roughness: 0.5, emissive: '#FFD9A0', emissiveIntensity: 0 }))
+}
+
 let leaf: THREE.MeshStandardMaterial | null = null
 export function leafMat() {
   return (leaf ??= new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 }))

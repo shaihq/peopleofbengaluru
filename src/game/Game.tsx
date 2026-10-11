@@ -4,8 +4,8 @@ import './districts' // registers every built district (must load first)
 import * as THREE from 'three'
 import { Suspense, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { C } from '@/lib/palette'
 import { Lighting } from './scene/Lighting'
+import { daylight } from './scene/time'
 import { Clouds, SkyDome } from './scene/Sky'
 import { Effects } from './scene/Effects'
 import { DistrictWorld } from './world/DistrictWorld'
@@ -21,7 +21,11 @@ import { Create } from './hud/Create'
 import { Pause } from './hud/Pause'
 import { YouCard, Toast } from './hud/YouCard'
 import { StatusEditor } from './hud/StatusEditor'
+import { ConnectArrival, Connections } from './hud/Connections'
+import { Invites } from './hud/Invites'
 import { Session } from './Session'
+import { Net } from './net/Net'
+import { LiveElsewhere } from './hud/LiveElsewhere'
 import { Interaction } from './hud/Interaction'
 import { Search } from './hud/Search'
 import { Tracker } from './hud/Tracker'
@@ -61,8 +65,9 @@ export default function Game() {
         gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
         camera={{ fov: 56, near: 0.2, far: 1200, position: [40, 16, 30] }}
       >
-        <color attach="background" args={[C.SKY_HORIZON]} />
-        <fog attach="fog" args={[C.SKY_HORIZON, 85, 430]} />
+        {/* starting colours of the hour; Lighting keeps them moving with the clock */}
+        <color attach="background" args={[daylight.look.fog]} />
+        <fog attach="fog" args={[daylight.look.fog, 85, 430]} />
         {/* adaptive quality: step down if this device can't hold ~45fps, back up when it can */}
         {showQualityDebug && <RenderStats />}
         <PerformanceMonitor
@@ -96,11 +101,16 @@ export default function Game() {
       <PortalPicker />
       <Travel />
       <YouCard />
+      <LiveElsewhere />
       <StatusEditor />
+      <Connections />
+      <ConnectArrival />
+      <Invites />
       <Create />
       <Pause />
       <Toast />
       <Session />
+      <Net />
       <Intro />
     </div>
   )

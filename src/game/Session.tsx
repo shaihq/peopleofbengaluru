@@ -6,6 +6,20 @@ import { refreshDirectory, useDirectory } from './people/directory'
 import { redeemInvite, submitApplication, submitProfile, useOnboarding } from './onboarding'
 import { SIGNIN_KEY, useAccess } from './access'
 import { useGame } from './store'
+import { useConnect } from './connect'
+import { startChat, stopChat } from './chat'
+
+/** Requests, matches, chats and your email setting (Phase 5G). Members only; a no-op otherwise. */
+function refreshConnect() {
+  const c = useConnect.getState()
+  if (!useDirectory.getState().userId) {
+    stopChat()
+    return c.reset()
+  }
+  void c.loadSettings()
+  void c.load()
+  void startChat()
+}
 
 /** True once, right after a sign-in link sent from the sign-in screen comes back. */
 function takeSignin() {
@@ -25,6 +39,7 @@ export function Session() {
     if (!supabase) return
     const { data } = supabase.auth.onAuthStateChange(async (event) => {
       await refreshDirectory()
+      refreshConnect()
       const d = useOnboarding.getState().draft
       if (event === 'SIGNED_IN' && d.pendingApply) {
         // pay path: the email is confirmed — save the application (nothing goes live)
@@ -70,10 +85,18 @@ export function Session() {
       }
     })
     // keep the street fresh as new people get approved
-    const id = setInterval(refreshDirectory, 60_000)
+    // and your connections: new requests and matches show up within a minute, or when you come back
+    const tick = async () => {
+      await refreshDirectory()
+      refreshConnect()
+    }
+    const id = setInterval(tick, 60_000)
+    const onVisible = () => document.visibilityState === 'visible' && void tick()
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       data.subscription.unsubscribe()
       clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [])
   return null
