@@ -1,10 +1,11 @@
--- People of Bengaluru — scheduled jobs (pg_cron + pg_net), run once in the Supabase SQL editor.
--- The database calls the website on a schedule, with the same CRON_SECRET the website has.
+-- People of Bengaluru — scheduled jobs (pg_cron + pg_net). The database calls the website on a schedule,
+-- with the same CRON_SECRET the website has.
 --
--- 1. Put the two secrets in the Vault (replace the values; never commit them):
---      select vault.create_secret('https://peopleofbengaluru.com', 'site_url');
---      select vault.create_secret('<the CRON_SECRET from Vercel production>', 'cron_secret');
--- 2. Run the rest of this file. Safe to re-run (it replaces the jobs).
+-- Each database needs its two Vault secrets, set by hand (never in a migration, never committed):
+--   production: select vault.create_secret('https://peopleofbengaluru.com', 'site_url');
+--   staging:    select vault.create_secret('https://dev.peopleofbengaluru.com', 'site_url');
+--   both:       select vault.create_secret('<CRON_SECRET>', 'cron_secret');
+-- Without them the job runs and does nothing.
 
 create extension if not exists pg_cron;
 create extension if not exists pg_net with schema extensions;

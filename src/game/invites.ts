@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import { GATE_MOCK } from './access'
 
-// YOUR INVITES (CLAUDE.md Phase 5D, supabase/migrations/0007_invites.sql). Every member holds a couple of
+// YOUR INVITES (CLAUDE.md Phase 5D, supabase/migrations/20261008102020_invites.sql). Every member holds a couple of
 // codes; turning one into a link marks it sent and starts the 30-day clock. A link unused for 30 days dies
 // and the slot comes back as a fresh code (my_invites does that on load). `?gatepreview` mocks it all.
 

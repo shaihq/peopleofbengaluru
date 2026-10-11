@@ -2,7 +2,7 @@
 -- Members turn a code into a link (marked sent, 30-day clock), see who joined, and get a fresh code
 -- back when a link goes unused. An expired code stays dead: check_invite keeps answering 'expired'.
 --
--- Run once in the Supabase SQL editor. Safe to re-run.
+-- Safe to re-run.
 
 -- ---------------------------------------------------------------------------
 -- Schema: the 'expired' state, and who an unused link was for

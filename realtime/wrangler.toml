@@ -7,8 +7,9 @@ compatibility_date = "2026-09-01"
 
 [vars]
 ENV_NAME = "dev"
-SUPABASE_URL = "https://taidgykcrdigmmgjyshv.supabase.co"
-SUPABASE_PUBLISHABLE_KEY = "sb_publishable_XQZgF2VVIZ4sdvv8DnwQcA_KuOkyNmv"
+# local dev runs against the staging database, like the website's .env.local
+SUPABASE_URL = "https://rwhjknklzedimfzuetuv.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_obBiuV0WYYW9dx6GkRXF1A_8CQZ5ovv"
 # comma-separated; "*" in a host matches one label (https://*.vercel.app)
 ALLOWED_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
 
@@ -57,8 +58,9 @@ invocation_logs = false
 
 [env.staging.vars]
 ENV_NAME = "staging"
-SUPABASE_URL = "https://taidgykcrdigmmgjyshv.supabase.co"
-SUPABASE_PUBLISHABLE_KEY = "sb_publishable_XQZgF2VVIZ4sdvv8DnwQcA_KuOkyNmv"
+# the staging database (Supabase branch "staging"), so dev-site logins are checked against it
+SUPABASE_URL = "https://rwhjknklzedimfzuetuv.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_obBiuV0WYYW9dx6GkRXF1A_8CQZ5ovv"
 ALLOWED_ORIGINS = "http://localhost:3000,https://dev.peopleofbengaluru.com,https://peopleofbengaluru-dev.vercel.app"
 
 [[env.staging.durable_objects.bindings]]
