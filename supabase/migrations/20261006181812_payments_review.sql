@@ -3,7 +3,7 @@
 -- rejects + refunds. Payment and refund states are written by the server only
 -- (src/app/api/*, with the secret key) after Dodo confirms them — never by the client.
 --
--- Run once in the Supabase SQL editor, after 0001–0003. Safe to re-run.
+-- Safe to re-run.
 
 -- What the fee is and which Dodo product charges it, per mode (test / live — live on Vercel production only).
 -- Config-driven: change the price by creating a new Dodo product (brand "People of

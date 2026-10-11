@@ -2,7 +2,7 @@
 -- One line from the sender (≤ 200 characters), shown to the person asked: in the city and in the
 -- request email. Still no chat: it is sent once, with the request, and never replied to.
 --
--- Run once in the Supabase SQL editor. Safe to re-run.
+-- Safe to re-run.
 
 alter table public.connections add column if not exists note text check (char_length(note) <= 200);
 

@@ -2,7 +2,7 @@
 -- A short line + an emoji above your head: who's open to being approached, and
 -- something to say. Called "note" here because profiles.status is already approval.
 --
--- Run once in the Supabase SQL editor. Safe to re-run.
+-- Safe to re-run.
 
 alter table public.profiles add column if not exists note_text text;
 alter table public.profiles add column if not exists note_emoji text;

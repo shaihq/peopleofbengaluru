@@ -3,7 +3,7 @@
 -- application is saved here BEFORE payment. Payment (Dodo) and the admin review page come
 -- in 5E-B; this migration already has the columns and states they need.
 --
--- Run once in the Supabase SQL editor, after 0001 and 0002. Safe to re-run.
+-- Safe to re-run.
 
 -- ---------------------------------------------------------------------------
 -- Admins (reviewers). Added by hand:  insert into public.admins (user_id)

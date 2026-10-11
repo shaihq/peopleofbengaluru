@@ -27,7 +27,7 @@ export type ProfileRow = {
   character: string
   spot: string
   status: 'pending' | 'approved' | 'hidden' | 'rejected'
-  /** Their status above the nameplate (Phase 5F-B; supabase/migrations/0005_status.sql). */
+  /** Their status above the nameplate (Phase 5F-B; supabase/migrations/20261007000000_status.sql). */
   note_text?: string | null
   note_emoji?: string | null
   note_expires_at?: string | null

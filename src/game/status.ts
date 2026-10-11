@@ -4,7 +4,7 @@ import { refreshDirectory, rowStatus, useDirectory } from './people/directory'
 
 // STATUS (CLAUDE.md Phase 5F): a short line + an emoji above your head, like a note —
 // who's open to being approached, and something to open with.
-// Members' statuses live on their profile (note_* columns, migrations/0005_status.sql), so
+// Members' statuses live on their profile (note_* columns, migrations/20261007000000_status.sql), so
 // everyone sees them. Without an account (?statuspreview) it stays in this browser.
 
 export const STATUS_MAX = 100

@@ -2,7 +2,7 @@
 -- chat code: the old site still reads contacts and calls the old connect functions.
 -- Deletes every saved contact (WhatsApp numbers, handles): chat replaced the handoff, so we stop holding them.
 --
--- Run once in the Supabase SQL editor. Safe to re-run.
+-- Safe to re-run.
 
 drop function if exists public.send_connect(uuid, text, text);
 drop function if exists public.send_connect(uuid, text);

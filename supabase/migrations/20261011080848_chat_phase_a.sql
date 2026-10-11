@@ -4,10 +4,10 @@
 --
 -- PHASE A, additive. Dev and production share this database and the live site still runs the old
 -- code, so nothing old is changed in a way it would notice: the new behaviour lives in *_v2
--- functions. Phase B (0010_drop_contacts.sql) removes contacts + the old functions once production
+-- functions. Phase B (20261012000000_drop_contacts.sql) removes contacts + the old functions once production
 -- runs the new code.
 --
--- Run once in the Supabase SQL editor. Safe to re-run.
+-- Safe to re-run.
 
 -- ---------------------------------------------------------------------------
 -- email preference (was contacts.emails; contacts go away in phase B)

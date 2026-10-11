@@ -4,7 +4,7 @@ import { siteOrigin } from '@/lib/server/env'
 
 // Unread chat messages → one email (CLAUDE.md 5G). Someone with messages unread for 10+ minutes gets
 // "Ananya sent you a message", at most once per chat every 6 hours, never with the message text, and
-// never if they turned emails off (chat_digest_due() in 0009_chat.sql decides who).
+// never if they turned emails off (chat_digest_due() in 20261011080848_chat_phase_a.sql decides who).
 // Called every 5 minutes by pg_cron in Supabase with `Authorization: Bearer $CRON_SECRET`.
 
 export async function GET(req: Request) {

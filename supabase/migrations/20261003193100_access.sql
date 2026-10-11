@@ -3,7 +3,7 @@
 -- This migration adds invite codes, access settings and the two server functions the
 -- gate calls. Payments (5D-C) and the review queue (5D-D) come later.
 --
--- Run once in the Supabase SQL editor. Safe to re-run.
+-- Safe to re-run.
 
 -- ---------------------------------------------------------------------------
 -- Settings (config-driven, change without a release)

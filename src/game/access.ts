@@ -7,8 +7,8 @@ import { useGame } from './store'
 // THE GATE (CLAUDE.md Phase 5D). Being visible is earned: an invite code (instant) or
 // an application that is paid for and reviewed.
 //
-// 5D-B: invite codes are real (supabase/migrations/0002_access.sql).
-// 5E-A: applications are real (supabase/migrations/0003_applications.sql).
+// 5D-B: invite codes are real (supabase/migrations/20261003193100_access.sql).
+// 5E-A: applications are real (supabase/migrations/20261006175948_applications.sql).
 // 5E-B: the fee is paid through Dodo Payments (src/app/api/apply/*); a reviewer decides on /admin.
 // `?gatepreview` swaps in local mocks for every state, payment path included.
 
