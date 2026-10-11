@@ -11,9 +11,9 @@ export const DODO_MODE: 'live' | 'test' = isProduction() ? 'live' : 'test'
 const BASE = DODO_MODE === 'live' ? 'https://live.dodopayments.com' : 'https://test.dodopayments.com'
 
 /** Our Dodo brand, "People of Bangalore", per mode. Not a secret. */
-const BRAND: Record<typeof DODO_MODE, string | null> = {
+const BRAND: Record<typeof DODO_MODE, string> = {
   test: 'brnd_0NpARKVua0YvuytnvrdEj',
-  live: null, // add the live brand ID when live mode is set up
+  live: 'brnd_0NpWAGN0tvwnkrxvOHQC3',
 }
 
 /**
