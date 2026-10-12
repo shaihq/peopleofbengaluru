@@ -14,6 +14,7 @@ import { bodies, player } from '../people/bodies'
 import { isTyping } from '../player/input'
 import { useGame } from '../store'
 import { useConnect } from '../connect'
+import { useInvites } from '../invites'
 
 const CLICKABLE = 'button, a[href], [role="button"], .chip, .find-row, .cr-spot'
 
@@ -83,6 +84,10 @@ export function AudioDirector() {
       // the bell (5G-C)
       if (s.ring && s.ring !== p.ring) sfx.bellRing(s.ring.kind)
     })
+    // someone joined with your invite: good news, rung like a match
+    const unsubInvites = useInvites.subscribe((s, p) => {
+      if (s.news && s.news !== p.news) sfx.bellRing('match')
+    })
     // results-count confirmation in the finder (debounced)
     let deb: ReturnType<typeof setTimeout> | null = null
     const onInput = (e: Event) => {
@@ -98,6 +103,7 @@ export function AudioDirector() {
     return () => {
       unsub()
       unsubMatch()
+      unsubInvites()
       document.removeEventListener('input', onInput)
     }
   }, [])

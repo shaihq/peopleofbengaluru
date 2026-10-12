@@ -23,6 +23,8 @@ type Invites = {
   loaded: boolean
   error: boolean
   busy: boolean
+  /** Someone used one of your codes since the last load: the HUD ticket names them (n changes each time). */
+  news: { n: number; name: string } | null
   load: () => Promise<void>
   /** A ready code → a sent link. */
   create: (code: string, note: string) => Promise<{ ok: boolean }>
@@ -68,6 +70,7 @@ export const useInvites = create<Invites>((set, get) => ({
   loaded: false,
   error: false,
   busy: false,
+  news: null,
 
   load: async () => {
     if (GATE_MOCK) {
@@ -77,7 +80,11 @@ export const useInvites = create<Invites>((set, get) => ({
     if (!supabase) return set({ error: true })
     const { data, error } = await supabase.rpc('my_invites')
     if (error) return set({ error: true })
-    set({ slots: (data as Slot[]) ?? [], loaded: true, error: false })
+    const slots = (data as Slot[]) ?? []
+    const prev = get()
+    // only news against a list we already had (the first load isn't an arrival)
+    const fresh = prev.loaded ? slots.find((s) => s.joined && !prev.slots.some((p) => p.code === s.code && p.joined)) : undefined
+    set({ slots, loaded: true, error: false, ...(fresh ? { news: { n: (prev.news?.n ?? 0) + 1, name: fresh.joined!.name } } : {}) })
   },
 
   create: async (code, note) => {
@@ -107,5 +114,5 @@ export const useInvites = create<Invites>((set, get) => ({
     return { ok }
   },
 
-  reset: () => set({ slots: [], loaded: false, error: false, busy: false }),
+  reset: () => set({ slots: [], loaded: false, error: false, busy: false, news: null }),
 }))

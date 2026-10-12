@@ -7,7 +7,7 @@ import { isTyping, requestLook } from '../player/input'
 import { useGame } from '../store'
 import { isTouch } from '../device'
 
-// YOUR INVITES (CLAUDE.md Phase 5D) — I, the INVITES button on your card, or the pause menu.
+// YOUR INVITES (CLAUDE.md Phase 5D) — the ticket in the HUD, I, the INVITES button on your card, or the pause menu.
 // design.md §10: an ink panel over the live street, one chunky slanted card per slot.
 
 const isMemberNow = () => useDirectory.getState().me?.status === 'approved'
@@ -138,6 +138,69 @@ function Joined({ s, n }: { s: Slot; n: number }) {
         </span>
       </div>
     </div>
+  )
+}
+
+// the ticket's count stays fresh, and a code used meanwhile shows up as "PRIYA JOINED"
+const REFRESH_MS = 120_000
+
+/**
+ * The ticket in the HUD, beside the bell: how many codes you can still give, one tap to your invites.
+ * Ink like the bell (a signal, not the main action); someone joining with your code turns it green for a moment.
+ */
+export function InvitesHud() {
+  const member = useDirectory((s) => s.me?.status === 'approved')
+  const slots = useInvites((s) => s.slots)
+  const news = useInvites((s) => s.news)
+  const [announce, setAnnounce] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!member) return
+    const load = () => {
+      if (document.visibilityState === 'visible') void useInvites.getState().load()
+    }
+    load()
+    const id = setInterval(load, REFRESH_MS)
+    document.addEventListener('visibilitychange', load)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', load)
+    }
+  }, [member])
+
+  useEffect(() => {
+    if (!news) return
+    setAnnounce(`${news.name.split(/\s+/)[0].toUpperCase()} JOINED`)
+    const id = setTimeout(() => setAnnounce(null), 8000)
+    return () => clearTimeout(id)
+  }, [news])
+
+  if (!member) return null
+  const ready = slots.filter((s) => s.state === 'available').length
+  return (
+    <button
+      className={`slant hud-find hud-bell hud-tix${announce ? ' hud-bell--news hud-bell--match' : ''}`}
+      onClick={() => useGame.getState().setInvitesOpen(true)}
+      aria-label={announce ?? (ready ? `Your invites: ${ready} to give` : 'Your invites')}
+    >
+      {announce && <span key={`p${news!.n}`} className="hud-bell-ping hud-bell-ping--match" />}
+      <span className="unslant">
+        <svg key={`g${news?.n ?? 0}`} className={`hud-bell-glyph hud-tix-glyph${announce ? ' hud-bell-glyph--match' : ''}`} viewBox="0 0 24 24" aria-hidden>
+          <path
+            fillRule="evenodd"
+            d="M4 5h16a2 2 0 0 1 2 2v2.6a2.4 2.4 0 0 0 0 4.8V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2.6a2.4 2.4 0 0 0 0-4.8V7a2 2 0 0 1 2-2ZM14.6 7.4h1.3v2.1h-1.3ZM14.6 10.95h1.3v2.1h-1.3ZM14.6 14.5h1.3v2.1h-1.3Z"
+          />
+        </svg>
+        {announce ? (
+          <span className="hud-bell-label" key={announce}>
+            {announce}
+          </span>
+        ) : (
+          ready > 0 && <b className="hud-tix-n">{ready}</b>
+        )}
+        <span className="keycap">I</span>
+      </span>
+    </button>
   )
 }
 

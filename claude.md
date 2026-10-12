@@ -840,7 +840,7 @@ Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both
 - The gate screen with the ghost preview behind it; the new step order; the progress bar.
 - Every state exists as a designed screen, driven by local mock data with a dev-only switch to jump between them: invalid / used / expired code, payment placeholder, under review, rejected, approved.
 - The payment step is a visible placeholder only. No payment code, no provider.
-- HUD: ghost / under review status; "Your invites" screen (src/game/hud/Invites.tsx: I, the INVITES button on your card, the pause menu, ?invites). Slots: ready (optional "who's it for", create link), sent (copy / share, days left), joined, renewed ("your link to Priya went unused, here's a fresh one").
+- HUD: ghost / under review status; "Your invites" screen (src/game/hud/Invites.tsx: the ticket in the HUD beside the bell — codes left to give, "PRIYA JOINED" when one is used — I, the INVITES button on your card, the pause menu, ?invites). Slots: ready (optional "who's it for", create link), sent (copy / share, days left), joined, renewed ("your link to Priya went unused, here's a fresh one").
 - Touch and portrait versions of all of it.
 - Sign-in for returning members and applicants: "SIGN IN" on the gate, on the ghost bar (L; not signed in only) and in the pause menu. Magic link with shouldCreateUser off, so it never creates an account (unknown email → points to the ways in). After the return trip the person lands back on their profile or application status.
 - Quality bar: it must feel like a game screen, not a form (design.md).

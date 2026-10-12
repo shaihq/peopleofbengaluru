@@ -5814,6 +5814,17 @@ html.touch .ch-list {
   position: relative;
 }
 
+/* the ticket (your invites): the bell's ink panel; how many codes you can give, in saffron */
+.hud-tix-glyph {
+  transform-origin: 50% 50%;
+}
+
+.hud-tix-n {
+  color: var(--saffron);
+  font-size: 18px;
+  line-height: 1;
+}
+
 /* a match: solid green (UI_OPEN), ink text — like matches on the arrival card and in the tray */
 .hud-bell--news.hud-bell--match {
   background: var(--open);
@@ -6465,12 +6476,19 @@ html.touch .ch-list {
   }
 }
 
-/* narrow phones: the bell sits under FIND SOMEONE, clear of the location panel */
+/* narrow phones: the ticket and the bell sit side by side under FIND SOMEONE, clear of the location panel */
 @media (max-width: 520px) {
   .hud-find-row {
-    flex-direction: column-reverse;
-    align-items: flex-end;
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: end;
+    justify-items: end;
     gap: 6px;
+  }
+
+  .hud-find-row > .hud-find:not(.hud-bell) {
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 
   .hud-find-row .hud-find {
