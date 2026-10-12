@@ -8,3 +8,9 @@ next-env.d.ts
 # local secrets
 .env*
 !.env.example
+
+# personal AI-agent skills (not project knowledge)
+.agents/
+.claude/skills/
+.kiro/
+skills-lock.json
