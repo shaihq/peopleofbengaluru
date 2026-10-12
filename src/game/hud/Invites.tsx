@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { NOTE_MAX, daysLeft, inviteLink, useInvites, type Slot } from '../invites'
+import { inviteLink, useInvites, type Slot } from '../invites'
 import { useDirectory } from '../people/directory'
 import { isTyping, requestLook } from '../player/input'
 import { useGame } from '../store'
 import { isTouch } from '../device'
 
-// YOUR INVITES (CLAUDE.md Phase 5D) — I, the INVITES button on your card, or the pause menu.
+// YOUR INVITES (CLAUDE.md Phase 5D) — the ticket in the HUD, I, the INVITES button on your card, or the pause menu.
 // design.md §10: an ink panel over the live street, one chunky slanted card per slot.
 
 const isMemberNow = () => useDirectory.getState().me?.status === 'approved'
@@ -25,119 +25,125 @@ async function copy(text: string) {
   }
 }
 
-/** Share sheet on phones, clipboard everywhere else. */
-async function hand(code: string, note: string | null) {
-  const url = inviteLink(code)
+/** Share sheet on phones, clipboard everywhere else; either way the code counts as sent. */
+async function hand(s: Slot) {
+  const url = inviteLink(s.code)
   const toast = useGame.getState().showToast
+  const sent = () => s.state === 'available' && void useInvites.getState().sent(s.code)
   if (canShare()) {
     try {
-      await navigator.share({ title: 'People of Bengaluru', text: `${note ? `${note}, ` : ''}you're invited to the city of designers and builders.`, url })
-      return
+      await navigator.share({ title: 'People of Bengaluru', text: 'You’re invited to the city of designers and builders.', url })
+      return sent()
     } catch (e) {
       if ((e as DOMException)?.name === 'AbortError') return
     }
   }
-  if (await copy(url)) toast('LINK COPIED · SEND IT TO THEM', 'good')
-  else toast('COULDN’T COPY · SELECT THE LINK AND COPY IT', 'bad')
+  if (await copy(url)) {
+    toast('INVITE COPIED · SEND IT TO SOMEONE', 'good')
+    sent()
+  } else toast('COULDN’T COPY · TRY AGAIN', 'bad')
 }
 
-/** The slot number, on a slanted block coloured by state: saffron ready, ink sent, green joined. */
-function Num({ n, tone }: { n: number; tone: 'ready' | 'sent' | 'joined' }) {
+/** The slot number, on a slanted block: saffron while it's yours to give, green once used. */
+function Num({ n, used }: { n: number; used?: boolean }) {
   return (
-    <span className={`iv-num iv-num--${tone} slant`} aria-hidden>
+    <span className={`iv-num iv-num--${used ? 'used' : 'ready'} slant`} aria-hidden>
       <span className="unslant">{String(n).padStart(2, '0')}</span>
     </span>
   )
 }
 
-function Ready({ s, n }: { s: Slot; n: number }) {
-  const busy = useInvites((x) => x.busy)
-  const [note, setNote] = useState('')
-  const make = async () => {
-    const r = await useInvites.getState().create(s.code, note)
-    if (!r.ok) return useGame.getState().showToast('COULDN’T MAKE THE LINK · TRY AGAIN', 'bad')
-    setNote('')
-    const copied = !canShare() && (await copy(inviteLink(s.code)))
-    useGame.getState().showToast(copied ? 'LINK READY · COPIED' : 'LINK READY', 'good')
-  }
+/** A code still to give: the code itself and one button. */
+function Code({ s, n }: { s: Slot; n: number }) {
   return (
-    <div className="iv-pass iv-pass--ready">
-      <Num n={n} tone="ready" />
+    <div className="iv-pass">
+      <Num n={n} />
+      <div className="iv-pass-body iv-pass-body--code">
+        <b className="iv-pass-title iv-code">{s.code}</b>
+        <button className="iv-act slant" data-primary onClick={() => hand(s)}>
+          <span className="unslant">{canShare() ? 'SHARE ▸' : 'COPY'}</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Used({ s, n }: { s: Slot; n: number }) {
+  const j = s.joined
+  return (
+    <div className="iv-pass iv-pass--used">
+      <Num n={n} used />
       <div className="iv-pass-body">
-        <b className="iv-pass-title">INVITE READY</b>
-        <span className="iv-pass-sub">
-          {s.renewed_from === null
-            ? 'For someone you’d vouch for.'
-            : s.renewed_from
-              ? `Your link to ${s.renewed_from} went unused — here’s a fresh one.`
-              : 'Your last link went unused — here’s a fresh one.'}
-        </span>
-        <div className="iv-pass-row">
-          <input
-            className="iv-input"
-            value={note}
-            maxLength={NOTE_MAX}
-            placeholder="Who’s it for? (optional)"
-            autoComplete="off"
-            spellCheck={false}
-            onChange={(e) => setNote(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                e.stopPropagation()
-                void make()
-              }
-            }}
-            aria-label="Who is this invite for (optional)"
+        <div className="iv-pass-head">
+          <b className="iv-pass-title">{j ? `USED BY ${j.name.toUpperCase()}` : 'USED'}</b>
+          {j && <span className="iv-left">{shortDate(j.at)}</span>}
+        </div>
+        {j?.role && <span className="iv-pass-sub">{j.role}</span>}
+      </div>
+    </div>
+  )
+}
+
+// the ticket's count stays fresh, and a code used meanwhile shows up as "PRIYA JOINED"
+const REFRESH_MS = 120_000
+
+/**
+ * The ticket in the HUD, beside the bell: how many codes you can still give, one tap to your invites.
+ * Ink like the bell (a signal, not the main action); someone joining with your code turns it green for a moment.
+ */
+export function InvitesHud() {
+  const member = useDirectory((s) => s.me?.status === 'approved')
+  const slots = useInvites((s) => s.slots)
+  const news = useInvites((s) => s.news)
+  const [announce, setAnnounce] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!member) return
+    const load = () => {
+      if (document.visibilityState === 'visible') void useInvites.getState().load()
+    }
+    load()
+    const id = setInterval(load, REFRESH_MS)
+    document.addEventListener('visibilitychange', load)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', load)
+    }
+  }, [member])
+
+  useEffect(() => {
+    if (!news) return
+    setAnnounce(`${news.name.split(/\s+/)[0].toUpperCase()} JOINED`)
+    const id = setTimeout(() => setAnnounce(null), 8000)
+    return () => clearTimeout(id)
+  }, [news])
+
+  if (!member) return null
+  const ready = slots.filter((s) => s.state !== 'used').length
+  return (
+    <button
+      className={`slant hud-find hud-bell hud-tix${announce ? ' hud-bell--news hud-bell--match' : ''}`}
+      onClick={() => useGame.getState().setInvitesOpen(true)}
+      aria-label={announce ?? (ready ? `Your invites: ${ready} to give` : 'Your invites')}
+    >
+      {announce && <span key={`p${news!.n}`} className="hud-bell-ping hud-bell-ping--match" />}
+      <span className="unslant">
+        <svg key={`g${news?.n ?? 0}`} className={`hud-bell-glyph hud-tix-glyph${announce ? ' hud-bell-glyph--match' : ''}`} viewBox="0 0 24 24" aria-hidden>
+          <path
+            fillRule="evenodd"
+            d="M4 5h16a2 2 0 0 1 2 2v2.6a2.4 2.4 0 0 0 0 4.8V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2.6a2.4 2.4 0 0 0 0-4.8V7a2 2 0 0 1 2-2ZM14.6 7.4h1.3v2.1h-1.3ZM14.6 10.95h1.3v2.1h-1.3ZM14.6 14.5h1.3v2.1h-1.3Z"
           />
-          <button className="iv-act slant" data-primary onClick={make} disabled={busy}>
-            <span className="unslant">{busy ? 'MAKING…' : 'CREATE LINK ▸'}</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Sent({ s, n }: { s: Slot; n: number }) {
-  const url = inviteLink(s.code)
-  return (
-    <div className="iv-pass iv-pass--sent">
-      <Num n={n} tone="sent" />
-      <div className="iv-pass-body">
-        <div className="iv-pass-head">
-          <b className="iv-pass-title">{s.note ? `FOR ${s.note.toUpperCase()}` : 'LINK SENT'}</b>
-          <span className="iv-left">{daysLeft(s.expires_at)}</span>
-        </div>
-        <div className="iv-pass-row">
-          <input className="iv-input iv-input--link" value={url} readOnly onFocus={(e) => e.currentTarget.select()} aria-label="Invite link" />
-          <button className="iv-act iv-act--quiet slant" data-primary onClick={() => hand(s.code, s.note)}>
-            <span className="unslant">{canShare() ? 'SHARE ▸' : 'COPY'}</span>
-          </button>
-        </div>
-        <span className="iv-pass-fine">
-          Sent {s.sent_at ? shortDate(s.sent_at) : ''} · unused after 30 days, it expires and you get a fresh one
-        </span>
-      </div>
-    </div>
-  )
-}
-
-function Joined({ s, n }: { s: Slot; n: number }) {
-  const j = s.joined!
-  return (
-    <div className="iv-pass iv-pass--joined">
-      <Num n={n} tone="joined" />
-      <div className="iv-pass-body">
-        <div className="iv-pass-head">
-          <b className="iv-pass-title">{j.name.split(' ')[0].toUpperCase()} JOINED</b>
-          <span className="iv-left iv-left--joined">{shortDate(j.at)}</span>
-        </div>
-        <span className="iv-pass-sub">
-          {j.role ? `${j.role} · ` : ''}in the city because you vouched for them
-        </span>
-      </div>
-    </div>
+        </svg>
+        {announce ? (
+          <span className="hud-bell-label" key={announce}>
+            {announce}
+          </span>
+        ) : (
+          ready > 0 && <b className="hud-tix-n">{ready}</b>
+        )}
+        <span className="keycap">I</span>
+      </span>
+    </button>
   )
 }
 
@@ -151,7 +157,7 @@ export function Invites() {
   const loaded = useInvites((s) => s.loaded)
   const error = useInvites((s) => s.error)
   const list = useRef<HTMLDivElement>(null)
-  const ready = slots.filter((s) => s.state === 'available').length
+  const ready = slots.filter((s) => s.state !== 'used').length
 
   const close = () => {
     setOpen(false)
@@ -196,7 +202,7 @@ export function Invites() {
         return
       }
       if (e.code !== 'ArrowDown' && e.code !== 'ArrowUp') return
-      const targets = Array.from(list.current?.querySelectorAll<HTMLElement>('[data-primary], .iv-pass--ready .iv-input') ?? [])
+      const targets = Array.from(list.current?.querySelectorAll<HTMLElement>('[data-primary]') ?? [])
       if (!targets.length) return
       e.preventDefault()
       const i = targets.indexOf(document.activeElement as HTMLElement)
@@ -227,7 +233,7 @@ export function Invites() {
           <div className="iv-tally">
             <span className="iv-tally-pips" aria-hidden>
               {slots.map((s) => (
-                <i key={s.code} className={`slant iv-pip iv-pip--${s.state}`} />
+                <i key={s.code} className={`slant iv-pip iv-pip--${s.state === 'used' ? 'used' : 'available'}`} />
               ))}
             </span>
             <span>
@@ -249,15 +255,7 @@ export function Invites() {
           ) : slots.length === 0 ? (
             <p className="cn-empty">No invites yet. Every member gets two.</p>
           ) : (
-            slots.map((s, i) =>
-              s.state === 'used' && s.joined ? (
-                <Joined key={s.code} s={s} n={i + 1} />
-              ) : s.state === 'sent' ? (
-                <Sent key={s.code} s={s} n={i + 1} />
-              ) : s.state === 'available' ? (
-                <Ready key={s.code} s={s} n={i + 1} />
-              ) : null,
-            )
+            slots.map((s, i) => (s.state === 'used' ? <Used key={s.code} s={s} n={i + 1} /> : <Code key={s.code} s={s} n={i + 1} />))
           )}
         </div>
       </div>
