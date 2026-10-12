@@ -43,17 +43,15 @@ function Nameplate({ p, plate }: { p: Profile; plate: React.RefObject<HTMLDivEle
   const here = useNet((s) => s.live.has(p.id))
   return (
     <div ref={plate} className="np" data-lod="off">
-      {here && (
-        <div className="np-here">
-          <span className="np-here-dot" /> HERE NOW
-        </div>
-      )}
       {p.openToWork && (
         <div className="np-open">
           <span className="np-dot" /> OPEN TO WORK
         </div>
       )}
-      <div className="np-name">{p.name}</div>
+      <div className="np-name">
+        {here && <span className="np-online-dot" aria-label="Online" />}
+        {p.name}
+      </div>
       <div className="np-role">
         {p.role}
         {p.company && p.company !== 'Freelance' && p.company !== 'Solo' ? ` · ${p.company}` : ''}

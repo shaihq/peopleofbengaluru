@@ -5470,32 +5470,20 @@ html.touch .ch-list {
 
 /* --- LIVE CITY (Phase 8A): who is really here right now ---------------------- */
 
-/* nameplate tag on a member who is online — saffron, so live people read at a glance */
-.np-here {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: 4px;
-  padding: 2px 8px;
-  background: var(--saffron);
-  color: var(--ink);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  transform: skewX(var(--skew));
-  box-shadow: 0 2px 0 rgba(12, 14, 22, 0.45);
-}
-
-.np-here-dot {
+/* online: just a green dot before the name, no tag (the nameplate stays light) */
+.np-online-dot {
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
+  margin: 0 7px 0 0;
+  vertical-align: 0.18em;
   border-radius: 50%;
-  background: var(--ink);
-  animation: here-pulse 1.6s ease-in-out infinite;
+  background: var(--open);
+  box-shadow: 0 0 0 2px var(--ink);
+  animation: online-pulse 1.6s ease-in-out infinite;
 }
 
-@keyframes here-pulse {
+@keyframes online-pulse {
   50% {
     transform: scale(0.6);
   }
@@ -5569,8 +5557,44 @@ html.touch .ch-list {
   color: var(--saffron);
 }
 
+/* profile panel: online / offline beside the PROFILE tag, same look as the nameplate's ONLINE */
+.pp-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ink-soft);
+  color: var(--cream);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  padding: 3px 8px;
+  transform: skewX(var(--skew));
+  box-shadow: 0 2px 0 rgba(12, 14, 22, 0.45);
+}
+
+.pp-presence-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--open);
+  animation: online-pulse 1.6s ease-in-out infinite;
+}
+
+.pp-presence--off {
+  background: none;
+  color: rgba(255, 246, 229, 0.6);
+  box-shadow: none;
+}
+
+.pp-presence--off .pp-presence-dot {
+  background: none;
+  border: 1.5px solid currentColor;
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .np-here-dot {
+  .np-online-dot,
+  .pp-presence-dot {
     animation: none;
   }
 }
