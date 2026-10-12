@@ -15,7 +15,9 @@ export function Tracker() {
   const dist = useRef<HTMLSpanElement>(null)
   const portalFor = useGame((s) => s.portalFor)
   const toPortal = trackId === 'portal' && portalFor
-  const p = toPortal ? getPeople().find((x) => x.id === portalFor.id) : getPeople().find((x) => x.id === trackId)
+  // the portal on its own (Day Zero's CROSS OVER): no one waiting on the other side
+  const justPortal = trackId === 'portal' && !portalFor
+  const p = justPortal ? { id: 'portal', name: 'THE PORTAL' } : toPortal ? getPeople().find((x) => x.id === portalFor.id) : getPeople().find((x) => x.id === trackId)
 
   useEffect(() => {
     if (!trackId) return
@@ -49,7 +51,7 @@ export function Tracker() {
   return (
     <div className={`tracker slant${found ? ' tracker--found' : ''}`} key={`${p.id}-${found}`}>
       <span className="unslant tracker-body">
-        <span className="tracker-tag">{toPortal ? `TO THE PORTAL → ${districtInfo(portalFor.district).title}` : found ? 'FOUND' : stage === 'walk' ? 'HEADING TO' : 'LOCATING'}</span>
+        <span className="tracker-tag">{justPortal ? 'HEADING TO' : toPortal ? `TO THE PORTAL → ${districtInfo(portalFor.district).title}` : found ? 'FOUND' : stage === 'walk' ? 'HEADING TO' : 'LOCATING'}</span>
         <span className="tracker-name">{p.name}</span>
         {!found && <span className="tracker-dist" ref={dist} />}
         {!found && (

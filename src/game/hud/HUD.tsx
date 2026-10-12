@@ -3,6 +3,8 @@
 import { useGame } from '../store'
 import { districtInfo } from '../districts/registry'
 import { ConnectHud } from './Connections'
+import { InvitesHud } from './Invites'
+import { Missions } from './Missions'
 import { useNet } from '../net/useNet'
 import { useClock } from '../scene/time'
 import { clockText, phaseAt } from '../scene/daylight'
@@ -38,6 +40,7 @@ export function HUD() {
         <div key={landmark} className="slant hud-landmark">
           <span className="unslant">{landmark}</span>
         </div>
+        <Missions />
       </div>
 
       <div className="hud-status">
@@ -54,6 +57,7 @@ export function HUD() {
           </div>
         )}
         <div className="hud-find-row">
+          <InvitesHud />
           <ConnectHud />
           <button className="slant hud-find" onClick={() => useGame.getState().setSearch(true)}>
             <span className="unslant">

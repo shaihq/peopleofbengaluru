@@ -43,6 +43,12 @@ export function PortalController() {
       g.startTravel(g.portalFor.district, g.portalFor.id)
       return
     }
+    // walked here for its own sake (Day Zero's CROSS OVER): offer WHERE TO?
+    if (!g.portalFor && g.trackId === 'portal' && g.trackStage === 'found') {
+      g.stopTracking()
+      g.setPortalOpen(true)
+      return
+    }
     if (d > 2.8) armed.current = true
     if (g.portalFor && armed.current && d < 1.0 && !g.portalOpen && !g.openId && !g.searchOpen && !g.statusOpen && !g.connectOpen && !g.invitesOpen && !g.paused) {
       armed.current = false
