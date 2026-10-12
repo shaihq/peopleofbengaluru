@@ -15,6 +15,7 @@ import { isTyping } from '../player/input'
 import { useGame } from '../store'
 import { useConnect } from '../connect'
 import { useInvites } from '../invites'
+import { useMissions } from '../missionsStore'
 
 const CLICKABLE = 'button, a[href], [role="button"], .chip, .find-row, .cr-spot'
 
@@ -88,6 +89,10 @@ export function AudioDirector() {
     const unsubInvites = useInvites.subscribe((s, p) => {
       if (s.news && s.news !== p.news) sfx.bellRing('match')
     })
+    // a Day Zero mission done: the motif, like finding someone
+    const unsubMissions = useMissions.subscribe((s, p) => {
+      if (s.justDone && s.justDone !== p.justDone) sfx.found()
+    })
     // results-count confirmation in the finder (debounced)
     let deb: ReturnType<typeof setTimeout> | null = null
     const onInput = (e: Event) => {
@@ -104,6 +109,7 @@ export function AudioDirector() {
       unsub()
       unsubMatch()
       unsubInvites()
+      unsubMissions()
       document.removeEventListener('input', onInput)
     }
   }, [])

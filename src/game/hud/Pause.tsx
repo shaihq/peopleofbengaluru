@@ -11,6 +11,7 @@ import { useConnect } from '../connect'
 import { useInvites } from '../invites'
 import { activeStatus, useMyStatus } from '../status'
 import { useCanSetStatus } from './StatusEditor'
+import { useMissions } from '../missionsStore'
 
 const CONTROLS: [string[], string][] = [
   [['W', 'A', 'S', 'D'], 'MOVE'],
@@ -37,6 +38,8 @@ export function Pause() {
   const me = useDirectory((s) => s.me)
   const signedIn = useDirectory((s) => !!s.userId)
   const canStatus = useCanSetStatus()
+  // Day Zero missions: hide or bring back the tracker (members, until they're all done)
+  const missions = useMissions((s) => (s.userId && !s.retired ? (s.hidden ? 'show' : 'hide') : null))
   const hasStatus = useMyStatus((s) => !!activeStatus(s.status))
   const [controls, setControls] = useState(false)
   const [sound, setSound] = useState(false)
@@ -182,6 +185,12 @@ export function Pause() {
             >
               <span className="pause-label">YOUR INVITES</span>
               <span className="keycap">I</span>
+            </button>
+          )}
+
+          {missions && (
+            <button className="pause-row" onClick={() => useMissions.getState().setHidden(missions === 'hide')}>
+              <span className="pause-label">{missions === 'hide' ? 'HIDE MISSIONS' : 'SHOW MISSIONS'}</span>
             </button>
           )}
 

@@ -13,6 +13,7 @@ import { isTyping, requestLook } from '../player/input'
 import { useGame } from '../store'
 import { isTouch } from '../device'
 import { homeDistrict } from '../districts/registry'
+import { activeStatus } from '../status'
 
 // CONNECT (CLAUDE.md Phase 5G) — the profile-panel action, the Connections screen (C), the match
 // moment and the chats (Chat.tsx). design.md §10: ink panels, slanted saffron actions, condensed caps.
@@ -183,6 +184,15 @@ export function ConnectFlow({ p, onExit }: { p: Profile; onExit: () => void }) {
           <p className="cr-copy cf-lede">
             Optional — but people say yes far more often when they know why you’re reaching out. One line is plenty.
           </p>
+          {activeStatus(p.status) && (
+            <div className="pp-note cf-reply">
+              {p.status!.emoji && <span className="pp-note-e">{p.status!.emoji}</span>}
+              <span className="pp-note-body">
+                <span className="pp-note-k">REPLYING TO</span>
+                <span className="pp-note-t">{p.status!.text}</span>
+              </span>
+            </div>
+          )}
           <label className="cr-field cf-note">
             <span className="cr-label">
               YOUR NOTE <em className={left < 30 ? 'cr-count cr-count--low' : 'cr-count'}>{left}</em>

@@ -1058,6 +1058,23 @@ Why: the CONNECTIONS screen reused the Become Visible panel (tag, giant title, e
 
 ---
 
+# PHASE 5H — DAY ZERO MISSIONS (built: src/game/missions.ts, src/game/missionsStore.ts, src/game/hud/Missions.tsx)
+
+Goal: a new member knows what to do first. Four missions walk them through the social loop:
+
+1. PUT YOUR NOTE UP: tell the street what you're here for (set a status).
+2. OFF THE USUAL PATH: walk up to someone whose note you like and say hi (send a CONNECT; the note step shows "REPLYING TO" their note).
+3. CROSS OVER: take the portal to another district (HSR Layout, or Koramangala if you're in HSR).
+4. PASS IT ON (bonus): share one of your invite codes (copy or share).
+
+- Members only (approved), from the moment they're live until all four are done or hidden (pause menu: HIDE / SHOW MISSIONS).
+- The tracker sits top-left under the location badge: a slanted ink card, DAY ZERO 1/4, the current mission in saffron with its hint, done ones checked in green and struck through. Each line does its first step (status editor; guide to the nearest real member with a note, else FIND; guide to the portal, which opens WHERE TO?; Your invites). J folds it to a chip (folded by default on phones). Hidden while a menu or panel is open.
+- Done: the check stamps in and the found motif plays. All four: a green DAY ZERO COMPLETE tab for 6 s, then it retires for good.
+- No table: each mission is worked out from data the game already has (your status, your sent connections, your invite slots, a portal arrival) and latched in localStorage (pob.missions.<user id>), so it never un-completes. On a new device the first three come back from the server quietly (no stamps in the first 4 s); CROSS OVER is per browser.
+- The rules are plain functions in missions.ts (tested in missions.test.ts); the store that follows the game is missionsStore.ts. `?missionspreview` shows the tracker to anyone on mock progress (tap a line to complete it).
+
+---
+
 # DATABASES (SUPABASE)
 
 Two databases, never shared:
