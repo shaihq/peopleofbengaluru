@@ -8,6 +8,8 @@ import { useGame } from '../store'
 import { activeStatus } from '../status'
 import { isTyping } from '../player/input'
 import { ConnectBlock, ConnectFlow } from './Connections'
+import { useNet } from '../net/useNet'
+import { districtInfo, type DistrictId } from '../districts/registry'
 
 const byId = (id: string | null) => (id ? getPeople().find((p) => p.id === id) : undefined)
 
@@ -62,6 +64,30 @@ function LinkButton({ label, href, primary }: { label: string; href?: string; pr
   )
 }
 
+/**
+ * Online / offline for a real member (Phase 8A). Only shown once we know who's online (members on the
+ * live map; guests never connect, so to them nobody would ever look online). Elsewhere = another district.
+ */
+function Presence({ p }: { p: Profile }) {
+  const known = useNet((s) => s.cityCounts !== null)
+  const here = useNet((s) => s.live.has(p.id))
+  const where = useNet((s) => s.online[p.id] as DistrictId | undefined)
+  const district = useGame((s) => s.district)
+  if (p.sample || !known) return null
+  if (!here && !where)
+    return (
+      <span className="pp-presence pp-presence--off">
+        <span className="pp-presence-dot" /> OFFLINE
+      </span>
+    )
+  const away = !here && where && where !== district ? districtInfo(where)?.title : null
+  return (
+    <span className="pp-presence">
+      <span className="pp-presence-dot" /> ONLINE{away ? ` · IN ${away}` : ''}
+    </span>
+  )
+}
+
 /** Profile panel (CLAUDE.md §13) — slides in from the right; the world stays visible. */
 function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
   const style = getCharacter(p.character)
@@ -79,6 +105,7 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
         <div className="pp-top">
           <span className="pp-tag">PROFILE</span>
           {p.sample && <span className="pp-sample">SAMPLE</span>}
+          <Presence p={p} />
           <button className="pp-close" onClick={onClose} aria-label="Close profile">
             <span className="keycap">ESC</span>
           </button>
