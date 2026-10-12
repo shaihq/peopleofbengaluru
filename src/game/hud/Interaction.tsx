@@ -47,18 +47,11 @@ function PortalPrompt({ onOpen }: { onOpen: () => void }) {
   )
 }
 
+/** A link they added; links they haven't added are simply not shown. */
 function LinkButton({ label, href, primary }: { label: string; href?: string; primary?: boolean }) {
-  const cls = `pp-btn slant${primary ? ' pp-btn--primary' : ''}${href ? '' : ' pp-btn--off'}`
-  if (!href)
-    return (
-      <span className={cls} title="Not added yet">
-        <span className="unslant">
-          {label} <small>NOT ADDED YET</small>
-        </span>
-      </span>
-    )
+  if (!href) return null
   return (
-    <a className={cls} href={href} target="_blank" rel="noopener noreferrer">
+    <a className={`pp-btn slant${primary ? ' pp-btn--primary' : ''}`} href={href} target="_blank" rel="noopener noreferrer">
       <span className="unslant">{label} ↗</span>
     </a>
   )
@@ -165,10 +158,12 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
         <div className="pp-links">
           <ConnectBlock p={p} onConnect={() => setConnecting(true)} />
           <LinkButton label="PORTFOLIO" href={p.links.portfolio} />
-          <div className="pp-links-row">
-            <LinkButton label="LINKEDIN" href={p.links.linkedin} />
-            <LinkButton label="X" href={p.links.x} />
-          </div>
+          {(p.links.linkedin || p.links.x) && (
+            <div className="pp-links-row">
+              <LinkButton label="LINKEDIN" href={p.links.linkedin} />
+              <LinkButton label="X" href={p.links.x} />
+            </div>
+          )}
         </div>
       </div>
     </aside>
