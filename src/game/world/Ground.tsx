@@ -60,7 +60,7 @@ function Patches() {
 }
 
 export function Ground() {
-  const road = texMat('asphalt', () => repeated(asphaltTex(), (EXTENT * 2) / 10, (EXTENT * 2) / 10), { rough: 0.92 })
+  const road = texMat('asphalt', () => repeated(asphaltTex(), (EXTENT * 2) / 10, (EXTENT * 2) / 10), { rough: 0.92, vary: true })
   const slabSize = EXTENT - ROAD
   const walk = texMat('pavers', () => repeated(paverTex(), slabSize, slabSize), { rough: 0.9 })
   const c = ROAD + slabSize / 2

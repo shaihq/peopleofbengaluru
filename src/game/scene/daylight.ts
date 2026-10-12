@@ -104,22 +104,25 @@ const DUSK: Look = {
   night: 0.6,
 }
 
+// A real city night, not a blue filter: a dark slate sky with the city's warm amber glow low on the
+// horizon, near-neutral shadows, warm bounce off lit streets, and a dim, pale moon. The street lamps
+// and windows carry the colour; the moon mostly edges rooftops and people.
 const NIGHT: Look = {
   sunDir: [0.35, 0.8, 0.5],
-  sun: '#BAC5D8',
-  sunI: 1.15,
-  sky: '#71809E',
-  ground: '#57534F',
-  hemiI: 1.5,
-  rim: '#A2B0CA',
-  rimI: 0.8,
-  skyTop: '#16233F',
-  horizon: '#2F4166',
-  glow: '#DCE6F5',
-  envTop: '#525D78',
-  fog: '#273552',
-  clouds: '#3C4A69',
-  envI: 0.5,
+  sun: '#BDC1C9',
+  sunI: 1.0,
+  sky: '#7D828D',
+  ground: '#6B5C4F',
+  hemiI: 2.0,
+  rim: '#A7AEBC',
+  rimI: 0.75,
+  skyTop: '#131924',
+  horizon: '#544840',
+  glow: '#E2E6EC',
+  envTop: '#474C58',
+  fog: '#3B3734',
+  clouds: '#423B3A',
+  envI: 0.45,
   night: 1,
 }
 

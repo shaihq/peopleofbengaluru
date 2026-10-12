@@ -8,6 +8,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import { mergeGeometries, toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useGame } from '../store'
 import { ALL_FILES, CLIPS, getCharacter, type CharacterDef, type Rig } from './roster'
+import { lights } from '../materials'
 
 export type AvatarState = {
   mode: 'idle' | 'walk' | 'run'
@@ -210,6 +211,12 @@ function buildCharacter(source: THREE.Object3D, def: CharacterDef) {
   })
 
   mergeParts(root)
+  root.traverse((o) => {
+    const m = o as THREE.Mesh
+    if (!m.isMesh) return
+    for (const mat of Array.isArray(m.material) ? m.material : [m.material])
+      if ((mat as THREE.MeshStandardMaterial).isMeshStandardMaterial && !(mat as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial) nightLift(mat)
+  })
 
   if (def.rig === 'modular') {
     root.traverse((o) => {
@@ -225,6 +232,29 @@ function buildCharacter(source: THREE.Object3D, def: CharacterDef) {
   const h = box.max.y - box.min.y
   const s = h > 0.01 && h < 1000 ? HEIGHT / h : 1
   return { root, scale: s, offset: -box.min.y * s }
+}
+
+/**
+ * Characters at night (design.md §7.4): the street stays dark, but people keep their colours and
+ * faces. As the city lights come on, a faint lift from each part's own colour plus a cool moonlit
+ * edge, strongest along the top and sides, that separates them from the street. Off by day.
+ */
+const NIGHT_LIFT = 0.32
+const NIGHT_RIM = 0.55
+function nightLift(m: THREE.Material) {
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uNight = lights
+    shader.fragmentShader = `uniform float uNight;\n${shader.fragmentShader}`.replace(
+      '#include <opaque_fragment>',
+      `{
+        vec3 nv = normalize(normal);
+        float edge = pow(1.0 - clamp(abs(dot(nv, normalize(vViewPosition))), 0.0, 1.0), 3.0);
+        float above = smoothstep(-0.3, 0.5, nv.y);
+        outgoingLight += uNight * (diffuseColor.rgb * ${NIGHT_LIFT.toFixed(2)} + vec3(0.62, 0.72, 0.95) * edge * above * ${NIGHT_RIM.toFixed(2)});
+      }
+      #include <opaque_fragment>`,
+    )
+  }
 }
 
 type Foot = { bone: THREE.Object3D | null; lifted: boolean; last: number }

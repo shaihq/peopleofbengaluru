@@ -86,7 +86,7 @@ export function PortalPicker() {
                       <>
                         <span className="find-place">{n} DESIGNER{n === 1 ? '' : 'S'}</span>
                         <span className="find-dir">
-                          LIVE HERE{liveCounts?.[d.id] ? <b className="warp-live"> · {liveCounts[d.id]} HERE NOW</b> : null}
+                          LIVE HERE{liveCounts?.[d.id] ? <b className="warp-live"> · {liveCounts[d.id]} ONLINE</b> : null}
                         </span>
                       </>
                     ) : (

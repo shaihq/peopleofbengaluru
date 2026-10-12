@@ -72,29 +72,34 @@ function blotches(ctx: CanvasRenderingContext2D, w: number, h: number, seed: num
   }
 }
 
-/** Asphalt — one tile covers 10m. */
+/**
+ * Asphalt — one tile covers 10m. One painted surface with only a hint of wear: a few large, faint
+ * patches, as many darker as lighter, in the asphalt's own tones (not white and black, which made
+ * cloudy blotches). No scribbled cracks; the road's detail is the placed tar patches (Ground.tsx).
+ * The material adds a slow world-space variation on top, so the 10m repeat never shows.
+ */
 export function asphaltTex() {
   return once('asphalt', () => {
     const [c, ctx] = canvas(512, 512)
     ctx.fillStyle = C.ASPHALT
     ctx.fillRect(0, 0, 512, 512)
-    blotches(ctx, 512, 512, 3, 220, 0.06, 60)
-    // tar seams
-    const r = rng(9)
-    ctx.strokeStyle = 'rgba(25,24,30,0.22)'
-    ctx.lineCap = 'round'
-    for (let i = 0; i < 6; i++) {
-      ctx.lineWidth = 2 + r() * 2
-      ctx.beginPath()
-      let x = r() * 512
-      let y = r() * 512
-      ctx.moveTo(x, y)
-      for (let j = 0; j < 5; j++) {
-        x += (r() - 0.5) * 90
-        y += (r() - 0.5) * 90
-        ctx.lineTo(x, y)
-      }
-      ctx.stroke()
+    const r = rng(3)
+    const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(',')
+    const lighter = rgb(shade(C.ASPHALT, 0.05))
+    const darker = rgb(shade(C.ASPHALT, -0.05))
+    for (let i = 0; i < 26; i++) {
+      const x = r() * 512
+      const y = r() * 512
+      const rad = 70 + r() * 90
+      const col = i % 2 ? lighter : darker
+      for (const ox of [-512, 0, 512])
+        for (const oy of [-512, 0, 512]) {
+          const g = ctx.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, rad)
+          g.addColorStop(0, `rgba(${col},0.35)`)
+          g.addColorStop(1, `rgba(${col},0)`)
+          ctx.fillStyle = g
+          ctx.fillRect(x + ox - rad, y + oy - rad, rad * 2, rad * 2)
+        }
     }
     return toTex(c)
   })

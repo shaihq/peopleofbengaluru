@@ -8,6 +8,8 @@ import { useGame } from '../store'
 import { activeStatus } from '../status'
 import { isTyping } from '../player/input'
 import { ConnectBlock, ConnectFlow } from './Connections'
+import { useNet } from '../net/useNet'
+import { districtInfo, type DistrictId } from '../districts/registry'
 
 const byId = (id: string | null) => (id ? getPeople().find((p) => p.id === id) : undefined)
 
@@ -45,20 +47,37 @@ function PortalPrompt({ onOpen }: { onOpen: () => void }) {
   )
 }
 
+/** A link they added; links they haven't added are simply not shown. */
 function LinkButton({ label, href, primary }: { label: string; href?: string; primary?: boolean }) {
-  const cls = `pp-btn slant${primary ? ' pp-btn--primary' : ''}${href ? '' : ' pp-btn--off'}`
-  if (!href)
-    return (
-      <span className={cls} title="Not added yet">
-        <span className="unslant">
-          {label} <small>NOT ADDED YET</small>
-        </span>
-      </span>
-    )
+  if (!href) return null
   return (
-    <a className={cls} href={href} target="_blank" rel="noopener noreferrer">
+    <a className={`pp-btn slant${primary ? ' pp-btn--primary' : ''}`} href={href} target="_blank" rel="noopener noreferrer">
       <span className="unslant">{label} ↗</span>
     </a>
+  )
+}
+
+/**
+ * Online / offline for a real member (Phase 8A). Only shown once we know who's online (members on the
+ * live map; guests never connect, so to them nobody would ever look online). Elsewhere = another district.
+ */
+function Presence({ p }: { p: Profile }) {
+  const known = useNet((s) => s.cityCounts !== null)
+  const here = useNet((s) => s.live.has(p.id))
+  const where = useNet((s) => s.online[p.id] as DistrictId | undefined)
+  const district = useGame((s) => s.district)
+  if (p.sample || !known) return null
+  if (!here && !where)
+    return (
+      <span className="pp-presence pp-presence--off">
+        <span className="pp-presence-dot" /> OFFLINE
+      </span>
+    )
+  const away = !here && where && where !== district ? districtInfo(where)?.title : null
+  return (
+    <span className="pp-presence">
+      <span className="pp-presence-dot" /> ONLINE{away ? ` · IN ${away}` : ''}
+    </span>
   )
 }
 
@@ -79,6 +98,7 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
         <div className="pp-top">
           <span className="pp-tag">PROFILE</span>
           {p.sample && <span className="pp-sample">SAMPLE</span>}
+          <Presence p={p} />
           <button className="pp-close" onClick={onClose} aria-label="Close profile">
             <span className="keycap">ESC</span>
           </button>
@@ -138,10 +158,12 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
         <div className="pp-links">
           <ConnectBlock p={p} onConnect={() => setConnecting(true)} />
           <LinkButton label="PORTFOLIO" href={p.links.portfolio} />
-          <div className="pp-links-row">
-            <LinkButton label="LINKEDIN" href={p.links.linkedin} />
-            <LinkButton label="X" href={p.links.x} />
-          </div>
+          {(p.links.linkedin || p.links.x) && (
+            <div className="pp-links-row">
+              <LinkButton label="LINKEDIN" href={p.links.linkedin} />
+              <LinkButton label="X" href={p.links.x} />
+            </div>
+          )}
         </div>
       </div>
     </aside>
