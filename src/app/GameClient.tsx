@@ -9,7 +9,7 @@ const Game = dynamic(() => import('@/game/Game'), {
   loading: () => (
     <div className="boot">
       <div className="intro-title">
-        <div className="intro-kicker">DESIGNERS OF</div>
+        <div className="intro-kicker">PEOPLE OF</div>
         <h1>BENGALURU</h1>
         <p>Walk the city. Meet the people who design it.</p>
       </div>
