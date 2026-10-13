@@ -7,6 +7,12 @@ export const SITE_URL = 'https://peopleofbengaluru.com'
 /** The review queue lives on its own subdomain (src/proxy.ts): production, and dev (staging data). */
 export const ADMIN_HOSTS = ['admin.peopleofbengaluru.com', 'dev.admin.peopleofbengaluru.com']
 
+/** The game this page belongs to (browser only): admin.x → https://x, dev.admin.x → https://dev.x, else this origin. */
+export function gameOrigin() {
+  const h = window.location.hostname
+  return ADMIN_HOSTS.includes(h) ? `https://${h.replace(/^(dev\.)?admin\./, '$1')}` : window.location.origin
+}
+
 /** The public sites' hosts, where /admin doesn't exist. */
 export const PUBLIC_HOSTS = ['peopleofbengaluru.com', 'www.peopleofbengaluru.com', 'dev.peopleofbengaluru.com']
 
