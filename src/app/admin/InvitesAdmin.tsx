@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { gameOrigin } from '@/lib/site'
 
 // INVITES (CLAUDE.md 5D): founder codes — no owner, made here in batches with a label (who they're for).
 // Track each one (unused / joined / revoked, and who joined with it), copy links, export a CSV,
@@ -20,7 +21,8 @@ type Row = {
 type Filter = 'all' | 'unused' | 'joined' | 'revoked'
 
 const unused = (r: Row) => r.state === 'available' || r.state === 'sent'
-const link = (code: string) => `${window.location.origin}/?invite=${code}`
+// invite links open the game, never the admin subdomain
+const link = (code: string) => `${gameOrigin()}/?invite=${code}`
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—')
 
 async function copy(text: string) {
@@ -59,7 +61,10 @@ export function InvitesAdmin({ onError }: { onError: (e: string) => void }) {
 
   const load = useCallback(async () => {
     const { data, error } = await supabase!.rpc('admin_founder_invites')
-    if (error) return onError(error.message)
+    if (error) {
+      onError(error.message)
+      return setRows((r) => r ?? [])
+    }
     setRows((data ?? []) as Row[])
   }, [onError])
 
