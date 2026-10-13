@@ -59,7 +59,10 @@ export function InvitesAdmin({ onError }: { onError: (e: string) => void }) {
 
   const load = useCallback(async () => {
     const { data, error } = await supabase!.rpc('admin_founder_invites')
-    if (error) return onError(error.message)
+    if (error) {
+      onError(error.message)
+      return setRows((r) => r ?? [])
+    }
     setRows((data ?? []) as Row[])
   }, [onError])
 
