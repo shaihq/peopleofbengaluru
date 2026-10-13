@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { APPLICATIONS_FREE } from '@/lib/apply'
 import { supabase } from '@/lib/supabase'
 import { refreshDirectory, useDirectory } from './people/directory'
 import { redeemInvite, submitApplication, submitProfile, useOnboarding } from './onboarding'
@@ -45,9 +46,9 @@ export function Session() {
         // pay path: the email is confirmed — save the application (nothing goes live)
         const r = await submitApplication()
         if (!r.ok) return useGame.getState().showToast(`COULDN’T SAVE — ${r.error?.toUpperCase()}`, 'bad')
-        // they already pressed "submit + pay": carry on to the checkout
+        // they already pressed "submit": carry on to the checkout (or, while free, straight to review)
         useAccess.setState({ status: 'applied' })
-        useGame.getState().showToast('EMAIL CONFIRMED · TAKING YOU TO PAYMENT', 'good')
+        useGame.getState().showToast(APPLICATIONS_FREE ? 'EMAIL CONFIRMED · SENT FOR REVIEW' : 'EMAIL CONFIRMED · TAKING YOU TO PAYMENT', 'good')
         return useAccess.getState().pay()
       }
       // back from the Dodo checkout: ?paid=1&payment_id=…&status=…
@@ -68,7 +69,7 @@ export function Session() {
         const msg = me
           ? 'WELCOME BACK'
           : st === 'applied'
-            ? 'WELCOME BACK · PAY TO SEND YOUR APPLICATION'
+            ? APPLICATIONS_FREE ? 'WELCOME BACK · SEND YOUR APPLICATION FOR REVIEW' : 'WELCOME BACK · PAY TO SEND YOUR APPLICATION'
             : st === 'review'
               ? 'WELCOME BACK · YOUR APPLICATION IS UNDER REVIEW'
               : st === 'rejected'

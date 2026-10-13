@@ -9,13 +9,14 @@ import { activeStatus, untilLabel, useMyStatus } from '../status'
 import { useCanSetStatus } from './StatusEditor'
 import { useGame } from '../store'
 import { isTyping } from '../player/input'
+import { APPLICATIONS_FREE } from '@/lib/apply'
 
 /** What the ghost bar says in each access state (CLAUDE.md Phase 5D). */
 const GHOST_COPY = {
   ghost: { title: 'YOU’RE INVISIBLE', line: 'Nobody in the city can see you yet.', cta: 'BECOME VISIBLE' },
-  applied: { title: 'ONE STEP LEFT', line: 'Pay the application fee to send it for review.', cta: 'FINISH APPLYING' },
+  applied: { title: 'ONE STEP LEFT', line: APPLICATIONS_FREE ? 'Send your application for review.' : 'Pay the application fee to send it for review.', cta: 'FINISH APPLYING' },
   review: { title: 'UNDER REVIEW', line: 'You’re a ghost until a reviewer approves you.', cta: 'VIEW STATUS' },
-  rejected: { title: 'NOT APPROVED', line: 'Fee refunded. A member can still invite you in.', cta: 'SEE DETAILS' },
+  rejected: { title: 'NOT APPROVED', line: APPLICATIONS_FREE ? 'A member can still invite you in.' : 'Fee refunded. A member can still invite you in.', cta: 'SEE DETAILS' },
   visible: { title: 'APPROVED', line: 'Open the link in your email to go live.', cta: 'VIEW' },
 } as const
 

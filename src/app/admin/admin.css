@@ -322,8 +322,7 @@
   margin-top: 16px;
 }
 
-.adm-links a,
-.adm-thing {
+.adm-links a {
   color: var(--cream);
   text-decoration: none;
   font-family: var(--font-display), sans-serif;
@@ -337,8 +336,7 @@
   background: rgba(255, 246, 229, 0.08);
 }
 
-.adm-links a:hover,
-.adm-thing:hover {
+.adm-links a:hover {
   color: var(--saffron);
 }
 
@@ -360,13 +358,6 @@
   line-height: 1.5;
   color: var(--cream);
   white-space: pre-wrap;
-}
-
-.adm-thing {
-  display: inline-block;
-  margin-top: 4px;
-  font-size: 20px;
-  color: var(--saffron);
 }
 
 .adm-decide {
@@ -595,4 +586,13 @@
   .adm-inv-acts {
     justify-content: flex-start;
   }
+}
+
+.adm-wa {
+  color: var(--open);
+  text-decoration: none;
+}
+
+.adm-wa:hover {
+  text-decoration: underline;
 }

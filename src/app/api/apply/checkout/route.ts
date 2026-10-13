@@ -1,6 +1,7 @@
 import { createCheckout, DODO_MODE } from '@/lib/server/dodo'
 import { openApplicationOf } from '@/lib/server/applications'
 import { admin, json, setting, userFrom } from '@/lib/server/supabaseAdmin'
+import { APPLICATIONS_FREE } from '@/lib/apply'
 
 // Pay path: the saved application → a Dodo checkout for the application fee (CLAUDE.md 5E-B).
 // The client only gets a URL to go to; whether it was paid is decided by Dodo, not by us.
@@ -12,6 +13,17 @@ export async function POST(req: Request) {
   const app = await openApplicationOf(user.id)
   if (!app) return json({ error: 'no_application' }, 404)
   if (app.status !== 'draft' && app.status !== 'submitted') return json({ error: 'already_paid', status: app.status }, 409)
+
+  // free for now (src/lib/apply.ts): no checkout, the saved application goes straight to a reviewer
+  if (APPLICATIONS_FREE) {
+    const { error } = await admin()
+      .from('applications')
+      .update({ status: 'under_review' })
+      .eq('id', app.id)
+      .in('status', ['draft', 'submitted'])
+    if (error) return json({ error: 'save_failed' }, 500)
+    return json({ status: 'under_review' })
+  }
 
   // one product per mode: { "test": "pdt_…", "live": "pdt_…" }
   const products = await setting<Record<string, string | null>>('dodo_product_id', {})
