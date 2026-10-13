@@ -9,9 +9,12 @@ export function isProduction() {
 }
 
 /** Our own site addresses. Not secrets — Vercel sets the VERCEL_* ones itself. */
-const PRODUCTION_URL = 'https://peopleofbengaluru.vercel.app'
+const PRODUCTION_URL = 'https://peopleofbengaluru.com'
 const KNOWN = [
   PRODUCTION_URL,
+  'https://www.peopleofbengaluru.com',
+  'https://dev.peopleofbengaluru.com',
+  'https://peopleofbengaluru.vercel.app',
   'https://peopleofbengaluru-dev.vercel.app',
   'http://localhost:3000',
   process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`,
