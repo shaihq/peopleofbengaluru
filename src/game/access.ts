@@ -244,6 +244,8 @@ export const useAccess = create<Access>((set, get) => ({
       window.location.href = body.url // stays `paying` until the page leaves
       return
     }
+    // free for now (src/lib/apply.ts): sent straight to review
+    if (body.status === 'under_review') return set({ paying: false, stage: 'result', result: 'review', status: 'review' })
     if (body.error === 'already_paid') {
       set({ paying: false })
       return get().loadApplication()

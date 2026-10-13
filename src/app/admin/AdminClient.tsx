@@ -17,10 +17,8 @@ type App = {
   user_id: string
   email: string
   why: string
-  want: string
-  bring: string
-  show_link: string
-  show_why: string
+  /** optional, +<country><number> (supabase/migrations/20261013160000_application_whatsapp.sql) */
+  whatsapp?: string | null
   profile: {
     name?: string
     role?: string
@@ -95,7 +93,6 @@ const safeUrl = (u?: string | null) => {
     return null
   }
 }
-const host = (u: string) => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
 
 async function token() {
   const { data } = await supabase!.auth.getSession()
@@ -293,7 +290,7 @@ function Card({ a, member, onDone, onError }: { a: App; member: boolean; onDone:
   const [reason, setReason] = useState(a.reason ?? '')
   const [busy, setBusy] = useState(false)
   const p = a.profile
-  const links = { portfolio: safeUrl(p.portfolio), linkedin: safeUrl(p.linkedin), x: safeUrl(p.x), thing: safeUrl(a.show_link) }
+  const links = { portfolio: safeUrl(p.portfolio), linkedin: safeUrl(p.linkedin), x: safeUrl(p.x) }
   const reviewable = a.status === 'paid' || a.status === 'under_review'
 
   const accept = async () => {
@@ -304,6 +301,9 @@ function Card({ a, member, onDone, onError }: { a: App; member: boolean; onDone:
     if (error || !r?.ok) return onError(error?.message ?? `Couldn’t approve (${r?.state}).`)
     onDone()
   }
+
+  // free applications (src/lib/apply.ts) have nothing to refund
+  const paid = !!a.payment_id
 
   const reject = async () => {
     setBusy(true)
@@ -324,7 +324,7 @@ function Card({ a, member, onDone, onError }: { a: App; member: boolean; onDone:
     <article className={`adm-card adm-card--${a.status}`}>
       <div className="adm-who">
         <div className="adm-status">
-          <span className={`adm-chip adm-chip--${a.status}`}>{STATUS_LABEL[a.status]}</span>
+          <span className={`adm-chip adm-chip--${a.status}`}>{a.status === 'rejected' && !paid ? 'REJECTED' : STATUS_LABEL[a.status]}</span>
           {member && <span className="adm-chip adm-chip--invite">JOINED BY INVITE</span>}
         </div>
         <h2>{(p.name ?? 'Unnamed').toUpperCase()}</h2>
@@ -355,10 +355,18 @@ function Card({ a, member, onDone, onError }: { a: App; member: boolean; onDone:
           )}
           <dt>EMAIL</dt>
           <dd>{a.email}</dd>
+          {a.whatsapp && (
+            <>
+              <dt>WHATSAPP</dt>
+              <dd>
+                <a className="adm-wa" href={`https://wa.me/${a.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+                  {a.whatsapp} ↗
+                </a>
+              </dd>
+            </>
+          )}
           <dt>PAID</dt>
-          <dd>
-            {money(a)} · {ago(a.paid_at)}
-          </dd>
+          <dd>{paid ? `${money(a)} · ${ago(a.paid_at)}` : 'FREE APPLICATION'}</dd>
           <dt>APPLIED</dt>
           <dd>{ago(a.created_at)}</dd>
         </dl>
@@ -383,19 +391,6 @@ function Card({ a, member, onDone, onError }: { a: App; member: boolean; onDone:
 
       <div className="adm-answers">
         <Q k="WHY HERE?" v={a.why} />
-        <Q k="LOOKING FOR" v={a.want} />
-        <Q k="WILL BRING" v={a.bring} />
-        <div className="adm-q">
-          <span className="adm-k">ONE THING THEY MADE</span>
-          {links.thing ? (
-            <a className="adm-thing" href={links.thing} target="_blank" rel="noreferrer">
-              {host(a.show_link)} ↗
-            </a>
-          ) : (
-            <span className="adm-thing">{a.show_link}</span>
-          )}
-          <p>{a.show_why}</p>
-        </div>
         {a.reason && !reviewable && (
           <div className="adm-q">
             <span className="adm-k">NOTE</span>
@@ -420,7 +415,7 @@ function Card({ a, member, onDone, onError }: { a: App; member: boolean; onDone:
                     CANCEL
                   </button>
                   <button className="adm-btn adm-btn--reject slant" onClick={reject} disabled={busy}>
-                    <span className="unslant">{busy ? 'REFUNDING…' : `REJECT + REFUND ${money(a)} ▸`}</span>
+                    <span className="unslant">{busy ? (paid ? 'REFUNDING…' : 'REJECTING…') : paid ? `REJECT + REFUND ${money(a)} ▸` : 'REJECT ▸'}</span>
                   </button>
                 </div>
               </>
@@ -431,7 +426,7 @@ function Card({ a, member, onDone, onError }: { a: App; member: boolean; onDone:
             ) : (
               <div className="adm-row">
                 <button className="adm-ghost" onClick={() => setMode('rejecting')} disabled={busy}>
-                  {member ? 'REFUND (JOINED BY INVITE)' : 'REJECT + REFUND'}
+                  {member ? (paid ? 'REFUND (JOINED BY INVITE)' : 'CLOSE (JOINED BY INVITE)') : paid ? 'REJECT + REFUND' : 'REJECT'}
                 </button>
                 {!member && (
                   <button className="btn-primary slant adm-btn" onClick={accept} disabled={busy}>

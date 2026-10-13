@@ -38,10 +38,6 @@ export type ApplicationRow = {
   user_id: string
   email: string
   why: string
-  want: string
-  bring: string
-  show_link: string
-  show_why: string
   profile: Record<string, unknown>
   status: 'draft' | 'submitted' | 'paid' | 'under_review' | 'approved' | 'rejected' | 'refunded' | 'refund_failed'
   payment_id: string | null

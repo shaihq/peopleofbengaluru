@@ -17,7 +17,7 @@ import { useConnect } from '../connect'
 import { useInvites } from '../invites'
 import { useMissions } from '../missionsStore'
 
-const CLICKABLE = 'button, a[href], [role="button"], .chip, .find-row, .cr-spot'
+const CLICKABLE = 'button, a[href], [role="button"], .chip, .find-row'
 
 /** Wires the game's state to sound. Lives inside the Canvas (needs the camera). */
 export function AudioDirector() {
@@ -131,7 +131,7 @@ export function AudioDirector() {
       const el = (e.target as Element).closest?.(CLICKABLE)
       if (!el || (el as HTMLButtonElement).disabled) return
       if (el.matches('a[href^="http"]')) sfx.link()
-      else if (el.matches('.chip, .cr-spot, .cr-toggle, .arrow, .find-row')) sfx.select()
+      else if (el.matches('.chip, .cr-toggle, .arrow, .find-row')) sfx.select()
       else if (el.matches('.cr-next')) sfx.step(+(document.querySelector('.cr-step')?.textContent?.match(/\d+/)?.[0] ?? 1))
       else if (el.matches('.cr-back')) sfx.back()
     }

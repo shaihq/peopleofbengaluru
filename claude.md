@@ -869,6 +869,8 @@ Decided: both invites from day one.
 
 # PHASE 5E — APPLY TO JOIN
 
+TEMPORARY (2026-10-13): applications are FREE. APPLICATIONS_FREE in src/lib/apply.ts: no Dodo checkout; after the four questions (and the email confirmation) /api/apply/checkout sends the application straight to under_review. Still reviewed: ACCEPT / REJECT on the admin page, nothing to refund (the admin says REJECT, FREE APPLICATION). All game copy drops the fee and refund lines while it's on. Set it to false and deploy to charge again; the paid flow below is untouched.
+
 Goal:
 
 The paid way in. Someone without an invite builds their profile, tells us why they belong here, pays, and a human decides. Approved: live. Rejected: full refund.
@@ -887,7 +889,7 @@ THE GATE → Pay to apply
         └─ REJECT  → automatic refund (Dodo), email, still a ghost
 ```
 
-The four questions (one per screen, game-style, short answers with a character limit):
+NOW (2026-10-13): one question only, WHY HERE?, with the question itself as the step title ("WHY DO YOU WANT TO BE IN THIS CITY OF FOUNDERS, DESIGNERS AND BUILDERS?"). The application is sent from that screen (SEND FOR REVIEW ▸); the fee step only returns when APPLICATIONS_FREE is false. The other three are gone: their columns were dropped on both databases (supabase/migrations/20261013170000_application_one_question.sql), and the admin card shows WHY HERE? only. The original four, for reference:
 
 1. WHY HERE? — Why do you want to be in this city of designers and builders?
 2. WHAT ARE YOU LOOKING FOR? — Collaborators, a job, a co-founder, feedback, friends?
@@ -898,6 +900,7 @@ Rules:
 
 - Questions come after the profile, before payment. Nobody pays before they have answered.
 - Answers are only seen by the applicant and reviewers. Never shown in the city or on the nameplate.
+- Optional WhatsApp number on the email step (pay path only), so a reviewer can reach the applicant: normalised to +<country><number> (a bare 10-digit number is Indian), stored only on the application (applications.whatsapp, supabase/migrations/20261013160000_application_whatsapp.sql), shown on the admin card as a wa.me link. Same privacy as the answers: never copied to the profile, never shown in the city.
 - The draft (profile + answers) survives reloads and the magic-link round trip (localStorage), like 5B-A.
 - Payments are Dodo Payments only.
 - RULE (6B): every screen works on touch and keyboard, including with the on-screen keyboard.
