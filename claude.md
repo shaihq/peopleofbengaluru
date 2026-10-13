@@ -1091,6 +1091,15 @@ Two databases, never shared:
 
 ---
 
+# SEO + ANALYTICS
+
+- Only production (peopleofbengaluru.com, VERCEL_ENV=production) is indexed. Every other deployment (dev.peopleofbengaluru.com, previews, *.vercel.app, local) sends `X-Robots-Tag: noindex, nofollow` on every response (next.config.ts) and a robots noindex meta; its robots.txt still allows crawling so search engines can read the noindex and drop anything already indexed. Production keeps /admin and /api/ out (robots.txt + header).
+- Address, name, title, description and the Google Analytics ID live in src/lib/site.ts (GA_ID G-EEGWQWP5NM; not an env var, by decision). Analytics loads only on production (@next/third-parties GoogleAnalytics in layout.tsx).
+- src/app: robots.ts, sitemap.ts (one URL: the city is one page), manifest.ts, opengraph-image.tsx (the share card, rendered in Barlow Condensed from @fontsource; replace with a real screenshot by dropping in opengraph-image.png). Canonical is always / (?invite=, ?connections and the preview flags are the same page). The boot screen server-renders the intro's title, so the page has real text before the WebGL world loads.
+- Outside the code: in Vercel, redirect www and peopleofbengaluru.vercel.app to peopleofbengaluru.com; verify the domain in Google Search Console (DNS) and submit /sitemap.xml.
+
+---
+
 # EMAILS — ALL TEMPLATES (RESEND)
 
 Every email the product sends, in one place. All go through Resend.

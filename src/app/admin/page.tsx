@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import AdminClient from './AdminClient'
 
 export const metadata: Metadata = {
-  title: 'Review queue · Designers of Bengaluru',
+  title: 'Review queue',
   robots: { index: false, follow: false },
 }
 

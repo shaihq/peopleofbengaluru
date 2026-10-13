@@ -58,6 +58,8 @@ body {
   position: fixed;
   inset: 0;
   background: var(--ink);
+  color: var(--cream);
+  font-family: var(--font-display), sans-serif;
 }
 
 .game-root {
