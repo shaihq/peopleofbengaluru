@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import './admin.css'
 import { InvitesAdmin } from './InvitesAdmin'
-import { ADMIN_HOSTS } from '@/lib/site'
+import { gameOrigin } from '@/lib/site'
 
 // THE REVIEW QUEUE (CLAUDE.md 5E-B). Admins only (public.admins).
 // ACCEPT → approve_application() (profile goes live, invite codes issued).
@@ -97,12 +97,6 @@ const safeUrl = (u?: string | null) => {
 }
 const host = (u: string) => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
 
-/** The game this admin page belongs to: admin.x → x, dev.admin.x → dev.x; on previews and local, /. */
-const cityUrl = () => {
-  const h = window.location.hostname
-  return ADMIN_HOSTS.includes(h) ? `https://${h.replace(/^(dev\.)?admin\./, '$1')}` : '/'
-}
-
 async function token() {
   const { data } = await supabase!.auth.getSession()
   return data.session?.access_token ?? null
@@ -187,7 +181,7 @@ export default function AdminClient() {
             <button className="adm-ghost" onClick={() => void load()}>
               REFRESH
             </button>
-            <a className="adm-ghost" href={cityUrl()}>
+            <a className="adm-ghost" href={gameOrigin()}>
               BACK TO THE CITY ▸
             </a>
           </div>
