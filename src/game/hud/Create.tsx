@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { APPLICATIONS_FREE } from "@/lib/apply";
 import {
   PLAYABLE,
   hasGenders,
@@ -9,18 +10,9 @@ import {
   type Gender,
 } from "../characters/roster";
 import { useDirectory } from "../people/directory";
-import { DISTRICTS, districtOfLocation, homeDistrict } from "../districts/registry";
-import { getDistrict } from "../districts/active";
-
-/** Spots in the district this person will appear in (visitors use Koramangala until theirs is built). */
-const spotsFor = (location: string) => getDistrict(homeDistrict(location)).spots;
-const districtInfoTitle = (location: string) => {
-  const d = districtOfLocation(location);
-  return d.built ? d.title : "KORAMANGALA";
-};
+import { DISTRICTS, districtOfLocation } from "../districts/registry";
 import {
   ANSWER_MAX,
-  LINK_WHY_MAX,
   STEP_TITLE,
   sendMagicLink,
   stepsFor,
@@ -29,6 +21,7 @@ import {
   validateKey,
   type Draft,
   type StepKey,
+  spotIn,
 } from "../onboarding";
 import {
   CODE_ERRORS,
@@ -111,66 +104,16 @@ function Answer({
   );
 }
 
-/** The four application questions (CLAUDE.md 5E). One per screen, pay path only. */
-const QUESTIONS = {
-  why: {
-    lede: "Why do you want to be in this city of designers and builders?",
-    placeholder: "I’ve been designing in Bengaluru for six years and…",
-  },
-  want: {
-    lede: "Collaborators, a job, a co-founder, feedback, friends — what are you hoping to find here?",
-    placeholder: "Someone to pair with on a side project, and…",
-  },
-  bring: {
-    lede: "Your work, talks, mentoring, hiring, events — what do you give back to the people here?",
-    placeholder: "I run a monthly crit night in HSR and…",
-  },
-} as const;
-
-function QuestionStep({
-  k,
-  d,
-  patch,
-}: {
-  k: "why" | "want" | "bring";
-  d: Draft;
-  patch: (p: Partial<Draft>) => void;
-}) {
-  const field = k === "why" ? "appWhy" : k === "want" ? "appWant" : "appBring";
-  const q = QUESTIONS[k];
+/** The application's one question, WHY HERE? (CLAUDE.md 5E). The step title asks it; pay path only. */
+function QuestionStep({ d, patch }: { d: Draft; patch: (p: Partial<Draft>) => void }) {
   return (
     <div className="cr-fields">
-      <p className="cr-copy cr-q-lede">{q.lede}</p>
       <Answer
         label="YOUR ANSWER"
-        value={d[field]}
-        onChange={(v) => patch({ [field]: v } as Partial<Draft>)}
-        placeholder={q.placeholder}
+        value={d.appWhy}
+        onChange={(appWhy) => patch({ appWhy })}
+        placeholder="I’ve been designing in Bengaluru for six years and…"
         max={ANSWER_MAX}
-      />
-      <span className="cr-q-private">ONLY THE REVIEWERS SEE THIS · NEVER SHOWN IN THE CITY</span>
-    </div>
-  );
-}
-
-function ShowStep({ d, patch }: { d: Draft; patch: (p: Partial<Draft>) => void }) {
-  return (
-    <div className="cr-fields">
-      <p className="cr-copy cr-q-lede">One thing you made that you’re proud of. A shipped product, a case study, a repo, a talk.</p>
-      <Field
-        label="LINK"
-        value={d.appLink}
-        onChange={(appLink) => patch({ appLink })}
-        placeholder="yourname.design/the-thing"
-        max={200}
-      />
-      <Answer
-        label="WHY THIS ONE?"
-        value={d.appLinkWhy}
-        onChange={(appLinkWhy) => patch({ appLinkWhy })}
-        placeholder="It’s the first thing I shipped end to end…"
-        max={LINK_WHY_MAX}
-        rows={2}
       />
       <span className="cr-q-private">ONLY THE REVIEWERS SEE THIS · NEVER SHOWN IN THE CITY</span>
     </div>
@@ -254,9 +197,7 @@ function GoLiveStep({ d }: { d: Draft }) {
   return (
     <div className="cr-live">
       <div className="cr-summary">
-        <span className="cr-summary-k">YOU’LL HANG OUT AT</span>
-        <span className="cr-summary-v">{(spotsFor(d.location)[d.spot] ?? Object.values(spotsFor(d.location))[0]).label}</span>
-        <span className="cr-summary-k">FROM</span>
+        <span className="cr-summary-k">NEIGHBOURHOOD</span>
         <span className="cr-summary-v">{d.location}, Bengaluru</span>
       </div>
 
@@ -322,9 +263,7 @@ function GoLiveStep({ d }: { d: Draft }) {
 function Summary({ d }: { d: Draft }) {
   return (
     <div className="cr-summary">
-      <span className="cr-summary-k">YOU’LL HANG OUT AT</span>
-      <span className="cr-summary-v">{(spotsFor(d.location)[d.spot] ?? Object.values(spotsFor(d.location))[0]).label}</span>
-      <span className="cr-summary-k">FROM</span>
+      <span className="cr-summary-k">NEIGHBOURHOOD</span>
       <span className="cr-summary-v">{d.location}, Bengaluru</span>
       {d.email && (
         <>
@@ -338,7 +277,16 @@ function Summary({ d }: { d: Draft }) {
 
 const OPTIONS: { path: Path; n: string; title: string; badge: string; blurb: string; open: boolean }[] = [
   { path: "invite", n: "01", title: "I HAVE AN INVITE CODE", badge: "INSTANT", blurb: "A member vouched for you. You go live as soon as you’re done — no review.", open: true },
-  { path: "pay", n: "02", title: "APPLY TO JOIN", badge: "REVIEWED", blurb: "Build your profile, pay the application fee, and we review it. Not approved? Full refund.", open: true },
+  {
+    path: "pay",
+    n: "02",
+    title: "APPLY TO JOIN",
+    badge: APPLICATIONS_FREE ? "FREE · REVIEWED" : "REVIEWED",
+    blurb: APPLICATIONS_FREE
+      ? "Build your profile, tell us why you belong here, and a reviewer decides. Free for now."
+      : "Build your profile, pay the application fee, and we review it. Not approved? Full refund.",
+    open: true,
+  },
 ];
 
 /** Step 0 — the gate. Nothing to fill in until you know you can get in. */
@@ -518,21 +466,28 @@ function PayStep({ d }: { d: Draft }) {
       <div className="gate-pay slant">
         <span className="unslant gate-pay-body">
           <span className="gate-pay-k">APPLICATION FEE</span>
-          <span className="gate-pay-v">{fee}</span>
+          <span className="gate-pay-v">{APPLICATIONS_FREE ? "FREE" : fee}</span>
           <span className="gate-pay-note">
-            {GATE_MOCK ? "PREVIEW · nothing is charged" : "ONE-TIME · FULL REFUND IF NOT APPROVED · SECURE CHECKOUT BY DODO PAYMENTS"}
+            {APPLICATIONS_FREE
+              ? "FREE FOR NOW · NOTHING TO PAY"
+              : GATE_MOCK
+                ? "PREVIEW · nothing is charged"
+                : "ONE-TIME · FULL REFUND IF NOT APPROVED · SECURE CHECKOUT BY DODO PAYMENTS"}
           </span>
         </span>
       </div>
       {payError && <div className="cr-error">{payError}</div>}
       <ol className="gate-next">
         {!GATE_MOCK && !signedIn && (
-          <li><b>CONFIRM YOUR EMAIL</b> — we send {d.email || "you"} a one-tap link. Open it and you go straight to payment.</li>
+          <li>
+            <b>CONFIRM YOUR EMAIL</b> — we send {d.email || "you"} a one-tap link.{" "}
+            {APPLICATIONS_FREE ? "Open it and your application goes to a reviewer." : "Open it and you go straight to payment."}
+          </li>
         )}
-        <li><b>PAY {fee}</b> on the secure checkout, then you’re back in the city.</li>
+        {!APPLICATIONS_FREE && <li><b>PAY {fee}</b> on the secure checkout, then you’re back in the city.</li>}
         <li><b>WE REVIEW</b> your profile and your four answers. You stay a ghost meanwhile.</li>
         <li><b>APPROVED</b> — you go live in the city, with 2 invite codes of your own.</li>
-        <li><b>NOT APPROVED</b> — your fee is refunded automatically.</li>
+        <li>{APPLICATIONS_FREE ? <><b>NOT APPROVED</b> — you can still walk the city, and a member can invite you in.</> : <><b>NOT APPROVED</b> — your fee is refunded automatically.</>}</li>
       </ol>
     </div>
   );
@@ -562,9 +517,9 @@ function InviteGoLive({ d }: { d: Draft }) {
 const RESULT: Record<string, { tag: string; title: string; chip: string; tone: "open" | "wait" | "bad" }> = {
   inbox: { tag: "INVITED", title: "CHECK YOUR INBOX", chip: "NO REVIEW NEEDED", tone: "open" },
   confirm: { tag: "APPLICATION", title: "CHECK YOUR INBOX", chip: "CONFIRM YOUR EMAIL", tone: "wait" },
-  saved: { tag: "APPLICATION", title: "ONE STEP LEFT", chip: "PAYMENT PENDING", tone: "wait" },
+  saved: { tag: "APPLICATION", title: "ONE STEP LEFT", chip: APPLICATIONS_FREE ? "NOT SENT YET" : "PAYMENT PENDING", tone: "wait" },
   review: { tag: "APPLICATION", title: "YOU’RE IN THE QUEUE", chip: "UNDER REVIEW", tone: "wait" },
-  rejected: { tag: "APPLICATION", title: "NOT THIS TIME", chip: "FEE REFUNDED", tone: "bad" },
+  rejected: { tag: "APPLICATION", title: "NOT THIS TIME", chip: APPLICATIONS_FREE ? "NOT APPROVED" : "FEE REFUNDED", tone: "bad" },
   approved: { tag: "APPLICATION", title: "YOU’RE IN", chip: "APPROVED", tone: "open" },
 };
 
@@ -604,8 +559,14 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
       {result === "saved" && (
         <>
           <p className="cr-copy gate-lede">
-            Your profile and answers are saved. Pay the <b>{fee}</b> application fee and they go to a reviewer.
-            Not approved? You get it all back.
+            {APPLICATIONS_FREE ? (
+              <>Your profile and answers are saved. Send them and they go to a reviewer.</>
+            ) : (
+              <>
+                Your profile and answers are saved. Pay the <b>{fee}</b> application fee and they go to a reviewer.
+                Not approved? You get it all back.
+              </>
+            )}
           </p>
           {payError && <div className="cr-error">{payError}</div>}
           <p className="cr-copy gate-aside">Got an invite code meanwhile? Use it and you’re in straight away.</p>
@@ -617,13 +578,17 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
             A reviewer looks at every profile. We’ll email <b>{email || "you"}</b> with the decision. Until then
             you’re still a ghost — explore all you like.
           </p>
-          <p className="cr-copy gate-aside">Got an invite code meanwhile? Use it and your fee is refunded.</p>
+          <p className="cr-copy gate-aside">
+            {APPLICATIONS_FREE ? "Got an invite code meanwhile? Use it and you’re in straight away." : "Got an invite code meanwhile? Use it and your fee is refunded."}
+          </p>
         </>
       )}
       {result === "rejected" && (
         <>
           <p className="cr-copy gate-lede">
-            Your application wasn’t approved, and your fee has been refunded in full. You can still walk the city.
+            {APPLICATIONS_FREE
+              ? "Your application wasn’t approved this time. You can still walk the city."
+              : "Your application wasn’t approved, and your fee has been refunded in full. You can still walk the city."}
           </p>
           <div className="gate-note">
             <span className="cr-summary-k">REVIEWER’S NOTE</span>
@@ -651,7 +616,7 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
         )}
         {result === "saved" ? (
           <button className="btn-primary slant cr-next" autoFocus onClick={() => pay()} disabled={paying}>
-            <span className="unslant">{paying ? "OPENING CHECKOUT…" : `PAY ${fee} ▸`}</span>
+            <span className="unslant">{APPLICATIONS_FREE ? (paying ? "SENDING…" : "SEND FOR REVIEW ▸") : paying ? "OPENING CHECKOUT…" : `PAY ${fee} ▸`}</span>
           </button>
         ) : (
           <button className="btn-primary slant cr-next" autoFocus onClick={onDone}>
@@ -852,10 +817,28 @@ export function Create() {
                 onChange={(e) => patch({ email: e.target.value })}
               />
             </label>
+            {path === "pay" && (
+              <label className="cr-field">
+                <span className="cr-label">
+                  WHATSAPP <em>OPTIONAL · ONLY REVIEWERS SEE IT</em>
+                </span>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  value={d.whatsapp}
+                  placeholder="+91 98765 43210"
+                  autoComplete="tel"
+                  maxLength={20}
+                  onChange={(e) => patch({ whatsapp: e.target.value })}
+                />
+              </label>
+            )}
             <p className="cr-copy">
               {path === "invite"
                 ? "Your one-tap sign-in link goes here once you’re done. No passwords."
-                : "We’ll email you the review decision. Your sign-in link comes once you’re approved."}
+                : APPLICATIONS_FREE
+                  ? "We’ll send a link here to confirm it’s you. The review decision comes here too."
+                  : "Before you pay, we’ll send a link here to confirm it’s you. The review decision comes here too."}
             </p>
           </div>
         )}
@@ -965,13 +948,7 @@ export function Create() {
                 <button
                   key={n.id}
                   className={`chip slant${districtOfLocation(d.location).id === n.id ? " chip--on" : ""}`}
-                  onClick={() =>
-                    patch({
-                      location: n.name,
-                      // keep the spot if it exists there, otherwise that district's first spot
-                      spot: d.spot in spotsFor(n.name) ? d.spot : Object.keys(spotsFor(n.name))[0],
-                    })
-                  }
+                  onClick={() => patch({ location: n.name, spot: spotIn(n.name, d.spot) })}
                 >
                   <span className="unslant chip-name">{n.title}</span>
                 </button>
@@ -982,29 +959,11 @@ export function Create() {
                 {districtOfLocation(d.location).title} isn’t built yet. You’ll be visiting Koramangala until it is.
               </span>
             )}
-            <span className="cr-label" style={{ marginTop: 18 }}>
-              WHERE YOU’LL BE FOUND IN {districtInfoTitle(d.location)}
-            </span>
-            <div className="cr-spots">
-              {Object.entries(spotsFor(d.location)).map(([id, sp]) => (
-                <button
-                  key={id}
-                  className={`cr-spot${d.spot === id ? " cr-spot--on" : ""}`}
-                  onClick={() => patch({ spot: id })}
-                >
-                  <b>{sp.label}</b>
-                  <em>{sp.blurb}</em>
-                </button>
-              ))}
-            </div>
           </div>
         )}
 
         {!gated && key === "golive" && (member ? <GoLiveStep d={d} /> : <InviteGoLive d={d} />)}
-        {!gated && (key === "why" || key === "want" || key === "bring") && (
-          <QuestionStep k={key} d={d} patch={patch} />
-        )}
-        {!gated && key === "show" && <ShowStep d={d} patch={patch} />}
+        {!gated && key === "why" && <QuestionStep d={d} patch={patch} />}
         {!gated && key === "pay" && <PayStep d={d} />}
 
         {error && <div className="cr-error">{error}</div>}
@@ -1061,7 +1020,15 @@ export function Create() {
             {(step < last || !member) && (
               <button className="btn-primary slant cr-next" onClick={next} disabled={step === last && busy}>
                 <span className="unslant">
-                  {step < last ? "NEXT ▸" : busy ? "ONE MOMENT…" : key === "pay" ? `SUBMIT + PAY ${fee} ▸` : "GO LIVE ▸"}
+                  {step < last
+                    ? "NEXT ▸"
+                    : busy
+                      ? "ONE MOMENT…"
+                      : key === "pay"
+                        ? `SUBMIT + PAY ${fee} ▸`
+                        : path === "pay" && !member
+                          ? "SEND FOR REVIEW ▸"
+                          : "GO LIVE ▸"}
                 </span>
               </button>
             )}

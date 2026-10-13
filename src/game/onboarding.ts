@@ -2,6 +2,9 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import { DEFAULT_CHARACTER, genderOf, type Gender } from './characters/roster'
 import { refreshDirectory, useDirectory } from './people/directory'
+import { getDistrict } from './districts/active'
+import { homeDistrict } from './districts/registry'
+import { APPLICATIONS_FREE } from '@/lib/apply'
 
 // "Become visible" — character-creation style onboarding (CLAUDE.md §1).
 // The draft lives in localStorage so the magic-link round trip never loses it.
@@ -9,6 +12,8 @@ import { refreshDirectory, useDirectory } from './people/directory'
 export type Draft = {
   /** Collected right after the gate; the sign-in link only goes out once entry is granted. */
   email: string
+  /** Pay path, optional: so a reviewer can reach you. Stays on the application (applicant + reviewers only). */
+  whatsapp: string
   character: string
   /** Preferred body — kept when switching between styles. */
   gender: Gender
@@ -23,18 +28,14 @@ export type Draft = {
   linkedin: string
   x: string
   location: string
-  /** Spot id within the district they appear in. */
+  /** Spot id within the district they appear in. Not asked any more: kept when still valid, else picked at random. */
   spot: string
   /** Set when we're waiting on a magic link — submit as soon as the session arrives. */
   pendingSubmit: boolean
   /** Invite path: the code to redeem once the session arrives (CLAUDE.md 5D-B). */
   pendingInvite: string
-  /** Pay path — the four application questions (CLAUDE.md 5E-A). Only applicants + reviewers see them. */
+  /** Pay path — the application's one question, WHY HERE? (CLAUDE.md 5E). Only the applicant + reviewers see it. */
   appWhy: string
-  appWant: string
-  appBring: string
-  appLink: string
-  appLinkWhy: string
   /** Pay path: save the application as soon as the session arrives. */
   pendingApply: boolean
 }
@@ -42,7 +43,7 @@ export type Draft = {
 export const STEPS = ['PICK YOUR LOOK', 'WHO ARE YOU?', 'WHAT ARE YOU BUILDING?', 'WHERE CAN PEOPLE FIND YOU?', 'WHERE DO YOU HANG OUT?', 'GO LIVE'] as const
 
 /** The numbered steps, by key. Which ones you get depends on how you're getting in. */
-export type StepKey = 'email' | 'look' | 'who' | 'building' | 'links' | 'hangout' | 'golive' | 'why' | 'want' | 'bring' | 'show' | 'pay'
+export type StepKey = 'email' | 'look' | 'who' | 'building' | 'links' | 'hangout' | 'golive' | 'why' | 'pay'
 export const STEP_TITLE: Record<StepKey, string> = {
   email: 'WHERE DO WE REACH YOU?',
   look: 'PICK YOUR LOOK',
@@ -51,23 +52,19 @@ export const STEP_TITLE: Record<StepKey, string> = {
   links: 'WHERE CAN PEOPLE FIND YOU?',
   hangout: 'WHERE DO YOU HANG OUT?',
   golive: 'GO LIVE',
-  why: 'WHY HERE?',
-  want: 'WHAT ARE YOU LOOKING FOR?',
-  bring: 'WHAT WILL YOU BRING?',
-  show: 'SHOW US ONE THING',
+  why: 'WHY DO YOU WANT TO BE IN THIS CITY OF FOUNDERS, DESIGNERS AND BUILDERS?',
   pay: 'SEND YOUR APPLICATION',
 }
-/** The application: one question per screen, after the profile, before payment (CLAUDE.md 5E). */
-export const QUESTION_STEPS: StepKey[] = ['why', 'want', 'bring', 'show']
+/** The application: one question now — WHY HERE? — after the profile (CLAUDE.md 5E). */
+export const QUESTION_STEPS: StepKey[] = ['why']
 export const ANSWER_MIN = 20
 export const ANSWER_MAX = 400
-export const LINK_WHY_MIN = 10
-export const LINK_WHY_MAX = 200
 const PROFILE_STEPS: StepKey[] = ['look', 'who', 'building', 'links', 'hangout']
 /** Members editing (no gate) · invite (instant) · pay (reviewed: profile + four questions). */
 export function stepsFor(path: 'invite' | 'pay' | null): StepKey[] {
   if (path === 'invite') return ['email', ...PROFILE_STEPS, 'golive']
-  if (path === 'pay') return ['email', ...PROFILE_STEPS, ...QUESTION_STEPS, 'pay']
+  // the application is sent from its last question; the fee step only exists while it's paid (src/lib/apply.ts)
+  if (path === 'pay') return ['email', ...PROFILE_STEPS, ...QUESTION_STEPS, ...(APPLICATIONS_FREE ? [] : (['pay'] as StepKey[]))]
   return [...PROFILE_STEPS, 'golive']
 }
 
@@ -75,6 +72,7 @@ const KEY = 'dob.draft'
 
 const EMPTY: Draft = {
   email: '',
+  whatsapp: '',
   character: DEFAULT_CHARACTER,
   gender: 'f',
   name: '',
@@ -88,14 +86,10 @@ const EMPTY: Draft = {
   linkedin: '',
   x: '',
   location: 'Koramangala',
-  spot: 'darshini',
+  spot: '',
   pendingSubmit: false,
   pendingInvite: '',
   appWhy: '',
-  appWant: '',
-  appBring: '',
-  appLink: '',
-  appLinkWhy: '',
   pendingApply: false,
 }
 
@@ -195,19 +189,26 @@ export function normX(v: string): Norm {
 
 export const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
+/**
+ * A WhatsApp number as +<country><number>, '' when left empty, null when it can't be one.
+ * A bare 10-digit number (or 0 / 91 in front) is taken as Indian: "98765 43210" → "+919876543210".
+ */
+export function normWhatsapp(v: string): string | null {
+  const t = v.replace(/[\s\-().]/g, '')
+  if (!t) return ''
+  if (/^[6-9]\d{9}$/.test(t)) return `+91${t}`
+  if (/^0[6-9]\d{9}$/.test(t)) return `+91${t.slice(1)}`
+  if (/^91[6-9]\d{9}$/.test(t)) return `+${t}`
+  if (/^\+[1-9]\d{7,14}$/.test(t)) return t
+  return null
+}
+
 const short = (v: string, min: number) => v.trim().length < min
 
 export function validateKey(key: StepKey, d: Draft): string | null {
   if (key === 'email' && !isEmail(d.email)) return 'That email doesn’t look right.'
+  if (key === 'email' && normWhatsapp(d.whatsapp) === null) return 'That WhatsApp number doesn’t look right — try +91 98765 43210.'
   if (key === 'why' && short(d.appWhy, ANSWER_MIN)) return `Tell us a little more — at least ${ANSWER_MIN} characters.`
-  if (key === 'want' && short(d.appWant, ANSWER_MIN)) return `Tell us a little more — at least ${ANSWER_MIN} characters.`
-  if (key === 'bring' && short(d.appBring, ANSWER_MIN)) return `Tell us a little more — at least ${ANSWER_MIN} characters.`
-  if (key === 'show') {
-    const link = normPortfolio(d.appLink)
-    if (!link) return 'Add a link to the thing you made.'
-    if (link === INVALID) return 'That link doesn’t look like a URL.'
-    if (short(d.appLinkWhy, LINK_WHY_MIN)) return 'Add a line on why you’re proud of it.'
-  }
   return validateStep(key === 'who' ? 1 : key === 'links' ? 3 : -1, d)
 }
 
@@ -245,8 +246,14 @@ export function payload(d: Draft) {
     linkedin: clean(normLinkedIn(d.linkedin)),
     x: clean(normX(d.x)),
     character: d.character,
-    spot: d.spot,
+    spot: spotIn(d.location, d.spot),
   }
+}
+
+/** Where you stand in your neighbourhood: your spot if it's there, otherwise a random one (people spread out). */
+export function spotIn(location: string, spot: string) {
+  const ids = Object.keys(getDistrict(homeDistrict(location)).spots)
+  return ids.includes(spot) ? spot : ids[Math.floor(Math.random() * ids.length)]
 }
 
 // ---------------------------------------------------------------------------
@@ -345,10 +352,7 @@ export async function submitApplication(): Promise<{ ok: boolean; error?: string
   useOnboarding.setState({ saving: true, error: null })
   const answers = {
     why: d.appWhy.trim().slice(0, ANSWER_MAX),
-    want: d.appWant.trim().slice(0, ANSWER_MAX),
-    bring: d.appBring.trim().slice(0, ANSWER_MAX),
-    show_link: clean(normPortfolio(d.appLink)),
-    show_why: d.appLinkWhy.trim().slice(0, LINK_WHY_MAX),
+    whatsapp: normWhatsapp(d.whatsapp) ?? '',
   }
   const { data, error } = await supabase.rpc('submit_application', { p_answers: answers, p_profile: payload(d) })
   useOnboarding.setState({ saving: false })

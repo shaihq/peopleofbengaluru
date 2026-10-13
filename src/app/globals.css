@@ -34,6 +34,16 @@
   --open: #3ddc84;
   --skew: -8deg;
   --hard: 0 4px 0 rgba(12, 14, 22, 0.55);
+  /* form fields: a dark well inside the ink panel, cream text, saffron underline on focus */
+  --field: #13151e;
+  --field-line: rgba(255, 246, 229, 0.16);
+  --field-hint: rgba(255, 246, 229, 0.32);
+}
+
+.cr input:-webkit-autofill {
+  -webkit-text-fill-color: var(--cream);
+  box-shadow: inset 0 0 0 100px var(--field), inset 0 -3px 0 var(--field-line);
+  caret-color: var(--cream);
 }
 
 * {
@@ -1506,8 +1516,9 @@ a.pp-btn:active {
 
 .cr-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px 12px;
 }
 
 .cr-tag {
@@ -1518,6 +1529,7 @@ a.pp-btn:active {
   font-size: 15px;
   letter-spacing: 0.1em;
   padding: 4px 12px;
+  white-space: nowrap;
 }
 
 .cr-step {
@@ -1525,6 +1537,7 @@ a.pp-btn:active {
   font-weight: 800;
   letter-spacing: 0.16em;
   color: rgba(255, 246, 229, 0.6);
+  white-space: nowrap;
 }
 
 .cr-pips {
@@ -1586,14 +1599,14 @@ a.pp-btn:active {
   height: 50px;
   border: 0;
   outline: 0;
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--field);
+  color: var(--cream);
   padding: 0 14px;
   font-family: var(--font-display), sans-serif;
   font-size: 22px;
   font-weight: 800;
   font-style: italic;
-  box-shadow: inset 0 -3px 0 rgba(28, 31, 43, 0.15);
+  box-shadow: inset 0 -3px 0 var(--field-line);
   user-select: text;
 }
 
@@ -1604,23 +1617,23 @@ a.pp-btn:active {
 
 .cr-field input::placeholder,
 .cr-email input::placeholder {
-  color: rgba(28, 31, 43, 0.32);
+  color: var(--field-hint);
   font-weight: 700;
 }
 
-/* application answers (5E-A): same cream slab, body type so a paragraph reads */
+/* application answers (5E-A): same dark well, body type so a paragraph reads */
 .cr-answer {
   border: 0;
   outline: 0;
   resize: none;
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--field);
+  color: var(--cream);
   padding: 12px 14px;
   font-family: var(--font-body), sans-serif;
   font-size: 17px;
   font-weight: 600;
   line-height: 1.4;
-  box-shadow: inset 0 -3px 0 rgba(28, 31, 43, 0.15);
+  box-shadow: inset 0 -3px 0 var(--field-line);
   user-select: text;
 }
 
@@ -1629,7 +1642,7 @@ a.pp-btn:active {
 }
 
 .cr-answer::placeholder {
-  color: rgba(28, 31, 43, 0.32);
+  color: var(--field-hint);
 }
 
 .cr-label .cr-count {
@@ -1639,12 +1652,6 @@ a.pp-btn:active {
 
 .cr-label .cr-count--low {
   color: var(--action);
-}
-
-.cr-q-lede {
-  margin: 0;
-  font-size: 17px;
-  color: var(--cream);
 }
 
 .cr-q-private {
@@ -1658,10 +1665,6 @@ a.pp-btn:active {
   .cr-answer {
     font-size: 16px; /* 16px+ keeps iOS from zooming on focus */
     padding: 10px 12px;
-  }
-
-  .cr-q-lede {
-    font-size: 15px;
   }
 }
 
@@ -1774,46 +1777,6 @@ a.pp-btn:active {
 .cr-chips--tight .chip {
   font-size: 13px;
   padding: 6px 10px;
-}
-
-.cr-spots {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.cr-spot {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  border: 0;
-  cursor: var(--cur-link);
-  background: var(--ink-soft);
-  color: var(--cream);
-  padding: 10px 12px;
-  text-align: left;
-  font-family: var(--font-display), sans-serif;
-  border-left: 4px solid transparent;
-}
-
-.cr-spot b {
-  font-size: 15px;
-  letter-spacing: 0.06em;
-}
-
-.cr-spot em {
-  font-family: var(--font-body), sans-serif;
-  font-style: normal;
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 246, 229, 0.55);
-}
-
-.cr-spot--on {
-  background: #343a50;
-  border-left-color: var(--saffron);
-  box-shadow: inset 0 0 0 2px var(--saffron);
 }
 
 .cr-live {
@@ -3303,9 +3266,6 @@ html.touch .find-chips {
     animation: sheet-in 0.35s cubic-bezier(0.2, 1.1, 0.3, 1);
   }
 
-  .cr-spots {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* --- landscape phones: side panels, narrower and shorter ------------------- */
@@ -3423,9 +3383,6 @@ html.touch .find-chips {
 
 /* narrow portrait phones */
 @media (max-width: 520px) {
-  
-  
-  
   .cr-tag {
     font-size: 12px;
     padding: 3px 9px;
@@ -3433,7 +3390,6 @@ html.touch .find-chips {
 
   .cr-step {
     font-size: 11px;
-    white-space: nowrap;
   }
 
   .cr-pips span {
@@ -3663,6 +3619,10 @@ html.touch .find-chips {
 .gate-code input {
   flex: 1;
   min-width: 0;
+  border: 0;
+  outline: 0;
+  background: var(--field);
+  color: var(--cream);
   font-family: var(--font-display), sans-serif;
   font-size: 34px;
   font-weight: 800;
@@ -3670,8 +3630,12 @@ html.touch .find-chips {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   padding: 10px 16px;
-  box-shadow: inset 0 0 0 3px transparent;
+  box-shadow: inset 0 -3px 0 var(--field-line);
   transition: box-shadow 0.15s;
+}
+
+.gate-code input:focus {
+  box-shadow: inset 0 -4px 0 var(--saffron);
 }
 
 .gate-code--ok input {
@@ -4080,13 +4044,13 @@ html.touch .find-chips {
   height: 58px;
   border: 0;
   outline: 0;
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--field);
+  color: var(--cream);
   padding: 0 64px 0 14px;
   font-family: var(--font-body), sans-serif;
   font-size: 17px;
   font-weight: 700;
-  box-shadow: inset 0 -3px 0 rgba(28, 31, 43, 0.15);
+  box-shadow: inset 0 -3px 0 var(--field-line);
   user-select: text;
 }
 
@@ -4095,7 +4059,7 @@ html.touch .find-chips {
 }
 
 .st-text input::placeholder {
-  color: rgba(28, 31, 43, 0.35);
+  color: var(--field-hint);
 }
 
 .st-count {
@@ -4106,7 +4070,7 @@ html.touch .find-chips {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  color: rgba(28, 31, 43, 0.4);
+  color: rgba(255, 246, 229, 0.4);
   pointer-events: none;
 }
 
@@ -4159,7 +4123,9 @@ html.touch .find-chips {
   height: 36px;
   border: 0;
   outline: 0;
-  background: var(--cream);
+  background: var(--field);
+  color: var(--cream);
+  box-shadow: inset 0 -3px 0 var(--field-line);
   font-size: 20px;
   text-align: center;
 }
@@ -4235,8 +4201,10 @@ html.touch .find-chips {
   height: 42px;
   border: 0;
   outline: 0;
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--field);
+  color: var(--cream);
+  color-scheme: dark;
+  box-shadow: inset 0 -3px 0 var(--field-line);
   padding: 0 10px;
   font-family: var(--font-body), sans-serif;
   font-size: 15px;
