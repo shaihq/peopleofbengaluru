@@ -169,7 +169,7 @@ export default function AdminClient() {
       <header className="adm-top">
         <div className="adm-badge slant">
           <span className="unslant">
-            <small>DESIGNERS OF BENGALURU</small>
+            <small>PEOPLE OF BENGALURU</small>
             <b>REVIEW QUEUE</b>
           </span>
         </div>

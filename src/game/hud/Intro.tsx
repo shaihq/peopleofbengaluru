@@ -61,7 +61,7 @@ export function Intro() {
         </div>
       ) : (
         <div className="intro-title">
-          <div className="intro-kicker">DESIGNERS OF</div>
+          <div className="intro-kicker">PEOPLE OF</div>
           <h1>BENGALURU</h1>
           <p>Walk the city. Meet the people who design it.</p>
           {!me && <p className="intro-note">You’ll arrive invisible — become visible whenever you’re ready.</p>}
