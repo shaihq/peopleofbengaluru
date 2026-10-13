@@ -850,7 +850,7 @@ Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both
 - Invites table, settings table, user states, RLS. Codes are BLR- + 6 characters (no look-alike letters), so they can't be guessed.
 - check_invite(code): ok / invalid / used / expired / own + who vouched. Uses nothing up.
 - redeem_invite(code, profile): one transaction after the magic-link sign-in — the code is re-checked and used, the profile goes live (approved, no review), the new member gets their codes.
-- Existing approved members get their codes; the admin mints founder codes with select public.issue_invites(null, n).
+- Existing approved members get their codes. Founder codes (no owner, never expire until used or revoked) are made on /admin → INVITES: make N at a time with a label (who they're for), copy links, edit the label per code, track UNUSED / JOINED (who, role, when) / REVOKED, revoke a leaked code, export CSV (src/app/admin/InvitesAdmin.tsx; admin_issue_invites, admin_founder_invites, admin_set_invite_note, admin_revoke_invite in supabase/migrations/20261013121743_admin_invites.sql, each checks is_admin()). SQL fallback: select public.issue_invites(null, n).
 - "Apply to join" is open to everyone; it is the paid path (Phase 5E) — no free applications.
 - ?gatepreview runs every screen on local mocks (preview codes, all result states).
 - supabase/migrations/20261008102020_invites.sql: create_invite_link(code, note) marks a code sent; my_invites() retires links unused for 30 days (state expired), issues a fresh code in their place (renewed_from) and lists your slots with who joined.
@@ -916,7 +916,7 @@ Rules:
 ## 5E-B — PAYMENT (DODO) + ADMIN REVIEW (built: supabase/migrations/20261006181812_payments_review.sql; emails still to do)
 
 - Dodo Payments checkout once the application is saved. Payment is confirmed by a server-side Dodo webhook, never by the client → status under_review. Payment fails: retry, no review starts.
-- The admin page (/admin, admins only): a queue of applications under review, each showing the profile card, the four answers and the "one thing" link. Two actions: ACCEPT or REJECT + REFUND, with an optional reason.
+- The admin page (admin.peopleofbengaluru.com, dev.admin.peopleofbengaluru.com for staging, /admin on previews and local; admins only): a queue of applications under review, each showing the profile card, the four answers and the "one thing" link. Two actions: ACCEPT or REJECT + REFUND, with an optional reason.
 - ACCEPT: profile status = approved (goes live), the member gets their invite codes (same as redeem_invite), approval email.
 - REJECT: refund through Dodo from the server, status refunded, email with the reason. Refund failure → refund_failed, shown on the admin page for retry.
 - No automatic refund when nobody decides: admins refund by hand, or the payment stands.
@@ -1097,6 +1097,7 @@ Two databases, never shared:
 - Address, name, title, description and the Google Analytics ID live in src/lib/site.ts (GA_ID G-EEGWQWP5NM; not an env var, by decision). Analytics loads only on production (@next/third-parties GoogleAnalytics in layout.tsx).
 - src/app: robots.ts, sitemap.ts (one URL: the city is one page), manifest.ts, opengraph-image.tsx (the share card, rendered in Barlow Condensed from @fontsource; replace with a real screenshot by dropping in opengraph-image.png). Canonical is always / (?invite=, ?connections and the preview flags are the same page). The boot screen server-renders the intro's title, so the page has real text before the WebGL world loads.
 - Outside the code: in Vercel, redirect www and peopleofbengaluru.vercel.app to peopleofbengaluru.com; verify the domain in Google Search Console (DNS) and submit /sitemap.xml.
+- The admin page lives on its own subdomain (src/proxy.ts): admin.peopleofbengaluru.com (production data) and dev.admin.peopleofbengaluru.com (staging data). There / is the admin page, the API works, every other path goes to /, and every response is noindex. /admin on peopleofbengaluru.com, www and dev.peopleofbengaluru.com is a 404; previews and local keep /admin. Admin sign-in links return to the page they were asked from, so each database's Supabase Auth Redirect URLs must include its admin host (production: https://admin.peopleofbengaluru.com/**, staging: https://dev.admin.peopleofbengaluru.com/**). In Vercel, admin.* is connected to Production and dev.admin.* to the dev branch. Hosts live in src/lib/site.ts (ADMIN_HOSTS, PUBLIC_HOSTS).
 
 ---
 

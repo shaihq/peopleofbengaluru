@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import './admin.css'
+import { InvitesAdmin } from './InvitesAdmin'
+import { ADMIN_HOSTS } from '@/lib/site'
 
 // THE REVIEW QUEUE (CLAUDE.md 5E-B). Admins only (public.admins).
 // ACCEPT → approve_application() (profile goes live, invite codes issued).
 // REJECT + REFUND → /api/admin/reject (Dodo refund from the server).
 // REPORTS (5G): what a member reported from a chat → RESOLVE, or HIDE MEMBER (they leave the city).
+// INVITES (5D): founder codes — make them in batches, track who joined with each, revoke (InvitesAdmin.tsx).
 
 type App = {
   id: string
@@ -47,7 +50,7 @@ const TABS = [
   { id: 'unpaid', label: 'NOT PAID YET', statuses: ['draft', 'submitted'] },
   { id: 'decided', label: 'DECIDED', statuses: ['approved', 'rejected', 'refunded'] },
 ] as const
-type Tab = (typeof TABS)[number]['id'] | 'reports'
+type Tab = (typeof TABS)[number]['id'] | 'reports' | 'invites'
 
 type Report = {
   id: string
@@ -93,6 +96,12 @@ const safeUrl = (u?: string | null) => {
   }
 }
 const host = (u: string) => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
+
+/** The game this admin page belongs to: admin.x → x, dev.admin.x → dev.x; on previews and local, /. */
+const cityUrl = () => {
+  const h = window.location.hostname
+  return ADMIN_HOSTS.includes(h) ? `https://${h.replace(/^(dev\.)?admin\./, '$1')}` : '/'
+}
 
 async function token() {
   const { data } = await supabase!.auth.getSession()
@@ -157,7 +166,8 @@ export default function AdminClient() {
     if (!supabase) return
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: `${window.location.origin}/admin`, shouldCreateUser: false },
+      // back to this page: / on the admin subdomains, /admin on previews and local
+      options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}`, shouldCreateUser: false },
     })
     if (error) setErr(error.message)
     else setSent(true)
@@ -177,7 +187,7 @@ export default function AdminClient() {
             <button className="adm-ghost" onClick={() => void load()}>
               REFRESH
             </button>
-            <a className="adm-ghost" href="/">
+            <a className="adm-ghost" href={cityUrl()}>
               BACK TO THE CITY ▸
             </a>
           </div>
@@ -251,9 +261,14 @@ export default function AdminClient() {
                 REPORTS <em>{reports.filter((r) => r.status === 'open').length}</em>
               </span>
             </button>
+            <button className={`adm-tab slant${tab === 'invites' ? ' adm-tab--on' : ''}`} onClick={() => setTab('invites')}>
+              <span className="unslant">INVITES</span>
+            </button>
           </nav>
 
-          {tab === 'reports' ? (
+          {tab === 'invites' ? (
+            <InvitesAdmin onError={setErr} />
+          ) : tab === 'reports' ? (
             <div className="adm-list">
               {reports.length === 0 && <p className="adm-empty">NO REPORTS</p>}
               {reports.map((r) => (

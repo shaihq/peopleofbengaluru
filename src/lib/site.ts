@@ -4,6 +4,12 @@
 /** The one address search engines should know. Every other host (dev, previews, *.vercel.app) is noindex. */
 export const SITE_URL = 'https://peopleofbengaluru.com'
 
+/** The review queue lives on its own subdomain (src/proxy.ts): production, and dev (staging data). */
+export const ADMIN_HOSTS = ['admin.peopleofbengaluru.com', 'dev.admin.peopleofbengaluru.com']
+
+/** The public sites' hosts, where /admin doesn't exist. */
+export const PUBLIC_HOSTS = ['peopleofbengaluru.com', 'www.peopleofbengaluru.com', 'dev.peopleofbengaluru.com']
+
 export const SITE_NAME = 'People of Bengaluru'
 
 export const SITE_TITLE = 'People of Bengaluru — walk the city, meet its designers and builders'
