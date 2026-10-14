@@ -31,6 +31,26 @@ export function districtOfLocation(location: string): DistrictInfo {
   return DISTRICTS.find((d) => d.name.toLowerCase() === location.toLowerCase()) ?? DISTRICTS[0]
 }
 
+/**
+ * Where someone says they are. profiles.location is one text field (≤ 40): a district's name, another
+ * area of Bengaluru as typed ("Jayanagar"), or another city with a leading "@" ("@Pune"). Anything that
+ * isn't a built district visits Koramangala.
+ */
+export type PlaceKind = 'district' | 'blr' | 'city'
+export const CITY_MARK = '@'
+
+export function placeKind(location: string): PlaceKind {
+  if (location.startsWith(CITY_MARK)) return 'city'
+  return DISTRICTS.some((d) => d.name.toLowerCase() === location.toLowerCase()) ? 'district' : 'blr'
+}
+
+/** The place as typed, without the city mark. */
+export const placeName = (location: string) => (location.startsWith(CITY_MARK) ? location.slice(1) : location)
+
+/** For display: "Jayanagar, Bengaluru" · "Pune". */
+export const placeLabel = (location: string) =>
+  placeKind(location) === 'city' ? placeName(location) : `${placeName(location)}, Bengaluru`
+
 /** The district a person actually appears in right now (visitors stay in Koramangala). */
 export function homeDistrict(location: string): DistrictId {
   const d = districtOfLocation(location)

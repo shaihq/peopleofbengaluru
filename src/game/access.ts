@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import { getPeople, useDirectory } from './people/directory'
-import { redeemInvite, sendMagicLink, submitApplication, useOnboarding } from './onboarding'
+import { redeemInvite, sendApplication, sendMagicLink, submitApplication, useOnboarding } from './onboarding'
+import { APPLICATIONS_FREE } from '@/lib/apply'
 import { useGame } from './store'
 
 // THE GATE (CLAUDE.md Phase 5D). Being visible is earned: an invite code (instant) or
@@ -28,6 +29,16 @@ export type Path = 'invite' | 'pay'
 export type Stage = 'gate' | 'code' | 'steps' | 'result' | 'signin'
 /** unknown: no account with that email (sign-in never creates one) */
 export type SigninState = 'idle' | 'sending' | 'sent' | 'unknown' | 'bad' | 'error'
+
+/** Applied from this browser without signing in (free applications): reopening shows the queue, not the gate. */
+const APPLIED_KEY = 'pob.applied'
+const appliedHere = () => {
+  try {
+    return typeof window !== 'undefined' && !GATE_MOCK && localStorage.getItem(APPLIED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 /** Set while a sign-in link is out, so the return trip can say welcome back (Session.tsx). */
 export const SIGNIN_KEY = 'pob.signin'
@@ -110,7 +121,7 @@ const previewInviter = (): Inviter => {
 }
 
 export const useAccess = create<Access>((set, get) => ({
-  status: 'ghost',
+  status: appliedHere() ? 'review' : 'ghost',
   stage: 'gate',
   path: null,
   result: null,
@@ -183,6 +194,15 @@ export const useAccess = create<Access>((set, get) => ({
         set({ stage: 'result', result: 'saved', status: 'applied' })
         return get().pay()
       }
+      // free: nothing to pay for, so no email confirmation — straight to the queue
+      if (APPLICATIONS_FREE) {
+        const r = await sendApplication()
+        if (!r.ok) return
+        try {
+          localStorage.setItem(APPLIED_KEY, '1')
+        } catch {}
+        return set({ stage: 'result', result: 'review', status: 'review' })
+      }
       ob.patch({ pendingApply: true, pendingInvite: '' })
       await sendMagicLink(ob.draft.email)
       if (useOnboarding.getState().mail === 'sent') set({ stage: 'result', result: 'confirm' })
@@ -209,7 +229,11 @@ export const useAccess = create<Access>((set, get) => ({
   loadApplication: async () => {
     if (GATE_MOCK || !supabase) return
     const { userId, me } = useDirectory.getState()
-    if (!userId || me) return
+    if (!userId) return
+    try {
+      localStorage.removeItem(APPLIED_KEY)
+    } catch {}
+    if (me) return
     const { data } = await supabase
       .from('applications')
       .select('status, reason')
@@ -219,7 +243,8 @@ export const useAccess = create<Access>((set, get) => ({
       .maybeSingle()
     const row = data as { status: string; reason: string | null } | null
     const st = row?.status
-    if (!st) return
+    // no application on this account: the "applied here" hint was for another email
+    if (!st) return get().status === 'review' ? set({ status: 'ghost' }) : undefined
     const status: AccessStatus =
       st === 'draft' || st === 'submitted'
         ? 'applied'

@@ -9,7 +9,7 @@ import { activeStatus } from '../status'
 import { isTyping } from '../player/input'
 import { ConnectBlock, ConnectFlow } from './Connections'
 import { useNet } from '../net/useNet'
-import { districtInfo, type DistrictId } from '../districts/registry'
+import { districtInfo, placeLabel, type DistrictId } from '../districts/registry'
 
 const byId = (id: string | null) => (id ? getPeople().find((p) => p.id === id) : undefined)
 
@@ -82,6 +82,22 @@ function Presence({ p }: { p: Profile }) {
 }
 
 /** Profile panel (CLAUDE.md §13) — slides in from the right; the world stays visible. */
+// Sample people are bots: say so in the panel only, never on the nameplate.
+// Hover or focus shows why they're here; a tap toggles it on touch.
+function BotTag() {
+  const [open, setOpen] = useState(false)
+  return (
+    <span className={`pp-bot${open ? ' is-open' : ''}`} onMouseLeave={() => setOpen(false)}>
+      <button type="button" className="pp-sample" aria-describedby="pp-bot-tip" onClick={() => setOpen((o) => !o)}>
+        BOT <span className="pp-bot-i">?</span>
+      </button>
+      <span id="pp-bot-tip" role="tooltip" className="pp-bot-tip">
+        These bots roam the city until it fills up with real people.
+      </span>
+    </span>
+  )
+}
+
 function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
   const style = getCharacter(p.character)
   // CONNECT takes over the whole panel as a stepper; the profile comes back after
@@ -97,7 +113,7 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
       <div className="pp-inner">
         <div className="pp-top">
           <span className="pp-tag">PROFILE</span>
-          {p.sample && <span className="pp-sample">SAMPLE</span>}
+          {p.sample && <BotTag />}
           <Presence p={p} />
           <button className="pp-close" onClick={onClose} aria-label="Close profile">
             <span className="keycap">ESC</span>
@@ -115,7 +131,7 @@ function Panel({ p, onClose }: { p: Profile; onClose: () => void }) {
           )}
         </div>
         <div className="pp-loc">
-          <span className="pp-pin" /> {p.location}, Bengaluru
+          <span className="pp-pin" /> {placeLabel(p.location)}
         </div>
 
         {activeStatus(p.status) && (

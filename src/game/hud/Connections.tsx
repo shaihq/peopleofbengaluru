@@ -12,7 +12,7 @@ import { useOnboarding } from '../onboarding'
 import { isTyping, requestLook } from '../player/input'
 import { useGame } from '../store'
 import { isTouch } from '../device'
-import { homeDistrict } from '../districts/registry'
+import { homeDistrict, placeName } from '../districts/registry'
 import { activeStatus } from '../status'
 
 // CONNECT (CLAUDE.md Phase 5G) — the profile-panel action, the Connections screen (C), the match
@@ -278,9 +278,9 @@ export function ConnectBlock({ p, onConnect }: { p: Profile; onConnect: () => vo
 
   if (p.sample) {
     return (
-      <span className="pp-btn slant pp-btn--primary pp-btn--off" title="Sample profiles are for show">
+      <span className="pp-btn slant pp-btn--primary pp-btn--off" title="Bots can’t connect">
         <span className="unslant">
-          CONNECT <small>SAMPLE PROFILE · CONNECT WITH REAL PEOPLE</small>
+          CONNECT <small>BOTS CAN’T CONNECT · FIND SOMEONE REAL</small>
         </span>
       </span>
     )
@@ -644,7 +644,7 @@ function AskCard({ c, focus, i: idx }: { c: Conn; focus: boolean; i: number }) {
           <span className="cn-card-who">
             <b>{c.other.name.toUpperCase()}</b>
             <em>
-              {c.other.role} · {c.other.location}
+              {c.other.role} · {placeName(c.other.location)}
             </em>
           </span>
           <small className="cn-card-ago">{ago(c.created_at)}</small>

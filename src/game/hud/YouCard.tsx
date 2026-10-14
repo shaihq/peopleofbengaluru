@@ -20,6 +20,9 @@ const GHOST_COPY = {
   visible: { title: 'APPROVED', line: 'Open the link in your email to go live.', cta: 'VIEW' },
 } as const
 
+/** Not signed in: guests, and applicants waiting from this browser (they sign in once approved). */
+const canSignIn = (s: keyof typeof GHOST_COPY) => s === 'ghost' || s === 'review'
+
 /** Bottom-right: the invisible guest's call to action, or your own status card. */
 export function YouCard() {
   const phase = useGame((s) => s.phase)
@@ -49,13 +52,23 @@ export function YouCard() {
     startCreate()
   }
 
+  // links from the approval email: /?signin opens the sign-in screen
+  useEffect(() => {
+    if (phase !== 'play' || signedIn) return
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has('signin')) return
+    url.searchParams.delete('signin')
+    window.history.replaceState(null, '', url)
+    signIn()
+  }, [phase, signedIn])
+
   // V = become visible / edit profile · L = sign in (not signed in only) — the mouse is captured while playing
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const g = useGame.getState()
       if ((e.code !== 'KeyV' && e.code !== 'KeyL') || isTyping(e) || g.phase !== 'play' || g.openId || g.searchOpen || g.statusOpen || g.connectOpen || g.invitesOpen || g.paused) return
       if (e.code === 'KeyV') return become()
-      if (!useDirectory.getState().userId && useAccess.getState().status === 'ghost') signIn()
+      if (!useDirectory.getState().userId && canSignIn(useAccess.getState().status)) signIn()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -82,7 +95,7 @@ export function YouCard() {
               {status === 'ghost' && invited ? 'USE YOUR INVITE' : GHOST_COPY[status].cta} <span className="keycap">V</span>
             </span>
           </button>
-          {!signedIn && status === 'ghost' && (
+          {!signedIn && canSignIn(status) && (
             <button className="btn-primary slant ghostbar-cta ghostbar-signin" onClick={signIn}>
               <span className="unslant">
                 SIGN IN <span className="keycap">L</span>

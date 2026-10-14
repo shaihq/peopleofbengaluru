@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { DEFAULT_CHARACTER, genderOf, type Gender } from './characters/roster'
 import { refreshDirectory, useDirectory } from './people/directory'
 import { getDistrict } from './districts/active'
-import { homeDistrict } from './districts/registry'
+import { homeDistrict, placeName } from './districts/registry'
 import { APPLICATIONS_FREE } from '@/lib/apply'
 
 // "Become visible" — character-creation style onboarding (CLAUDE.md §1).
@@ -208,6 +208,7 @@ const short = (v: string, min: number) => v.trim().length < min
 export function validateKey(key: StepKey, d: Draft): string | null {
   if (key === 'email' && !isEmail(d.email)) return 'That email doesn’t look right.'
   if (key === 'email' && normWhatsapp(d.whatsapp) === null) return 'That WhatsApp number doesn’t look right — try +91 98765 43210.'
+  if (key === 'hangout' && placeName(d.location).trim().length < 2) return 'Tell us where you hang out.'
   if (key === 'why' && short(d.appWhy, ANSWER_MIN)) return `Tell us a little more — at least ${ANSWER_MIN} characters.`
   return validateStep(key === 'who' ? 1 : key === 'links' ? 3 : -1, d)
 }
@@ -376,6 +377,43 @@ export async function submitApplication(): Promise<{ ok: boolean; error?: string
   }
   useOnboarding.getState().patch({ pendingSubmit: false, pendingApply: false })
   return { ok: true }
+}
+
+/**
+ * Apply to join while it's free (src/lib/apply.ts), not signed in: no email confirmation first. The server
+ * finds or makes the account for this email and the application goes straight to review.
+ */
+export async function sendApplication(): Promise<{ ok: boolean; error?: string }> {
+  const d = useOnboarding.getState().draft
+  useOnboarding.setState({ saving: true, error: null })
+  const res = (await fetch('/api/apply/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: d.email.trim(),
+      answers: { why: d.appWhy.trim().slice(0, ANSWER_MAX), whatsapp: normWhatsapp(d.whatsapp) ?? '' },
+      profile: payload(d),
+    }),
+  })
+    .then((r) => r.json())
+    .catch(() => null)) as { ok: boolean; state?: string } | null
+  useOnboarding.setState({ saving: false })
+  // already in the queue with this email: same screen, nothing to fix
+  if (res?.ok || res?.state === 'in_review') {
+    useOnboarding.getState().patch({ pendingSubmit: false, pendingApply: false })
+    return { ok: true }
+  }
+  const msg = !res
+    ? 'Couldn’t reach the server. Check your connection and try again.'
+    : res.state === 'member'
+      ? 'That email is already in the city. Sign in instead.'
+      : res.state === 'signin_required'
+        ? 'That email already has an account. Sign in first, then apply.'
+      : res.state === 'invalid'
+        ? 'Some answers are too short or too long. Check them and try again.'
+        : 'Something went wrong. Try again in a moment.'
+  useOnboarding.setState({ error: msg })
+  return { ok: false, error: msg }
 }
 
 export async function signOut() {

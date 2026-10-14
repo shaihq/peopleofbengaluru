@@ -15,6 +15,12 @@ export const TEMPLATES = {
   inviteWelcome: { alias: 'invite-welcome', variables: ['NAME', 'INVITER', 'INVITES', 'LINK'] },
   /** "Priya used your invite" → the member who vouched. */
   inviteJoined: { alias: 'invite-joined', variables: ['NAME', 'INVITEE', 'ROLE', 'LINK'] },
+  /** "We've got your application" → someone who just applied to join; the decision comes within 72 hours. */
+  applicationReceived: { alias: 'application-received', variables: ['NAME', 'LINK'] },
+  /** "You're in" → ACCEPT on /admin. LINK opens the sign-in screen; INVITES is how many codes they now hold. */
+  applicationApproved: { alias: 'application-approved', variables: ['NAME', 'INVITES', 'LINK'] },
+  /** "Not this time" → REJECT on /admin. REASON is the reviewer's note in quotes, or "" without one. */
+  applicationRejected: { alias: 'application-rejected', variables: ['NAME', 'REASON', 'LINK'] },
 } as const
 
 export type TemplateName = keyof typeof TEMPLATES

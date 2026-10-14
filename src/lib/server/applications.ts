@@ -1,6 +1,8 @@
 import 'server-only'
 import { admin, type ApplicationRow } from './supabaseAdmin'
 import { refundPayment, type DodoPayment } from './dodo'
+import { sendTemplate } from './email/send'
+import { setting } from './supabaseAdmin'
 
 // The application state machine on the server (CLAUDE.md 5E-B). Every transition is
 // idempotent, so the webhook, the return-page confirm and a retry can all call it safely.
@@ -80,6 +82,27 @@ export async function rejectAndRefund(app: ApplicationRow, reason: string, revie
     await db().update({ ...base, status: 'refund_failed' }).eq('id', app.id)
     return { ok: false as const, status: 'refund_failed' as const, error: String(e) }
   }
+}
+
+const firstName = (app: ApplicationRow) => String(app.profile.name ?? '').trim().split(/\s+/)[0] || 'there'
+
+/** The decision email (CLAUDE.md: EMAILS #9, #10). Always sent: it's about their account. */
+export async function emailDecision(app: ApplicationRow, approved: boolean, origin: string, reason = '') {
+  if (approved) {
+    const invites = await setting<number>('invites_per_member', 2)
+    return sendTemplate(app.email, 'applicationApproved', {
+      NAME: firstName(app),
+      INVITES: String(invites),
+      // the sign-in screen: one magic link and they're live
+      LINK: `${origin}/?signin`,
+    })
+  }
+  const note = reason.trim()
+  return sendTemplate(app.email, 'applicationRejected', {
+    NAME: firstName(app),
+    REASON: note ? `“${note}”` : '',
+    LINK: origin,
+  })
 }
 
 /** refund.succeeded / refund.failed from the webhook. */
