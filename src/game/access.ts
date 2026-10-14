@@ -279,6 +279,8 @@ export const useAccess = create<Access>((set, get) => ({
   // Sign-in never creates an account: new people come in through the gate.
   signIn: async (email) => {
     const e = email.trim()
+    // each new link cancels the last: never send a second while one is on its way
+    if (get().signin === 'sending') return
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return set({ signin: 'bad' })
     set({ signin: 'sending' })
     if (GATE_MOCK) {
