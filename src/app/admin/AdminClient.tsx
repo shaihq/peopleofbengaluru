@@ -103,6 +103,8 @@ export default function AdminClient() {
   const [phase, setPhase] = useState<'loading' | 'signed_out' | 'not_admin' | 'ready'>('loading')
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  // each new link cancels the last, so a second click while sending breaks the first email
+  const [sending, setSending] = useState(false)
   const [apps, setApps] = useState<App[]>([])
   const [members, setMembers] = useState<Set<string>>(new Set())
   const [reports, setReports] = useState<Report[]>([])
@@ -154,12 +156,15 @@ export default function AdminClient() {
   }, [apps, tab])
 
   const sendLink = async () => {
-    if (!supabase) return
+    if (!supabase || sending) return
+    setSending(true)
+    setErr(null)
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       // back to this page: / on the admin subdomains, /admin on previews and local
       options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}`, shouldCreateUser: false },
     })
+    setSending(false)
     if (error) setErr(error.message)
     else setSent(true)
   }
@@ -197,7 +202,7 @@ export default function AdminClient() {
         <div className="adm-panel adm-gate">
           <h1>REVIEWERS ONLY</h1>
           {sent ? (
-            <p>Check your inbox — the sign-in link brings you back here.</p>
+            <p>Link sent. Open the newest email from us — the sign-in link brings you back here.</p>
           ) : (
             <>
               <p>Sign in with the email you added to the admins table.</p>
@@ -206,11 +211,12 @@ export default function AdminClient() {
                   type="email"
                   value={email}
                   placeholder="you@studio.com"
+                  disabled={sending}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && sendLink()}
                 />
-                <button className="btn-primary slant adm-btn" onClick={sendLink}>
-                  <span className="unslant">SEND LINK ▸</span>
+                <button className="btn-primary slant adm-btn" onClick={sendLink} disabled={sending}>
+                  <span className="unslant">{sending ? 'SENDING…' : 'SEND LINK ▸'}</span>
                 </button>
               </div>
             </>

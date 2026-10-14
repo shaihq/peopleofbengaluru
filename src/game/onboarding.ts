@@ -262,6 +262,8 @@ export function spotIn(location: string, spot: string) {
 
 export async function sendMagicLink(email: string) {
   const ob = useOnboarding.getState()
+  // each new link cancels the last: never send a second while one is on its way
+  if (useOnboarding.getState().mail === 'sending') return
   if (!supabase) return useOnboarding.setState({ mail: 'error', error: 'Sign-in isn’t configured yet.' })
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return useOnboarding.setState({ error: 'That email doesn’t look right.' })
   ob.patch({ pendingSubmit: true })
