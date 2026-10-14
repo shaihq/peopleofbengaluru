@@ -5,9 +5,10 @@ import { supabase } from '@/lib/supabase'
 import './admin.css'
 import { InvitesAdmin } from './InvitesAdmin'
 import { gameOrigin } from '@/lib/site'
+import { placeLabel } from '@/game/districts/registry'
 
 // THE REVIEW QUEUE (CLAUDE.md 5E-B). Admins only (public.admins).
-// ACCEPT → approve_application() (profile goes live, invite codes issued).
+// ACCEPT → /api/admin/approve: approve_application() (profile goes live, invite codes issued) + the email.
 // REJECT + REFUND → /api/admin/reject (Dodo refund from the server).
 // REPORTS (5G): what a member reported from a chat → RESOLVE, or HIDE MEMBER (they leave the city).
 // INVITES (5D): founder codes — make them in batches, track who joined with each, revoke (InvitesAdmin.tsx).
@@ -301,10 +302,15 @@ function Card({ a, member, onDone, onError }: { a: App; member: boolean; onDone:
 
   const accept = async () => {
     setBusy(true)
-    const { data, error } = await supabase!.rpc('approve_application', { p_id: a.id, p_note: null })
+    const t = await token()
+    const res = await fetch('/api/admin/approve', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: a.id }),
+    })
     setBusy(false)
-    const r = data as { ok: boolean; state?: string } | null
-    if (error || !r?.ok) return onError(error?.message ?? `Couldn’t approve (${r?.state}).`)
+    const r = (await res.json().catch(() => ({}))) as { ok?: boolean; state?: string; error?: string }
+    if (!r.ok) return onError(`Couldn’t approve (${r.state ?? r.error ?? res.status}).`)
     onDone()
   }
 
@@ -340,7 +346,7 @@ function Card({ a, member, onDone, onError }: { a: App; member: boolean; onDone:
         </p>
         <dl className="adm-facts">
           <dt>FROM</dt>
-          <dd>{p.location ?? '—'}</dd>
+          <dd>{p.location ? placeLabel(p.location) : '—'}</dd>
           {p.building && (
             <>
               <dt>BUILDING</dt>

@@ -6,6 +6,7 @@ import { useConnect, type Conn } from '../connect'
 import { MSG_MAX, blockMember, loadOlder, openThread, reportMember, sendMessage, useChat, type Msg } from '../chat'
 import { getPeople, useDirectory } from '../people/directory'
 import { getCharacter } from '../characters/roster'
+import { placeName } from '../districts/registry'
 import { useGame } from '../store'
 import { isTouch } from '../device'
 
@@ -123,7 +124,7 @@ export function Thread({ c, onBack }: { c: Conn; onBack: () => void }) {
         <div className="ch-who">
           <b>{c.other.name.toUpperCase()}</b>
           <em>
-            {c.other.role} · {c.other.location}
+            {c.other.role} · {placeName(c.other.location)}
           </em>
         </div>
         <button className={`ch-more${menu ? ' ch-more--on' : ''}`} onClick={() => setMenu(menu ? null : 'menu')} aria-label="More">

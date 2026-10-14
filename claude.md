@@ -871,6 +871,8 @@ Decided: both invites from day one.
 
 TEMPORARY (2026-10-13): applications are FREE. APPLICATIONS_FREE in src/lib/apply.ts: no Dodo checkout; after the four questions (and the email confirmation) /api/apply/checkout sends the application straight to under_review. Still reviewed: ACCEPT / REJECT on the admin page, nothing to refund (the admin says REJECT, FREE APPLICATION). All game copy drops the fee and refund lines while it's on. Set it to false and deploy to charge again; the paid flow below is untouched.
 
+While free there is no email confirmation either (2026-10-14): SEND FOR REVIEW posts to /api/apply/submit without signing in; the server finds or creates the account for that email (unconfirmed) and submit_application_for() (service role only; supabase/migrations/20261014120000_application_without_signin.sql) puts the application straight into under_review. The applicant sees "YOU'RE ON THE WAITLIST · we review within 72 hours" (remembered in this browser, pob.applied) and gets the application-received email. Once approved they sign in with SIGN IN, which confirms the email.
+
 Goal:
 
 The paid way in. Someone without an invite builds their profile, tells us why they belong here, pays, and a human decides. Approved: live. Rejected: full refund.
@@ -1100,7 +1102,7 @@ Two databases, never shared:
 - Address, name, title, description and the Google Analytics ID live in src/lib/site.ts (GA_ID G-EEGWQWP5NM; not an env var, by decision). Analytics loads only on production (@next/third-parties GoogleAnalytics in layout.tsx).
 - src/app: robots.ts, sitemap.ts (one URL: the city is one page), manifest.ts, opengraph-image.tsx (the share card, rendered in Barlow Condensed from @fontsource; replace with a real screenshot by dropping in opengraph-image.png). Canonical is always / (?invite=, ?connections and the preview flags are the same page). The boot screen server-renders the intro's title, so the page has real text before the WebGL world loads.
 - Outside the code: in Vercel, redirect www and peopleofbengaluru.vercel.app to peopleofbengaluru.com; verify the domain in Google Search Console (DNS) and submit /sitemap.xml.
-- The admin page lives on its own subdomain (src/proxy.ts): admin.peopleofbengaluru.com (production data) and dev.admin.peopleofbengaluru.com (staging data). There / is the admin page, the API works, every other path goes to /, and every response is noindex. /admin on peopleofbengaluru.com, www and dev.peopleofbengaluru.com is a 404; previews and local keep /admin. Admin sign-in links return to the page they were asked from, so each database's Supabase Auth Redirect URLs must include its admin host (production: https://admin.peopleofbengaluru.com/**, staging: https://dev.admin.peopleofbengaluru.com/**). In Vercel, admin.* is connected to Production and dev.admin.* to the dev branch. Hosts live in src/lib/site.ts (ADMIN_HOSTS, PUBLIC_HOSTS).
+- The admin page lives on its own subdomain (src/proxy.ts): admin.peopleofbengaluru.com (production data) and dev.admin.peopleofbengaluru.com (staging data). There / is the admin page, the API works, every other path goes to /, and every response is noindex. /admin on peopleofbengaluru.com, www and dev.peopleofbengaluru.com is a 404; previews and local keep /admin. Locally the admin also runs on its own subdomain like production: http://admin.localhost:3000 (staging data; staging's Auth Redirect URLs include http://admin.localhost:3000/**). Admin sign-in links return to the page they were asked from, so each database's Supabase Auth Redirect URLs must include its admin host (production: https://admin.peopleofbengaluru.com/**, staging: https://dev.admin.peopleofbengaluru.com/**). In Vercel, admin.* is connected to Production and dev.admin.* to the dev branch. Hosts live in src/lib/site.ts (ADMIN_HOSTS, PUBLIC_HOSTS).
 
 ---
 
@@ -1150,9 +1152,9 @@ No payment or refund emails from us. Dodo Payments sends the receipts, failed-pa
 
 | # | Email | When | Status |
 |---|---|---|---|
-| 8 | Application received | Payment confirmed, status under review | to do |
-| 9 | Approved: you're live | ACCEPT on /admin; mentions your invite codes | to do |
-| 10 | Not this time | REJECT on /admin, with the optional reason (the refund email comes from Dodo) | to do |
+| 8 | Application received | Application sent for review (/api/apply/submit; while free, no sign-in first) | built; template application-received (NAME, LINK) |
+| 9 | Approved: you're live | ACCEPT on /admin (/api/admin/approve); mentions your invite codes; LINK is /?signin (opens the sign-in screen) | built; template application-approved (NAME, INVITES, LINK) |
+| 10 | Not this time | REJECT on /admin (/api/admin/reject), with the optional reason (the refund email comes from Dodo); not re-sent on RETRY REFUND | built; template application-rejected (NAME, REASON, LINK; REASON is the note in quotes, or "") |
 | 11 | Admin: new application to review | Optional, to the reviewers | later |
 
 ## Connect (Phase 5G)

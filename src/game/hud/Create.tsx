@@ -10,7 +10,7 @@ import {
   type Gender,
 } from "../characters/roster";
 import { useDirectory } from "../people/directory";
-import { DISTRICTS, districtOfLocation } from "../districts/registry";
+import { CITY_MARK, DISTRICTS, districtOfLocation, placeKind, placeLabel, placeName, type PlaceKind } from "../districts/registry";
 import {
   ANSWER_MAX,
   STEP_TITLE,
@@ -198,7 +198,7 @@ function GoLiveStep({ d }: { d: Draft }) {
     <div className="cr-live">
       <div className="cr-summary">
         <span className="cr-summary-k">NEIGHBOURHOOD</span>
-        <span className="cr-summary-v">{d.location}, Bengaluru</span>
+        <span className="cr-summary-v">{placeLabel(d.location)}</span>
       </div>
 
       {userId ? (
@@ -264,7 +264,7 @@ function Summary({ d }: { d: Draft }) {
   return (
     <div className="cr-summary">
       <span className="cr-summary-k">NEIGHBOURHOOD</span>
-      <span className="cr-summary-v">{d.location}, Bengaluru</span>
+      <span className="cr-summary-v">{placeLabel(d.location)}</span>
       {d.email && (
         <>
           <span className="cr-summary-k">EMAIL</span>
@@ -478,17 +478,78 @@ function PayStep({ d }: { d: Draft }) {
       </div>
       {payError && <div className="cr-error">{payError}</div>}
       <ol className="gate-next">
-        {!GATE_MOCK && !signedIn && (
+        {!GATE_MOCK && !signedIn && !APPLICATIONS_FREE && (
           <li>
             <b>CONFIRM YOUR EMAIL</b> — we send {d.email || "you"} a one-tap link.{" "}
-            {APPLICATIONS_FREE ? "Open it and your application goes to a reviewer." : "Open it and you go straight to payment."}
+            Open it and you go straight to payment.
           </li>
         )}
         {!APPLICATIONS_FREE && <li><b>PAY {fee}</b> on the secure checkout, then you’re back in the city.</li>}
-        <li><b>WE REVIEW</b> your profile and your four answers. You stay a ghost meanwhile.</li>
+        <li><b>WE REVIEW</b> your profile and your answer{APPLICATIONS_FREE ? " within 72 hours" : ""}. You stay a ghost meanwhile.</li>
         <li><b>APPROVED</b> — you go live in the city, with 2 invite codes of your own.</li>
         <li>{APPLICATIONS_FREE ? <><b>NOT APPROVED</b> — you can still walk the city, and a member can invite you in.</> : <><b>NOT APPROVED</b> — your fee is refunded automatically.</>}</li>
       </ol>
+    </div>
+  );
+}
+
+const ELSEWHERE: { kind: Exclude<PlaceKind, "district">; title: string; placeholder: string; label: string }[] = [
+  { kind: "blr", title: "OTHER IN BENGALURU", placeholder: "Jayanagar, Indiranagar, Malleshwaram…", label: "WHICH AREA?" },
+  { kind: "city", title: "OTHER CITY", placeholder: "Pune, Mumbai, Delhi…", label: "WHICH CITY?" },
+];
+
+/** Where do you hang out: one of the five districts, or somewhere else (an empty field to type it). */
+function HangoutStep({ d, patch }: { d: Draft; patch: (p: Partial<Draft>) => void }) {
+  // the chip you picked, not what the text spells: typing "Domlur" into OTHER keeps the field open
+  const [kind, setKind] = useState<PlaceKind>(() => placeKind(d.location));
+  const typed = placeName(d.location);
+  const pickDistrict = (name: string) => {
+    setKind("district");
+    patch({ location: name, spot: spotIn(name, d.spot) });
+  };
+  const pickElsewhere = (k: Exclude<PlaceKind, "district">) => {
+    if (k === kind) return;
+    setKind(k);
+    patch({ location: k === "city" ? CITY_MARK : "" });
+  };
+  const type = (v: string) => {
+    const name = v.replace(/^@+/, "").slice(0, 39);
+    patch({ location: kind === "city" ? CITY_MARK + name : name });
+  };
+  const other = ELSEWHERE.find((e) => e.kind === kind);
+  const district = kind === "district" ? districtOfLocation(d.location) : null;
+  return (
+    <div className="cr-fields">
+      <span className="cr-label">YOUR NEIGHBOURHOOD</span>
+      <div className="cr-chips cr-chips--tight">
+        {DISTRICTS.map((n) => (
+          <button key={n.id} className={`chip slant${district?.id === n.id ? " chip--on" : ""}`} onClick={() => pickDistrict(n.name)}>
+            <span className="unslant chip-name">{n.title}</span>
+          </button>
+        ))}
+        {ELSEWHERE.map((e) => (
+          <button key={e.kind} className={`chip slant${kind === e.kind ? " chip--on" : ""}`} onClick={() => pickElsewhere(e.kind)}>
+            <span className="unslant chip-name">{e.title}</span>
+          </button>
+        ))}
+      </div>
+      {other && (
+        <div style={{ marginTop: 14 }}>
+          <Field key={other.kind} label={other.label} value={typed} onChange={type} placeholder={other.placeholder} max={39} autoFocus />
+        </div>
+      )}
+      {district && !district.built && (
+        <span className="cr-gender-note" style={{ margin: "8px 0 0" }}>
+          {district.title} isn’t built yet. You’ll be visiting Koramangala until it is.
+        </span>
+      )}
+      {other && (
+        <span className="cr-gender-note" style={{ margin: "8px 0 0" }}>
+          {kind === "city"
+            ? "You’ll be visiting Bengaluru: you’ll hang out in Koramangala."
+            : "Your area isn’t built yet. You’ll be visiting Koramangala until it is."}
+        </span>
+      )}
     </div>
   );
 }
@@ -506,7 +567,7 @@ function InviteGoLive({ d }: { d: Draft }) {
           <>Go live and everyone in the city can see you straight away.</>
         ) : (
           <>
-            Go live and we’ll email <b>{d.email}</b> a one-tap sign-in link — open it and you’re on the map.
+            Log in and we’ll email <b>{d.email}</b> a confirmation link — open it and you’re on the map.
           </>
         )}
       </p>
@@ -515,10 +576,10 @@ function InviteGoLive({ d }: { d: Draft }) {
 }
 
 const RESULT: Record<string, { tag: string; title: string; chip: string; tone: "open" | "wait" | "bad" }> = {
-  inbox: { tag: "INVITED", title: "CHECK YOUR INBOX", chip: "NO REVIEW NEEDED", tone: "open" },
+  inbox: { tag: "INVITED", title: "CONFIRMATION LINK SENT", chip: "NO REVIEW NEEDED", tone: "open" },
   confirm: { tag: "APPLICATION", title: "CHECK YOUR INBOX", chip: "CONFIRM YOUR EMAIL", tone: "wait" },
   saved: { tag: "APPLICATION", title: "ONE STEP LEFT", chip: APPLICATIONS_FREE ? "NOT SENT YET" : "PAYMENT PENDING", tone: "wait" },
-  review: { tag: "APPLICATION", title: "YOU’RE IN THE QUEUE", chip: "UNDER REVIEW", tone: "wait" },
+  review: { tag: "APPLICATION", title: "YOU’RE ON THE WAITLIST", chip: "UNDER REVIEW", tone: "wait" },
   rejected: { tag: "APPLICATION", title: "NOT THIS TIME", chip: APPLICATIONS_FREE ? "NOT APPROVED" : "FEE REFUNDED", tone: "bad" },
   approved: { tag: "APPLICATION", title: "YOU’RE IN", chip: "APPROVED", tone: "open" },
 };
@@ -547,7 +608,7 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
       <h2 className="cr-title">{r.title}</h2>
       {result === "inbox" && (
         <p className="cr-copy gate-lede">
-          We sent a sign-in link to <b>{email}</b>. Open it on this device and you’re live.
+          Confirmation link sent to <b>{email}</b>. Open it on this device and you’re live.
         </p>
       )}
       {result === "confirm" && (
@@ -575,8 +636,8 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
       {result === "review" && (
         <>
           <p className="cr-copy gate-lede">
-            A reviewer looks at every profile. We’ll email <b>{email || "you"}</b> with the decision. Until then
-            you’re still a ghost — explore all you like.
+            We review every application within 72 hours. Keep an eye on <b>{email || "your inbox"}</b> — that’s
+            where the decision lands. Until then you’re still a ghost, so explore all you like.
           </p>
           <p className="cr-copy gate-aside">
             {APPLICATIONS_FREE ? "Got an invite code meanwhile? Use it and you’re in straight away." : "Got an invite code meanwhile? Use it and your fee is refunded."}
@@ -637,6 +698,7 @@ export function Create() {
   const path = useAccess((s) => s.path);
   const codeState = useAccess((s) => s.codeState);
   const member = useDirectory((s) => !!s.me);
+  const signedIn = useDirectory((s) => !!s.userId);
   const panel = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState(0);
   const [signinEmail, setSigninEmail] = useState("");
@@ -837,7 +899,7 @@ export function Create() {
               {path === "invite"
                 ? "Your one-tap sign-in link goes here once you’re done. No passwords."
                 : APPLICATIONS_FREE
-                  ? "We’ll send a link here to confirm it’s you. The review decision comes here too."
+                  ? "The review decision comes here, within 72 hours. No passwords."
                   : "Before you pay, we’ll send a link here to confirm it’s you. The review decision comes here too."}
             </p>
           </div>
@@ -940,27 +1002,7 @@ export function Create() {
           </div>
         )}
 
-        {!gated && key === "hangout" && (
-          <div className="cr-fields">
-            <span className="cr-label">YOUR NEIGHBOURHOOD</span>
-            <div className="cr-chips cr-chips--tight">
-              {DISTRICTS.map((n) => (
-                <button
-                  key={n.id}
-                  className={`chip slant${districtOfLocation(d.location).id === n.id ? " chip--on" : ""}`}
-                  onClick={() => patch({ location: n.name, spot: spotIn(n.name, d.spot) })}
-                >
-                  <span className="unslant chip-name">{n.title}</span>
-                </button>
-              ))}
-            </div>
-            {!districtOfLocation(d.location).built && (
-              <span className="cr-gender-note" style={{ margin: "8px 0 0" }}>
-                {districtOfLocation(d.location).title} isn’t built yet. You’ll be visiting Koramangala until it is.
-              </span>
-            )}
-          </div>
-        )}
+        {!gated && key === "hangout" && <HangoutStep d={d} patch={patch} />}
 
         {!gated && key === "golive" && (member ? <GoLiveStep d={d} /> : <InviteGoLive d={d} />)}
         {!gated && key === "why" && <QuestionStep d={d} patch={patch} />}
@@ -1028,7 +1070,9 @@ export function Create() {
                         ? `SUBMIT + PAY ${fee} ▸`
                         : path === "pay" && !member
                           ? "SEND FOR REVIEW ▸"
-                          : "GO LIVE ▸"}
+                          : signedIn
+                            ? "GO LIVE ▸"
+                            : "LOG IN ▸"}
                 </span>
               </button>
             )}

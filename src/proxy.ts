@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { ADMIN_HOSTS, PUBLIC_HOSTS } from '@/lib/site'
 
-// The review queue at admin.peopleofbengaluru.com, and dev.admin.peopleofbengaluru.com for staging
+// The review queue at admin.peopleofbengaluru.com, dev.admin.peopleofbengaluru.com for staging, and
+// admin.localhost:3000 locally (browsers send *.localhost to this machine)
 // (CLAUDE.md "SEO + ANALYTICS" / 5E-B):
 // - on an admin host, / is the admin page and the API works as usual; everything else goes to /.
 // - on the public sites (production and dev), /admin doesn't exist (404).
-// - previews and local keep /admin (they have no admin subdomain).
+// - previews (no admin subdomain) and localhost keep /admin too.
 // The admin page's data is guarded in the database (is_admin()), not here: this only decides addresses.
 
 const noindex = (res: NextResponse) => {
