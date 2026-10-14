@@ -29,6 +29,10 @@ const KNOWN = [
 export function siteOrigin(req: Request) {
   const o = req.headers.get('origin')
   if (o && KNOWN.includes(o)) return o
+  // sent from the admin page: link to that database's game, never the admin
+  if (o === 'https://admin.peopleofbengaluru.com') return PRODUCTION_URL
+  if (o === 'https://dev.admin.peopleofbengaluru.com') return 'https://dev.peopleofbengaluru.com'
+  if (o === 'http://admin.localhost:3000') return 'http://localhost:3000'
   if (process.env.VERCEL_BRANCH_URL && !isProduction()) return `https://${process.env.VERCEL_BRANCH_URL}`
   return PRODUCTION_URL
 }

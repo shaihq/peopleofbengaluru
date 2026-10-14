@@ -806,7 +806,17 @@ body {
   transform: skewX(var(--skew));
 }
 
+.pp-bot {
+  position: relative;
+  display: inline-flex;
+}
+
 .pp-sample {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  font: inherit;
   background: var(--action);
   color: var(--cream);
   font-weight: 800;
@@ -814,6 +824,53 @@ body {
   letter-spacing: 0.14em;
   padding: 3px 8px;
   transform: skewX(var(--skew));
+  cursor: var(--cur-link);
+}
+
+.pp-bot-i {
+  display: inline-grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--cream);
+  color: var(--action);
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
+.pp-bot-tip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 2;
+  width: 220px;
+  padding: 10px 12px;
+  background: var(--ink-soft);
+  border-top: 3px solid var(--saffron);
+  color: var(--cream);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 0.35);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 140ms ease-out, transform 140ms ease-out;
+}
+
+.pp-bot:hover .pp-bot-tip,
+.pp-bot:focus-within .pp-bot-tip,
+.pp-bot.is-open .pp-bot-tip {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-bot-tip {
+    transition: none;
+  }
 }
 
 .pp-close {
