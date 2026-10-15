@@ -12,13 +12,24 @@ export type FullscreenMode = 'api' | 'homescreen' | null
 /** 'api' = a button can toggle it; 'homescreen' = iPhone, explain Add to Home Screen; null = already there. */
 export function fullscreenMode(): FullscreenMode {
   if (typeof document === 'undefined') return null
-  const d = document as FsDoc
-  if (d.fullscreenEnabled || d.webkitFullscreenEnabled) return 'api'
   const standalone =
     window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   if (standalone) return null
-  return /iPhone|iPod/.test(navigator.userAgent) ? 'homescreen' : null
+  // every iPhone browser (Chrome too) is WebKit: whatever the flags say, the page itself can't go full screen
+  if (isIPhone()) return 'homescreen'
+  const d = document as FsDoc
+  return d.fullscreenEnabled || d.webkitFullscreenEnabled ? 'api' : null
+}
+
+const isIPhone = () => /iPhone|iPod/.test(navigator.userAgent)
+
+/** Which browser the Add to Home Screen steps are for: Chrome's Share button sits in the address bar. */
+export function iphoneBrowser(): 'chrome' | 'other' | 'safari' {
+  const ua = navigator.userAgent
+  if (/CriOS/.test(ua)) return 'chrome'
+  if (/FxiOS|EdgiOS|OPiOS/.test(ua)) return 'other'
+  return 'safari'
 }
 
 export function isFullscreen() {

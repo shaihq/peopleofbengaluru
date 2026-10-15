@@ -12,7 +12,7 @@ import { useInvites } from '../invites'
 import { activeStatus, useMyStatus } from '../status'
 import { useCanSetStatus } from './StatusEditor'
 import { useMissions } from '../missionsStore'
-import { fullscreenMode, isFullscreen, toggleFullscreen, type FullscreenMode } from '../fullscreen'
+import { fullscreenMode, iphoneBrowser, isFullscreen, toggleFullscreen, type FullscreenMode } from '../fullscreen'
 
 const CONTROLS: [string[], string][] = [
   [['W', 'A', 'S', 'D'], 'MOVE'],
@@ -238,9 +238,7 @@ export function Pause() {
               </button>
               {fsHelp && (
                 <div className="pause-controls pause-fs">
-                  <p>
-                    Safari keeps its bars on iPhone. Tap <b>Share</b> ▸ <b>Add to Home Screen</b>, then open the city from your home screen: full screen, no browser.
-                  </p>
+                  <HomeScreenSteps />
                 </div>
               )}
             </>
@@ -286,6 +284,35 @@ export function Pause() {
         </footer>
       </div>
     </div>
+  )
+}
+
+/** iPhone: no browser there can hide its bars, so the city goes full screen as a Home Screen web app. */
+function HomeScreenSteps() {
+  const browser = iphoneBrowser()
+  return (
+    <>
+      <p>iPhone browsers can&rsquo;t hide their bars. Add the city to your home screen and it opens as its own app, without them:</p>
+      <ol>
+        {browser === 'chrome' ? (
+          <li>
+            Tap <b>Share</b> in the address bar, then <b>Add to Home Screen</b>.
+          </li>
+        ) : browser === 'safari' ? (
+          <li>
+            Tap <b>•••</b> or <b>Share</b>, then <b>Add to Home Screen</b>.
+          </li>
+        ) : (
+          <li>
+            Open this page in <b>Safari</b>, tap <b>Share</b>, then <b>Add to Home Screen</b>.
+          </li>
+        )}
+        <li>
+          Keep <b>Open as Web App</b> on, then tap <b>Add</b>.
+        </li>
+        <li>Open Bengaluru from your home screen.</li>
+      </ol>
+    </>
   )
 }
 
