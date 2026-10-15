@@ -67,6 +67,19 @@ export function Tracker() {
             )}
           </span>
         )}
+        {!found && (
+          // phones have no X key: tap to stop being guided
+          <button
+            className="tracker-stop"
+            onClick={() => {
+              stopTracking()
+              useGame.getState().setPortalFor(null)
+            }}
+            aria-label="Stop"
+          >
+            ✕
+          </button>
+        )}
       </span>
     </div>
   )

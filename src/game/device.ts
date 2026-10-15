@@ -86,6 +86,22 @@ export const quality = {
 
 if (hasWindow && isTouch) document.documentElement.classList.add('touch')
 
+// iPhone Home Screen web app: iOS lays the page out a status bar short of the screen's bottom, so the
+// world stopped above a dark band. The canvas is sized to the whole screen instead (HUD stays put).
+if (hasWindow && isTouch && (navigator as Navigator & { standalone?: boolean }).standalone === true) {
+  const root = document.documentElement
+  root.classList.add('standalone')
+  const fit = () => {
+    const portrait = window.matchMedia('(orientation: portrait)').matches
+    const long = Math.max(screen.width, screen.height)
+    const short = Math.min(screen.width, screen.height)
+    root.style.setProperty('--app-h', `${Math.max(window.innerHeight, portrait ? long : short)}px`)
+  }
+  fit()
+  window.addEventListener('resize', fit)
+  window.addEventListener('orientationchange', () => setTimeout(fit, 300))
+}
+
 /** ?debug: live switches, to measure what each stage costs on a real device. */
 export type DebugToggles = { shadows: boolean; bloom: boolean }
 export const useDebugToggles = create<DebugToggles & { toggle: (k: keyof DebugToggles) => void }>((set, get) => ({

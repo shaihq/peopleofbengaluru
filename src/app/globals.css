@@ -81,6 +81,16 @@ body {
   display: block;
 }
 
+html.standalone,
+html.standalone body {
+  height: var(--app-h, 100%);
+}
+
+html.standalone .game-root {
+  bottom: auto;
+  height: var(--app-h, 100%);
+}
+
 /* --- shared ------------------------------------------------------------- */
 
 .slant {
@@ -1527,6 +1537,23 @@ a.pp-btn:active {
   font-weight: 800;
   letter-spacing: 0.1em;
   color: rgba(255, 246, 229, 0.7);
+}
+
+.tracker-stop {
+  display: none;
+  pointer-events: auto;
+  border: 0;
+  background: var(--ink-soft);
+  color: var(--cream);
+  font-size: 17px;
+  min-width: 40px;
+  height: 36px;
+  margin-right: -10px;
+  cursor: var(--cur-link);
+}
+
+.touch .tracker-stop {
+  display: block;
 }
 
 .tracker-hint .keycap {
