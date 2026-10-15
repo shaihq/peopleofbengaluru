@@ -2427,6 +2427,17 @@ textarea {
   min-width: 52px;
 }
 
+.pause-fs p {
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(255, 246, 229, 0.82);
+}
+
+.pause-fs b {
+  color: var(--cream);
+}
+
 .pause-row--danger {
   margin-top: 8px;
   background: transparent;
