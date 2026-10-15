@@ -81,6 +81,16 @@ body {
   display: block;
 }
 
+html.standalone,
+html.standalone body {
+  height: var(--app-h, 100%);
+}
+
+html.standalone .game-root {
+  bottom: auto;
+  height: var(--app-h, 100%);
+}
+
 /* --- shared ------------------------------------------------------------- */
 
 .slant {
@@ -1529,6 +1539,23 @@ a.pp-btn:active {
   color: rgba(255, 246, 229, 0.7);
 }
 
+.tracker-stop {
+  display: none;
+  pointer-events: auto;
+  border: 0;
+  background: var(--ink-soft);
+  color: var(--cream);
+  font-size: 17px;
+  min-width: 40px;
+  height: 36px;
+  margin-right: -10px;
+  cursor: var(--cur-link);
+}
+
+.touch .tracker-stop {
+  display: block;
+}
+
 .tracker-hint .keycap {
   min-width: 26px;
   height: 24px;
@@ -2425,6 +2452,29 @@ textarea {
 
 .pause-ctl .keycap--wide {
   min-width: 52px;
+}
+
+.pause-fs p {
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(255, 246, 229, 0.82);
+}
+
+.pause-fs b {
+  color: var(--cream);
+}
+
+.pause-fs ol {
+  margin: 8px 0 2px 20px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(255, 246, 229, 0.82);
+}
+
+.pause-fs li + li {
+  margin-top: 4px;
 }
 
 .pause-row--danger {

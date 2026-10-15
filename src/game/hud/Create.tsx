@@ -856,6 +856,10 @@ export function Create() {
               </span>
             </>
           )}
+          {/* phones have no Esc: the ✕ closes the flow from any screen (the draft is kept) */}
+          <button className="pp-close cr-close" onClick={exit} aria-label="Close">
+            <span className="keycap">ESC</span>
+          </button>
         </div>
 
         {gated && stage === "gate" && <GateScreen sel={sel} setSel={setSel} />}

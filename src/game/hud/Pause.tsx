@@ -12,6 +12,7 @@ import { useInvites } from '../invites'
 import { activeStatus, useMyStatus } from '../status'
 import { useCanSetStatus } from './StatusEditor'
 import { useMissions } from '../missionsStore'
+import { fullscreenMode, iphoneBrowser, isFullscreen, toggleFullscreen, type FullscreenMode } from '../fullscreen'
 
 const CONTROLS: [string[], string][] = [
   [['W', 'A', 'S', 'D'], 'MOVE'],
@@ -44,6 +45,9 @@ export function Pause() {
   const [controls, setControls] = useState(false)
   const [sound, setSound] = useState(false)
   const [confirmOut, setConfirmOut] = useState(false)
+  const [fsMode, setFsMode] = useState<FullscreenMode>(null)
+  const [fsOn, setFsOn] = useState(false)
+  const [fsHelp, setFsHelp] = useState(false)
 
   const resume = () => {
     setPaused(false)
@@ -99,8 +103,21 @@ export function Pause() {
       setControls(false)
       setSound(false)
       setConfirmOut(false)
-    }
+      setFsHelp(false)
+    } else setFsMode(fullscreenMode())
   }, [paused])
+
+  // Esc leaves full screen and pauses in the same moment, so read it live, not when the menu opens
+  useEffect(() => {
+    const sync = () => setFsOn(isFullscreen())
+    sync()
+    document.addEventListener('fullscreenchange', sync)
+    document.addEventListener('webkitfullscreenchange', sync)
+    return () => {
+      document.removeEventListener('fullscreenchange', sync)
+      document.removeEventListener('webkitfullscreenchange', sync)
+    }
+  }, [])
 
   if (phase !== 'play' || !paused) return null
 
@@ -201,6 +218,32 @@ export function Pause() {
             </button>
           )}
 
+          {fsMode === 'api' && (
+            <button
+              className="pause-row"
+              onClick={() => {
+                const entering = !isFullscreen()
+                void toggleFullscreen()
+                if (entering) resume()
+              }}
+            >
+              <span className="pause-label">{fsOn ? 'EXIT FULL SCREEN' : 'FULL SCREEN'}</span>
+            </button>
+          )}
+          {fsMode === 'homescreen' && (
+            <>
+              <button className={`pause-row${fsHelp ? ' pause-row--open' : ''}`} onClick={() => setFsHelp((v) => !v)} aria-expanded={fsHelp}>
+                <span className="pause-label">FULL SCREEN</span>
+                <span className="pause-caret">{fsHelp ? '▴' : '▾'}</span>
+              </button>
+              {fsHelp && (
+                <div className="pause-controls pause-fs">
+                  <HomeScreenSteps />
+                </div>
+              )}
+            </>
+          )}
+
           <button className={`pause-row${sound ? ' pause-row--open' : ''}`} onClick={() => setSound((v) => !v)} aria-expanded={sound}>
             <span className="pause-label">SOUND</span>
             <span className="pause-caret">{sound ? '▴' : '▾'}</span>
@@ -241,6 +284,35 @@ export function Pause() {
         </footer>
       </div>
     </div>
+  )
+}
+
+/** iPhone: no browser there can hide its bars, so the city goes full screen as a Home Screen web app. */
+function HomeScreenSteps() {
+  const browser = iphoneBrowser()
+  return (
+    <>
+      <p>iPhone browsers can&rsquo;t hide their bars. Add the city to your home screen and it opens as its own app, without them:</p>
+      <ol>
+        {browser === 'chrome' ? (
+          <li>
+            Tap <b>Share</b> in the address bar, then <b>Add to Home Screen</b>.
+          </li>
+        ) : browser === 'safari' ? (
+          <li>
+            Tap <b>•••</b> or <b>Share</b>, then <b>Add to Home Screen</b>.
+          </li>
+        ) : (
+          <li>
+            Open this page in <b>Safari</b>, tap <b>Share</b>, then <b>Add to Home Screen</b>.
+          </li>
+        )}
+        <li>
+          Keep <b>Open as Web App</b> on, then tap <b>Add</b>.
+        </li>
+        <li>Open Bengaluru from your home screen.</li>
+      </ol>
+    </>
   )
 }
 

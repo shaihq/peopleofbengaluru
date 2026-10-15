@@ -28,6 +28,8 @@ export const metadata: Metadata = {
   title: { default: SITE_TITLE, template: `%s · ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
+  // added to the iPhone home screen, the city opens full screen without Safari's bars (Phase 6B)
+  appleWebApp: { capable: true, title: 'Bengaluru', statusBarStyle: 'black-translucent' },
   // every ?invite= / ?connections / preview link is the same page
   alternates: { canonical: '/' },
   openGraph: {
