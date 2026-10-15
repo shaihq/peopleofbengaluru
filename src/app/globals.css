@@ -2438,6 +2438,18 @@ textarea {
   color: var(--cream);
 }
 
+.pause-fs ol {
+  margin: 8px 0 2px 20px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(255, 246, 229, 0.82);
+}
+
+.pause-fs li + li {
+  margin-top: 4px;
+}
+
 .pause-row--danger {
   margin-top: 8px;
   background: transparent;
