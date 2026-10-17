@@ -1011,7 +1011,7 @@ Rules:
 - Chat v1 is text only: ≤ 500 characters a message, 30 a minute per sender. No images, groups, edits, typing indicators or read receipts.
 - Unmatch, block and report are in the chat's ••• menu. Unmatch and block delete the thread for both people. Block also stops either side asking again; it reads as "not found", and they're never told. Report copies the request and the last 20 messages for the admins, then blocks.
 - Privacy: messages are readable only by the two people in the chat (through the server's functions). Admins never read chats, only what someone reported. Messages are deleted on unmatch, block, or when either account is deleted. Emails never contain message text. We don't ask for or store contact details any more; people can share theirs in the chat if they want.
-- Nobody keeps a website tab open, so an unread message sends one email ("Ananya sent you a message") after 10 minutes, at most once per chat every 6 hours. Members can turn emails off.
+- Nobody keeps a website tab open, so an unread message sends one email ("Ananya sent you a message") after 10 minutes, at most once per chat every 6 hours, and only when a message arrived since the last email (never again for the same unread messages; supabase/migrations/20261017120000_chat_digest_once.sql). Members can turn emails off.
 - RULE (6B): works on touch and keyboard, including with the on-screen keyboard. Typing in the chat never moves the player or triggers hotkeys.
 
 ## 5G-A — DATA, PRIVACY, EMAIL (built: supabase/migrations/20261007110614_connections.sql, 20261011080848_chat_phase_a.sql)
@@ -1164,7 +1164,7 @@ No payment or refund emails from us. Dodo Payments sends the receipts, failed-pa
 |---|---|---|---|
 | 12 | "X wants to grab coffee with you" | Connect request received (/api/connect/send), with the sender's note if any | built; template connect-request (EMOJI, SENDER, SENDER_FIRST, VERB, NOTE, LINK; NOTE is "" without a note) |
 | 13 | "It's a match" | Request accepted, to the sender (/api/connect/respond) | built; template connect-match (copy: "say hi in the city", no contact details any more) |
-| 14 | "X sent you a message" | Unread for 10+ minutes, at most once per chat every 6 hours (/api/cron/chat-digest). Never the message text | built; template chat-message (SENDER, SENDER_FIRST, COUNT, LINK; COUNT is "a message" or "3 messages") |
+| 14 | "X sent you a message" | Unread for 10+ minutes, at most once per chat every 6 hours, only for messages newer than the last email (/api/cron/chat-digest). Never the message text | built; template chat-message (SENDER, SENDER_FIRST, COUNT, LINK; COUNT is "a message" or "3 messages") |
 
 Members can turn connect and chat emails off (built). Auth and application emails are always sent.
 
