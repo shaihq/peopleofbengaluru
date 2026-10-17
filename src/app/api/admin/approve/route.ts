@@ -1,6 +1,6 @@
 import { after } from 'next/server'
 import { asUser, bearer } from '@/lib/server/connect'
-import { emailDecision, getApplication } from '@/lib/server/applications'
+import { emailApproved, getApplication } from '@/lib/server/applications'
 import { siteOrigin } from '@/lib/server/env'
 import { json } from '@/lib/server/supabaseAdmin'
 
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   const app = await getApplication(id)
   if (app) {
     const origin = siteOrigin(req)
-    after(() => emailDecision(app, true, origin).catch((e) => console.error('[admin] approve email', e)))
+    after(() => emailApproved(app, origin).catch((e) => console.error('[admin] approve email', e)))
   }
   return json(r)
 }

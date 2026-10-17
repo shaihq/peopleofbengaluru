@@ -1,5 +1,6 @@
 "use client";
 
+import { CodeEntry } from "./CodeEntry";
 import { useEffect, useRef, useState } from "react";
 import { APPLICATIONS_FREE } from "@/lib/apply";
 import {
@@ -14,7 +15,7 @@ import { CITY_MARK, DISTRICTS, districtOfLocation, placeKind, placeLabel, placeN
 import {
   ANSWER_MAX,
   STEP_TITLE,
-  sendMagicLink,
+  sendEmailCode,
   stepsFor,
   submitProfile,
   useOnboarding,
@@ -221,17 +222,11 @@ function GoLiveStep({ d }: { d: Draft }) {
           </button>
         </>
       ) : mail === "sent" ? (
-        <div className="cr-sent">
-          <b>CHECK YOUR INBOX</b>
-          <p>
-            We sent a sign-in link to <b>{addr}</b>. Tap it on this device and
-            you’ll land back here — visible.
-          </p>
-        </div>
+        <CodeEntry email={addr} onResend={() => sendEmailCode(addr)} />
       ) : (
         <>
           <p className="cr-copy">
-            Save your profile with a one-tap email link. No passwords.
+            Save your profile: we email you a sign-in code. No passwords.
           </p>
           <div className="cr-email">
             <input
@@ -240,16 +235,16 @@ function GoLiveStep({ d }: { d: Draft }) {
               placeholder="you@studio.com"
               autoFocus
               onChange={(e) => setAddr(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMagicLink(addr)}
+              onKeyDown={(e) => e.key === "Enter" && sendEmailCode(addr)}
               aria-label="Email"
             />
             <button
               className="btn-primary slant"
-              onClick={() => sendMagicLink(addr)}
+              onClick={() => sendEmailCode(addr)}
               disabled={mail === "sending"}
             >
               <span className="unslant">
-                {mail === "sending" ? "SENDING…" : "SEND MY LINK ▸"}
+                {mail === "sending" ? "SENDING…" : "SEND MY CODE ▸"}
               </span>
             </button>
           </div>
@@ -339,27 +334,21 @@ function GateScreen({ sel, setSel }: { sel: number; setSel: (n: number) => void 
 const SIGNIN_ERRORS: Partial<Record<string, string>> = {
   bad: "That email doesn’t look right.",
   unknown: "No account with that email yet. Use an invite code or apply to join.",
-  error: "Couldn’t send the link right now. Check your connection and try again.",
+  error: "Couldn’t send the code right now. Check your connection and try again.",
 };
 
-/** Returning members and applicants: email in, one-tap link out. Never creates an account. */
+/** Returning members and applicants: email in, code out, code in. Never creates an account. */
 function SigninScreen({ email, setEmail }: { email: string; setEmail: (e: string) => void }) {
   const state = useAccess((s) => s.signin);
   const err = SIGNIN_ERRORS[state];
   return (
     <>
       <h2 className="cr-title">WELCOME BACK</h2>
-      <p className="cr-copy gate-lede">
-        Members and applicants: we’ll email you a one-tap sign-in link. No passwords.
-      </p>
+      {state !== "sent" && (
+        <p className="cr-copy gate-lede">Members and applicants: we’ll email you a sign-in code. No passwords.</p>
+      )}
       {state === "sent" ? (
-        <div className="cr-sent gate-ok">
-          <b>✓ CHECK YOUR INBOX</b>
-          <p>
-            We sent a link to <b>{email.trim()}</b>. Open it on this device and you’re back — profile, application
-            and all.
-          </p>
-        </div>
+        <CodeEntry email={email} onResend={() => useAccess.getState().signIn(email)} />
       ) : (
         <div className="cr-fields">
           <label className="cr-field">
@@ -480,8 +469,8 @@ function PayStep({ d }: { d: Draft }) {
       <ol className="gate-next">
         {!GATE_MOCK && !signedIn && !APPLICATIONS_FREE && (
           <li>
-            <b>CONFIRM YOUR EMAIL</b> — we send {d.email || "you"} a one-tap link.{" "}
-            Open it and you go straight to payment.
+            <b>CONFIRM YOUR EMAIL</b> — we send {d.email || "you"} a code.{" "}
+            Type it in and you go straight to payment.
           </li>
         )}
         {!APPLICATIONS_FREE && <li><b>PAY {fee}</b> on the secure checkout, then you’re back in the city.</li>}
@@ -567,7 +556,7 @@ function InviteGoLive({ d }: { d: Draft }) {
           <>Go live and everyone in the city can see you straight away.</>
         ) : (
           <>
-            Log in and we’ll email <b>{d.email}</b> a confirmation link — open it and you’re on the map.
+            Log in and we’ll email <b>{d.email}</b> a code. Type it in and you’re on the map.
           </>
         )}
       </p>
@@ -576,7 +565,7 @@ function InviteGoLive({ d }: { d: Draft }) {
 }
 
 const RESULT: Record<string, { tag: string; title: string; chip: string; tone: "open" | "wait" | "bad" }> = {
-  inbox: { tag: "INVITED", title: "CONFIRMATION LINK SENT", chip: "NO REVIEW NEEDED", tone: "open" },
+  inbox: { tag: "INVITED", title: "CHECK YOUR EMAIL", chip: "NO REVIEW NEEDED", tone: "open" },
   confirm: { tag: "APPLICATION", title: "CHECK YOUR INBOX", chip: "CONFIRM YOUR EMAIL", tone: "wait" },
   saved: { tag: "APPLICATION", title: "ONE STEP LEFT", chip: APPLICATIONS_FREE ? "NOT SENT YET" : "PAYMENT PENDING", tone: "wait" },
   review: { tag: "APPLICATION", title: "YOU’RE ON THE WAITLIST", chip: "UNDER REVIEW", tone: "wait" },
@@ -606,16 +595,13 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
         <span className="np-dot" /> {r.chip}
       </span>
       <h2 className="cr-title">{r.title}</h2>
-      {result === "inbox" && (
-        <p className="cr-copy gate-lede">
-          Confirmation link sent to <b>{email}</b>. Open it on this device and you’re live.
-        </p>
-      )}
+      {/* invite path: signing in redeems the code (Session.tsx) and you're live, so the panel closes */}
+      {result === "inbox" && <CodeEntry email={email} onResend={() => sendEmailCode(email)} onVerified={onDone} />}
       {result === "confirm" && (
-        <p className="cr-copy gate-lede">
-          We sent a link to <b>{email}</b>. Open it on this device to confirm it’s you — your application is saved
-          the moment you’re back.
-        </p>
+        <>
+          <p className="cr-copy gate-lede">Confirm it’s you: your application is saved the moment you sign in.</p>
+          <CodeEntry email={email} onResend={() => sendEmailCode(email)} />
+        </>
       )}
       {result === "saved" && (
         <>
@@ -661,7 +647,7 @@ function ResultScreen({ onDone }: { onDone: () => void }) {
       {result === "approved" && (
         <>
           <p className="cr-copy gate-lede">
-            Welcome to the city. Open the sign-in link we emailed you and your avatar goes live.
+            Welcome to the city. Sign in with your email and your avatar goes live.
           </p>
           <p className="cr-copy gate-aside">You also get <b>2 invite codes</b> — share them with people you’d vouch for.</p>
         </>
@@ -736,7 +722,7 @@ export function Create() {
     setSigninEmail(useOnboarding.getState().draft.email);
   }, [phase]);
 
-  // the sign-in link was opened (here or in another tab) while this panel waits on "check your email":
+  // the emailed code signed this tab in while the panel waits on "check your email":
   // a member is done — back to the street, no profile steps; an applicant sees where their application stands
   const userId = useDirectory((s) => s.userId);
   const loaded = useDirectory((s) => s.loaded);
@@ -901,10 +887,10 @@ export function Create() {
             )}
             <p className="cr-copy">
               {path === "invite"
-                ? "Your one-tap sign-in link goes here once you’re done. No passwords."
+                ? "Your sign-in code goes here once you’re done. No passwords."
                 : APPLICATIONS_FREE
                   ? "The review decision comes here, within 72 hours. No passwords."
-                  : "Before you pay, we’ll send a link here to confirm it’s you. The review decision comes here too."}
+                  : "Before you pay, we’ll send a code here to confirm it’s you. The review decision comes here too."}
             </p>
           </div>
         )}
@@ -1043,8 +1029,8 @@ export function Create() {
               <span className="unslant">◀ BACK</span>
             </button>
             {signin === "sent" ? (
-              <button className="btn-primary slant cr-next" autoFocus onClick={exit}>
-                <span className="unslant">BACK TO THE CITY ▸</span>
+              <button className="pp-btn slant cr-next" onClick={() => useAccess.setState({ signin: "idle" })}>
+                <span className="unslant">USE ANOTHER EMAIL</span>
               </button>
             ) : (
               <button
@@ -1052,7 +1038,7 @@ export function Create() {
                 disabled={signin === "sending"}
                 onClick={() => useAccess.getState().signIn(signinEmail)}
               >
-                <span className="unslant">{signin === "sending" ? "SENDING…" : "SEND MY LINK ▸"}</span>
+                <span className="unslant">{signin === "sending" ? "SENDING…" : "SEND MY CODE ▸"}</span>
               </button>
             )}
           </div>

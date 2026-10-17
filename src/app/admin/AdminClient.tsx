@@ -1,5 +1,6 @@
 'use client'
 
+import { CodeEntry } from '@/game/hud/CodeEntry'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import './admin.css'
@@ -104,7 +105,7 @@ export default function AdminClient() {
   const [phase, setPhase] = useState<'loading' | 'signed_out' | 'not_admin' | 'ready'>('loading')
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
-  // each new link cancels the last, so a second click while sending breaks the first email
+  // each new code cancels the last, so a second click while sending breaks the first email
   const [sending, setSending] = useState(false)
   const [apps, setApps] = useState<App[]>([])
   const [members, setMembers] = useState<Set<string>>(new Set())
@@ -160,11 +161,8 @@ export default function AdminClient() {
     if (!supabase || sending) return
     setSending(true)
     setErr(null)
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      // back to this page: / on the admin subdomains, /admin on previews and local
-      options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}`, shouldCreateUser: false },
-    })
+    // a code, not a link: CodeEntry signs this tab in, then onAuthStateChange runs the admin check
+    const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: false } })
     setSending(false)
     if (error) setErr(error.message)
     else setSent(true)
@@ -203,7 +201,7 @@ export default function AdminClient() {
         <div className="adm-panel adm-gate">
           <h1>REVIEWERS ONLY</h1>
           {sent ? (
-            <p>Link sent. Open the newest email from us — the sign-in link brings you back here.</p>
+            <CodeEntry email={email} onResend={sendLink} />
           ) : (
             <>
               <p>Sign in with the email you added to the admins table.</p>
@@ -217,7 +215,7 @@ export default function AdminClient() {
                   onKeyDown={(e) => e.key === 'Enter' && sendLink()}
                 />
                 <button className="btn-primary slant adm-btn" onClick={sendLink} disabled={sending}>
-                  <span className="unslant">{sending ? 'SENDING…' : 'SEND LINK ▸'}</span>
+                  <span className="unslant">{sending ? 'SENDING…' : 'SEND CODE ▸'}</span>
                 </button>
               </div>
             </>

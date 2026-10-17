@@ -7,10 +7,10 @@ import { homeDistrict, placeName } from './districts/registry'
 import { APPLICATIONS_FREE } from '@/lib/apply'
 
 // "Become visible" — character-creation style onboarding (CLAUDE.md §1).
-// The draft lives in localStorage so the magic-link round trip never loses it.
+// The draft lives in localStorage so a reload or the sign-in never loses it.
 
 export type Draft = {
-  /** Collected right after the gate; the sign-in link only goes out once entry is granted. */
+  /** Collected right after the gate; the sign-in code only goes out once entry is granted. */
   email: string
   /** Pay path, optional: so a reviewer can reach you. Stays on the application (applicant + reviewers only). */
   whatsapp: string
@@ -30,7 +30,7 @@ export type Draft = {
   location: string
   /** Spot id within the district they appear in. Not asked any more: kept when still valid, else picked at random. */
   spot: string
-  /** Set when we're waiting on a magic link — submit as soon as the session arrives. */
+  /** Set when we're waiting on the emailed code — submit as soon as the session arrives. */
   pendingSubmit: boolean
   /** Invite path: the code to redeem once the session arrives (CLAUDE.md 5D-B). */
   pendingInvite: string
@@ -261,18 +261,16 @@ export function spotIn(location: string, spot: string) {
 // Auth + save
 // ---------------------------------------------------------------------------
 
-export async function sendMagicLink(email: string) {
+/** Emails a sign-in code (src/lib/otp.ts); the CodeEntry box checks it. Creates the account if it's new. */
+export async function sendEmailCode(email: string) {
   const ob = useOnboarding.getState()
-  // each new link cancels the last: never send a second while one is on its way
+  // each new code cancels the last: never send a second while one is on its way
   if (useOnboarding.getState().mail === 'sending') return
   if (!supabase) return useOnboarding.setState({ mail: 'error', error: 'Sign-in isn’t configured yet.' })
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return useOnboarding.setState({ error: 'That email doesn’t look right.' })
   ob.patch({ pendingSubmit: true })
   useOnboarding.setState({ mail: 'sending', error: null })
-  const { error } = await supabase.auth.signInWithOtp({
-    email: email.trim(),
-    options: { emailRedirectTo: window.location.origin },
-  })
+  const { error } = await supabase.auth.signInWithOtp({ email: email.trim() })
   if (error) useOnboarding.setState({ mail: 'error', error: error.message })
   else useOnboarding.setState({ mail: 'sent' })
 }
@@ -329,7 +327,7 @@ export async function redeemInvite(): Promise<{ ok: boolean; error?: string }> {
           ? 'Invites aren’t set up on the server yet.'
           : (res.message ?? 'Something went wrong.')
         : res.state === 'signed_out'
-          ? 'Your sign-in expired. Open the link in your email again.'
+          ? 'Your sign-in expired. Sign in again with a new code.'
           : res.state === 'used'
             ? 'That invite was used by someone else in the meantime.'
             : res.state === 'expired'
@@ -346,7 +344,7 @@ export async function redeemInvite(): Promise<{ ok: boolean; error?: string }> {
 }
 
 /**
- * Pay path, after sign-in (the magic link confirmed the email): save the profile + four
+ * Pay path, after sign-in (the emailed code confirmed the email): save the profile + four
  * answers as an application. Nothing goes live and nothing is charged here (CLAUDE.md 5E-A).
  */
 export async function submitApplication(): Promise<{ ok: boolean; error?: string }> {

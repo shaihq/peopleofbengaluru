@@ -3793,6 +3793,36 @@ html.touch .find-chips {
   color: var(--saffron);
 }
 
+/* sign-in by emailed code (CodeEntry): one wide digit well + SIGN IN */
+.code-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.code-row .code-input {
+  letter-spacing: 0.32em;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.code-row .code-input::placeholder {
+  letter-spacing: 0.16em;
+}
+
+.code-resend {
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.65);
+}
+
+.gate-switch:disabled {
+  color: rgba(255, 246, 229, 0.45);
+  cursor: default;
+}
+
 .gate-preview {
   margin-top: 14px;
   font-size: 12px;
