@@ -5,7 +5,7 @@ import { siteOrigin } from '@/lib/server/env'
 import { admin, json } from '@/lib/server/supabaseAdmin'
 
 // Apply to join, while it's free (src/lib/apply.ts): no email confirmation first. The account for that
-// email is found or created here (unconfirmed; the magic link confirms it when they sign in once approved),
+// email is found or created here (unconfirmed; the emailed sign-in code confirms it when they sign in once approved),
 // and the application goes straight to the review queue. Then "application received" (CLAUDE.md: EMAILS #8).
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

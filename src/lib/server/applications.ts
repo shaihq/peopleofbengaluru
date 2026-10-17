@@ -86,22 +86,14 @@ export async function rejectAndRefund(app: ApplicationRow, reason: string, revie
 
 const firstName = (app: ApplicationRow) => String(app.profile.name ?? '').trim().split(/\s+/)[0] || 'there'
 
-/** The decision email (CLAUDE.md: EMAILS #9, #10). Always sent: it's about their account. */
-export async function emailDecision(app: ApplicationRow, approved: boolean, origin: string, reason = '') {
-  if (approved) {
-    const invites = await setting<number>('invites_per_member', 2)
-    return sendTemplate(app.email, 'applicationApproved', {
-      NAME: firstName(app),
-      INVITES: String(invites),
-      // the sign-in screen: one magic link and they're live
-      LINK: `${origin}/?signin`,
-    })
-  }
-  const note = reason.trim()
-  return sendTemplate(app.email, 'applicationRejected', {
+/** "You're in" (CLAUDE.md: EMAILS #9). Rejections send no email. */
+export async function emailApproved(app: ApplicationRow, origin: string) {
+  const invites = await setting<number>('invites_per_member', 2)
+  return sendTemplate(app.email, 'applicationApproved', {
     NAME: firstName(app),
-    REASON: note ? `“${note}”` : '',
-    LINK: origin,
+    INVITES: String(invites),
+    // the sign-in screen: one emailed code and they're live
+    LINK: `${origin}/?signin`,
   })
 }
 

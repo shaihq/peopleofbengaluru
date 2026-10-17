@@ -17,7 +17,7 @@ const GHOST_COPY = {
   applied: { title: 'ONE STEP LEFT', line: APPLICATIONS_FREE ? 'Send your application for review.' : 'Pay the application fee to send it for review.', cta: 'FINISH APPLYING' },
   review: { title: 'UNDER REVIEW', line: 'You’re a ghost until a reviewer approves you.', cta: 'VIEW STATUS' },
   rejected: { title: 'NOT APPROVED', line: APPLICATIONS_FREE ? 'A member can still invite you in.' : 'Fee refunded. A member can still invite you in.', cta: 'SEE DETAILS' },
-  visible: { title: 'APPROVED', line: 'Open the link in your email to go live.', cta: 'VIEW' },
+  visible: { title: 'APPROVED', line: 'Sign in with your email to go live.', cta: 'VIEW' },
 } as const
 
 /** Not signed in: guests, and applicants waiting from this browser (they sign in once approved). */

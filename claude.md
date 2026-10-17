@@ -731,11 +731,11 @@ Split into two sub-phases. The UX/UI is designed and built first; the database c
   pick your look → who you are → what you're building → where people find you → neighbourhood + your spot in the district → go live.
 - Your own nameplate floats above your character and updates live as you type.
 - Keyboard: up/down on the look picker, Enter for next, through the whole flow.
-- The draft survives the magic-link round trip in localStorage.
+- The draft survives reloads and the sign-in in localStorage.
 
 ## 5B-B — PROFILES IN SUPABASE (built)
 
-- Email magic link; no passwords.
+- Email sign-in code (OTP, src/lib/otp.ts); no passwords, no links (2026-10-17).
 - New profiles start PENDING. You see yourself immediately; everyone else sees you once an admin sets status = approved.
 - Row-level security: anyone can read approved profiles, people can only write their own, nobody can self-approve.
 - Sample profiles retire automatically once enough real people are approved.
@@ -770,7 +770,7 @@ Principles:
 - Gate first, effort second. "BECOME VISIBLE" opens the gate before anything else, so nobody builds an avatar and profile before they know whether they can get in. The city stays visible behind it, with the person's ghost previewed.
 - A person who is not in is simply a ghost: they walk, look and search, but nobody can see them. There is no waitlist and no dead end. They can come back to the gate any time (draft kept).
 - An invite is the best way in: instant entry, no review. The inviter vouches, so no review queue is needed.
-- Paying means review. Approved: live. Rejected: automatic refund, email, still a ghost.
+- Paying means review. Approved: live. Rejected: automatic refund, still a ghost (no email from us).
 - Once inside everyone is equal. No perk difference between invited and paid members.
 - The profile plus four questions is the application. Paid applicants build their profile, then answer four short questions (Phase 5E). The reviewer sees both.
 - Existing visible members never see the gate. Sample people (the NPCs) are untouched by this phase, and real profiles already approved stay visible.
@@ -792,18 +792,18 @@ Path A, invite code:
 1. Enter and validate the code (exists, unused, not expired, not their own).
 2. Email.
 3. Pick your look → who you are → what you're building → where people find you → neighbourhood + spot.
-4. Magic link is sent; the avatar goes live instantly, no review.
+4. A sign-in code is emailed; once it's typed in, the avatar goes live instantly, no review.
 
 Path B, pay:
 
-1. Email (needed for status updates), confirmed by magic link before payment, so the application and the payment belong to a verified account.
+1. Email (needed for status updates), confirmed by an emailed code before payment, so the application and the payment belong to a verified account.
 2. The same profile steps as Path A. The reviewer sees this.
 3. The application: four questions (5E-A), saved to Supabase.
 4. Payment (Dodo Payments, 5E-B).
 5. Status becomes UNDER REVIEW; the person stays a ghost.
 6. Approved: the payment stands, the avatar goes live. Rejected: automatic refund, notification, still a ghost.
 
-The progress bar covers the numbered steps only; the gate sits outside it. Email is collected early but the magic link is only sent at the end, once entry is granted. Exception: on the pay path the email is confirmed before payment; the avatar still only goes live after approval.
+The progress bar covers the numbered steps only; the gate sits outside it. Email is collected early but the sign-in code is only sent at the end, once entry is granted. Exception: on the pay path the email is confirmed before payment; the avatar still only goes live after approval.
 
 User states:
 
@@ -842,14 +842,14 @@ Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both
 - The payment step is a visible placeholder only. No payment code, no provider.
 - HUD: ghost / under review status; "Your invites" screen (src/game/hud/Invites.tsx: the ticket in the HUD beside the bell — codes left to give, "PRIYA JOINED" when one is used — I, the INVITES button on your card, the pause menu, ?invites). Each slot is either the code with one COPY button (SHARE on phones), or "USED BY PRIYA SHARMA" once someone joined with it.
 - Touch and portrait versions of all of it.
-- Sign-in for returning members and applicants: "SIGN IN" on the gate, on the ghost bar (L; not signed in only) and in the pause menu. Magic link with shouldCreateUser off, so it never creates an account (unknown email → points to the ways in). After the return trip the person lands back on their profile or application status.
+- Sign-in for returning members and applicants: "SIGN IN" on the gate, on the ghost bar (L; not signed in only) and in the pause menu. An emailed code with shouldCreateUser off, so it never creates an account (unknown email → points to the ways in). Once the code is typed in, the person lands back on their profile or application status.
 - Quality bar: it must feel like a game screen, not a form (design.md).
 
 ## 5D-B — ACCESS DATA (Supabase, no payments) — built: supabase/migrations/20261003193100_access.sql
 
 - Invites table, settings table, user states, RLS. Codes are BLR- + 6 characters (no look-alike letters), so they can't be guessed.
 - check_invite(code): ok / invalid / used / expired / own + who vouched. Uses nothing up.
-- redeem_invite(code, profile): one transaction after the magic-link sign-in — the code is re-checked and used, the profile goes live (approved, no review), the new member gets their codes.
+- redeem_invite(code, profile): one transaction after the code sign-in — the code is re-checked and used, the profile goes live (approved, no review), the new member gets their codes.
 - Existing approved members get their codes. Founder codes (no owner, never expire until used or revoked) are made on /admin → INVITES: make N at a time with a label (who they're for), copy links, edit the label per code, track UNUSED / JOINED (who, role, when) / REVOKED, revoke a leaked code, export CSV (src/app/admin/InvitesAdmin.tsx; admin_issue_invites, admin_founder_invites, admin_set_invite_note, admin_revoke_invite in supabase/migrations/20261013121743_admin_invites.sql, each checks is_admin()). SQL fallback: select public.issue_invites(null, n).
 - "Apply to join" is open to everyone; it is the paid path (Phase 5E) — no free applications.
 - ?gatepreview runs every screen on local mocks (preview codes, all result states).
@@ -861,7 +861,7 @@ Sub-phases, in this order. Agreed exception: 5D-B started once the gate and both
 
 Payments, the admin review queue and the application emails now live in Phase 5E. Still owned here:
 
-- Email templates for the invite path (magic link).
+- Email templates for the invite path (sign-in code).
 
 Decided: both invites from day one.
 
@@ -881,14 +881,14 @@ The flow:
 
 ```
 THE GATE → Pay to apply
-   → email (confirmed by magic link)
+   → email (confirmed by an emailed code)
    → profile steps (same as the invite path)
    → THE APPLICATION: four questions
    → saved to Supabase (status: submitted)
    → payment (Dodo Payments)  → status: under review, still a ghost
    → admin decides
         ├─ ACCEPT  → profile approved, avatar goes live, email
-        └─ REJECT  → automatic refund (Dodo), email, still a ghost
+        └─ REJECT  → automatic refund (Dodo), still a ghost (no email from us)
 ```
 
 NOW (2026-10-13): one question only, WHY HERE?, with the question itself as the step title ("WHY DO YOU WANT TO BE IN THIS CITY OF FOUNDERS, DESIGNERS AND BUILDERS?"). The application is sent from that screen (SEND FOR REVIEW ▸); the fee step only returns when APPLICATIONS_FREE is false. The other three are gone: their columns were dropped on both databases (supabase/migrations/20261013170000_application_one_question.sql), and the admin card shows WHY HERE? only. The original four, for reference:
@@ -903,7 +903,7 @@ Rules:
 - Questions come after the profile, before payment. Nobody pays before they have answered.
 - Answers are only seen by the applicant and reviewers. Never shown in the city or on the nameplate.
 - Optional WhatsApp number on the email step (pay path only), so a reviewer can reach the applicant: normalised to +<country><number> (a bare 10-digit number is Indian), stored only on the application (applications.whatsapp, supabase/migrations/20261013160000_application_whatsapp.sql), shown on the admin card as a wa.me link. Same privacy as the answers: never copied to the profile, never shown in the city.
-- The draft (profile + answers) survives reloads and the magic-link round trip (localStorage), like 5B-A.
+- The draft (profile + answers) survives reloads and the sign-in (localStorage), like 5B-A.
 - Payments are Dodo Payments only.
 - RULE (6B): every screen works on touch and keyboard, including with the on-screen keyboard.
 - Quality bar: the questions feel like a game screen, not a form (design.md).
@@ -923,10 +923,10 @@ Rules:
 - Dodo Payments checkout once the application is saved. Payment is confirmed by a server-side Dodo webhook, never by the client → status under_review. Payment fails: retry, no review starts.
 - The admin page (admin.peopleofbengaluru.com, dev.admin.peopleofbengaluru.com for staging, /admin on previews and local; admins only): a queue of applications under review, each showing the profile card, the four answers and the "one thing" link. Two actions: ACCEPT or REJECT + REFUND, with an optional reason.
 - ACCEPT: profile status = approved (goes live), the member gets their invite codes (same as redeem_invite), approval email.
-- REJECT: refund through Dodo from the server, status refunded, email with the reason. Refund failure → refund_failed, shown on the admin page for retry.
+- REJECT: refund through Dodo from the server, status refunded. No email from us, by decision (2026-10-17); the reason stays on the admin page. Refund failure → refund_failed, shown on the admin page for retry.
 - No automatic refund when nobody decides: admins refund by hand, or the payment stands.
 - Applicant given an invite code while under review: may switch paths, payment refunded.
-- Emails: application received, approved, rejected + refunded.
+- Emails: application received, approved. None on rejection (Dodo sends its own refund email).
 
 Built:
 
@@ -1114,7 +1114,8 @@ Every email the product sends, in one place. All go through Resend.
 - New templates are made in the Resend dashboard (duplicate connect-request for the card design), given an alias, and published before the code that sends them ships.
 - Every variable a template uses must be sent, or Resend refuses the email. Renaming a variable in Resend means changing the code too. Resend inserts variables as-is (no escaping), in the subject and the body, so the server strips < and > from every value (they include member names). Never put a member-supplied variable inside an HTML attribute.
 - From and Subject are set on each template in Resend, not in code. The subject can use the template's variables. A template without a From can't be sent.
-- Auth emails (magic links) are sent by Supabase Auth, routed through Resend via custom SMTP, with the template pasted into Supabase (Auth → Email Templates) in the same visual style.
+- Auth emails (sign-in codes) are sent by Supabase Auth, routed through Resend via custom SMTP, with the template pasted into Supabase (Auth → Email Templates) in the same visual style.
+- Sign-in is by emailed code only (2026-10-17): every flow calls signInWithOtp without a redirect, then CodeEntry (src/game/hud/CodeEntry.tsx) checks the code with verifyOtp type 'email' (src/lib/otp.ts), which signs the tab in. Two Supabase templates carry {{ .Token }} and no link: Confirm signup (first sign-in of a new or unconfirmed account) and Magic Link (every other sign-in). Paste-ready copies of every email live locally in emails/resend and emails/supabase (git-ignored).
 
 Rules for every template:
 
@@ -1129,13 +1130,13 @@ Rules for every template:
 
 | # | Email | When | Status |
 |---|---|---|---|
-| 1 | Magic link: invite path | Code accepted, profile done; sign-in that redeems the code and puts you live | to do |
-| 2 | Magic link: pay path | Email confirmed before payment | to do |
-| 3 | Magic link: sign in | Returning member or applicant (SIGN IN on the gate / pause menu, shouldCreateUser off) | to do |
-| 4 | Magic link: Become Visible (5B) | Original onboarding sign-up flow | to do |
-| 5 | Magic link: admin sign-in | /admin login | to do |
+| 1 | Sign-in code: invite path | Code accepted, profile done; sign-in that redeems the code and puts you live | to do |
+| 2 | Sign-in code: pay path | Email confirmed before payment | to do |
+| 3 | Sign-in code: sign in | Returning member or applicant (SIGN IN on the gate / pause menu, shouldCreateUser off) | to do |
+| 4 | Sign-in code: Become Visible (5B) | Original onboarding sign-up flow | to do |
+| 5 | Sign-in code: admin sign-in | /admin login | to do |
 
-Supabase only has one magic-link template, so 1–5 share it; the wording must work for all of them (or pass context through the redirect and keep the copy neutral).
+1–5 share two Supabase templates (Confirm signup for a first sign-in, Magic Link for the rest), so the wording is neutral.
 
 ## Invites (Phase 5D)
 
@@ -1154,7 +1155,7 @@ No payment or refund emails from us. Dodo Payments sends the receipts, failed-pa
 |---|---|---|---|
 | 8 | Application received | Application sent for review (/api/apply/submit; while free, no sign-in first) | built; template application-received (NAME, LINK) |
 | 9 | Approved: you're live | ACCEPT on /admin (/api/admin/approve); mentions your invite codes; LINK is /?signin (opens the sign-in screen) | built; template application-approved (NAME, INVITES, LINK) |
-| 10 | Not this time | REJECT on /admin (/api/admin/reject), with the optional reason (the refund email comes from Dodo); not re-sent on RETRY REFUND | built; template application-rejected (NAME, REASON, LINK; REASON is the note in quotes, or "") |
+| 10 | Not this time | None, by decision (2026-10-17): a rejected applicant gets no email from us (Dodo still sends its refund email if they paid) | removed; template application-rejected deleted |
 | 11 | Admin: new application to review | Optional, to the reviewers | later |
 
 ## Connect (Phase 5G)

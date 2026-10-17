@@ -14,3 +14,6 @@ next-env.d.ts
 .claude/skills/
 .kiro/
 skills-lock.json
+
+# email templates to paste into Resend and Supabase, local only
+/emails/
