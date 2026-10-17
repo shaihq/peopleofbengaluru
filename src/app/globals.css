@@ -3793,7 +3793,7 @@ html.touch .find-chips {
   color: var(--saffron);
 }
 
-/* sign-in by emailed code (CodeEntry): one wide digit well + SIGN IN */
+/* sign-in by emailed code (CodeEntry): six slanted tiles over one real input */
 .code-entry {
   display: flex;
   flex-direction: column;
@@ -3801,14 +3801,184 @@ html.touch .find-chips {
   margin-top: 6px;
 }
 
-.code-row .code-input {
-  letter-spacing: 0.32em;
-  font-size: 28px;
-  font-variant-numeric: tabular-nums;
+.code-tiles {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  max-width: 420px;
+  padding: 2px 6px 6px;
+  cursor: text;
 }
 
-.code-row .code-input::placeholder {
-  letter-spacing: 0.16em;
+.code-tile {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 0.82;
+  background: var(--field);
+  box-shadow:
+    inset 0 -3px 0 var(--field-line),
+    0 4px 0 rgba(0, 0, 0, 0.45);
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(28px, 7vw, 40px);
+  font-weight: 800;
+  font-style: italic;
+  color: var(--cream);
+  transition:
+    box-shadow 0.12s,
+    background 0.12s,
+    translate 0.14s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+
+.code-tile--full {
+  background: var(--ink-soft);
+  box-shadow:
+    inset 0 -3px 0 rgba(255, 246, 229, 0.5),
+    0 4px 0 rgba(0, 0, 0, 0.45);
+}
+
+.code-tile--full > span {
+  animation: code-digit-in 0.16s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+/* the tile you're typing into */
+.code-tile--on {
+  box-shadow:
+    inset 0 -4px 0 var(--saffron),
+    0 4px 0 rgba(0, 0, 0, 0.45);
+  translate: 0 -2px; /* not transform: the tile keeps its slant */
+}
+
+.code-tile--on:not(.code-tile--full)::after {
+  content: "";
+  width: 3px;
+  height: 46%;
+  background: var(--saffron);
+  animation: code-caret 1s steps(1) infinite;
+}
+
+.code-tiles--wrong .code-tile,
+.code-tiles--error .code-tile {
+  box-shadow:
+    inset 0 -4px 0 var(--action),
+    0 4px 0 rgba(0, 0, 0, 0.45);
+}
+
+.code-tiles--checking .code-tile {
+  opacity: 0.6;
+}
+
+/* signed in: the tiles stamp green, left to right */
+.code-tiles--ok .code-tile {
+  background: var(--open);
+  color: var(--ink);
+  box-shadow: 0 4px 0 #1f8a50;
+  animation: code-stamp 0.32s cubic-bezier(0.2, 1.6, 0.4, 1) backwards;
+  animation-delay: calc(var(--i) * 45ms);
+}
+
+.code-tiles--shake0 {
+  animation: code-shake-a 0.34s cubic-bezier(0.3, 0, 0.3, 1);
+}
+
+.code-tiles--shake1 {
+  animation: code-shake-b 0.34s cubic-bezier(0.3, 0, 0.3, 1);
+}
+
+/* the real input: invisible, covering the tiles, so typing, paste and code autofill all land in it */
+.code-real {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px; /* no zoom-on-focus on iPhone */
+  cursor: text;
+  user-select: text;
+}
+
+.code-status {
+  min-height: 20px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 246, 229, 0.65);
+}
+
+.code-status--checking {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: var(--saffron);
+}
+
+.code-status--ok {
+  font-family: var(--font-display), sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: var(--open);
+}
+
+.code-status--wrong,
+.code-status--error {
+  color: #ffb4a3;
+}
+
+@keyframes code-digit-in {
+  from {
+    transform: translateY(6px) scale(0.7);
+    opacity: 0;
+  }
+}
+
+@keyframes code-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes code-stamp {
+  from {
+    scale: 0.82;
+  }
+}
+
+@keyframes code-shake-a {
+  25% {
+    transform: translateX(-7px);
+  }
+  60% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes code-shake-b {
+  25% {
+    transform: translateX(-7px);
+  }
+  60% {
+    transform: translateX(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code-tile,
+  .code-tile > span,
+  .code-tiles {
+    animation: none !important;
+    transition: none;
+  }
+
+  .code-tile--on {
+    translate: none;
+  }
 }
 
 .code-resend {
