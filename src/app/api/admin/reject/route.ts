@@ -1,10 +1,8 @@
-import { after } from 'next/server'
-import { emailDecision, getApplication, rejectAndRefund } from '@/lib/server/applications'
-import { siteOrigin } from '@/lib/server/env'
+import { getApplication, rejectAndRefund } from '@/lib/server/applications'
 import { isAdmin, json, userFrom } from '@/lib/server/supabaseAdmin'
 
 // REJECT + REFUND from the admin page, and RETRY REFUND for refund_failed (CLAUDE.md 5E-B).
-// ACCEPT is /api/admin/approve. Both send the decision email.
+// ACCEPT is /api/admin/approve (it sends the "you're in" email). A rejection sends no email from us, by decision.
 
 export async function POST(req: Request) {
   const user = await userFrom(req)
@@ -19,10 +17,5 @@ export async function POST(req: Request) {
 
   const note = (reason ?? app.reason ?? '').trim()
   const r = await rejectAndRefund(app, note, user.id)
-  // the first decision only: RETRY REFUND on refund_failed doesn't email them again
-  if (app.status !== 'refund_failed') {
-    const origin = siteOrigin(req)
-    after(() => emailDecision(app, false, origin, note).catch((e) => console.error('[admin] reject email', e)))
-  }
   return json(r, r.ok ? 200 : 502)
 }

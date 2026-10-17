@@ -7,7 +7,8 @@ const key = process.env.SUPABASE_PUBLISHABLE_KEY
 export const supabase: SupabaseClient | null =
   url && key
     ? createClient(url, key, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
+        // sign-in is by emailed code only (src/lib/otp.ts): a link in the URL never signs anyone in
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: 'pkce' },
       })
     : null
 

@@ -22,7 +22,7 @@ function refreshConnect() {
   void startChat()
 }
 
-/** True once, right after a sign-in link sent from the sign-in screen comes back. */
+/** True once, right after signing in with a code sent from the sign-in screen. */
 function takeSignin() {
   try {
     if (!localStorage.getItem(SIGNIN_KEY)) return false
@@ -33,7 +33,7 @@ function takeSignin() {
   }
 }
 
-/** Keeps auth + the people directory in sync; finishes a profile after the magic-link round trip. */
+/** Keeps auth + the people directory in sync; finishes a profile once the emailed code signs you in. */
 export function Session() {
   useEffect(() => {
     refreshDirectory()

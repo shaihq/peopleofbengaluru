@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import { getPeople, useDirectory } from './people/directory'
-import { redeemInvite, sendApplication, sendMagicLink, submitApplication, useOnboarding } from './onboarding'
+import { redeemInvite, sendApplication, sendEmailCode, submitApplication, useOnboarding } from './onboarding'
 import { APPLICATIONS_FREE } from '@/lib/apply'
 import { useGame } from './store'
 
@@ -40,9 +40,9 @@ const appliedHere = () => {
   }
 }
 
-/** Set while a sign-in link is out, so the return trip can say welcome back (Session.tsx). */
+/** Set while a sign-in code is out, so signing in can say welcome back (Session.tsx). */
 export const SIGNIN_KEY = 'pob.signin'
-/** inbox: invite link sent · confirm: applicant confirms email · saved: application in, unpaid */
+/** inbox: invite path, code sent · confirm: applicant confirms email · saved: application in, unpaid */
 export type Result = 'inbox' | 'confirm' | 'saved' | 'review' | 'rejected' | 'approved'
 
 export type CodeState = 'idle' | 'checking' | 'ok' | 'invalid' | 'used' | 'expired' | 'own' | 'error'
@@ -111,7 +111,7 @@ type Access = {
   pay: () => Promise<void>
   /** Back from the checkout (?payment_id=…): ask the server what Dodo says. */
   confirmPayment: (paymentId: string) => Promise<void>
-  /** Existing account only: email a sign-in link. */
+  /** Existing account only: email a sign-in code. */
   signIn: (email: string) => Promise<void>
 }
 
@@ -177,7 +177,7 @@ export const useAccess = create<Access>((set, get) => ({
     })
   },
 
-  // invite → signed in: use the code now · otherwise: email the link, use the code on return
+  // invite → signed in: use the code now · otherwise: email a sign-in code, use the invite once it's typed in
   finish: async () => {
     const { path, code } = get()
     if (GATE_MOCK) {
@@ -204,7 +204,7 @@ export const useAccess = create<Access>((set, get) => ({
         return set({ stage: 'result', result: 'review', status: 'review' })
       }
       ob.patch({ pendingApply: true, pendingInvite: '' })
-      await sendMagicLink(ob.draft.email)
+      await sendEmailCode(ob.draft.email)
       if (useOnboarding.getState().mail === 'sent') set({ stage: 'result', result: 'confirm' })
       return
     }
@@ -220,7 +220,7 @@ export const useAccess = create<Access>((set, get) => ({
       }
       return
     }
-    await sendMagicLink(ob.draft.email)
+    await sendEmailCode(ob.draft.email)
     if (useOnboarding.getState().mail === 'sent') set({ stage: 'result', result: 'inbox' })
   },
 
@@ -304,7 +304,7 @@ export const useAccess = create<Access>((set, get) => ({
   // Sign-in never creates an account: new people come in through the gate.
   signIn: async (email) => {
     const e = email.trim()
-    // each new link cancels the last: never send a second while one is on its way
+    // each new code cancels the last: never send a second while one is on its way
     if (get().signin === 'sending') return
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return set({ signin: 'bad' })
     set({ signin: 'sending' })
@@ -315,10 +315,7 @@ export const useAccess = create<Access>((set, get) => ({
     if (!supabase) return set({ signin: 'error' })
     // a plain sign-in must not finish some half-done flow from an earlier visit
     useOnboarding.getState().patch({ pendingSubmit: false, pendingApply: false, pendingInvite: '' })
-    const { error } = await supabase.auth.signInWithOtp({
-      email: e,
-      options: { emailRedirectTo: window.location.origin, shouldCreateUser: false },
-    })
+    const { error } = await supabase.auth.signInWithOtp({ email: e, options: { shouldCreateUser: false } })
     if (error) {
       const unknown = error.code === 'otp_disabled' || /signups not allowed/i.test(error.message)
       return set({ signin: unknown ? 'unknown' : 'error' })
